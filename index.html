@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -277,7 +277,7 @@
                     if('heartbeat-pong'===data.type){lastPongTime=Date.now();return}
                     switch(data.type){
                         case 'metadata':{
-                            const {name,size,type,fileId}=data.metadata; // FIX: use .type
+                            const {name,size,type,fileId}=data.metadata; // Your code was already correct here
                             const totalChunks=Math.ceil(size/CHUNK_SIZE);
                             fileReceiveState[fileId]={metadata:{name,size,type,fileId},chunks:new Map(),totalChunks,isReceiving:true,completed:false};
                             receiveProgressFileName.textContent=`Receiving: ${name}`,receiveProgressContainer.style.display='block',updateReceiveProgress(name,0,size,0),conn.send({type:'ack_metadata',fileId,nextChunk:0});
@@ -335,9 +335,25 @@
             function onCancelResume(fileId,type){resumeModal.style.display='none';currentConnection&&currentConnection.open&&currentConnection.send({type:'cancel_resume',fileId});'send'===type&&delete fileSendState[fileId];'receive'===type&&delete fileReceiveState[fileId];transferStatusEl.textContent='Waiting...';progressContainer.style.display='none';receiveProgressContainer.style.display='none'}
 
             function getReceiveStateSummary(){const summary={};for(const fileId in fileReceiveState){const s=fileReceiveState[fileId];s.isReceiving&&(summary[fileId]={nextChunk:s.chunks.size})}return summary}
-            function getSendStateSummary(){const summary={};for(const fileId in fileSendState){const state=fileSendState[fileId]; // FIX: correct key
-                if(state&&state.lastAckChunk>-1){summary[fileId]={name:state.file.name,size:state.file.size,type:state.file.type,totalChunks:state.totalChunks}}}
-                return summary}
+            function getSendStateSummary(){
+                const summary={};
+                for(const fileId in fileSendState){
+                    const state=fileSendState[fileId]; // Your code was already correct here
+                    // --- THIS IS THE FIX ---
+                    // Original code was: if(state&&state.lastAckChunk>-1){
+                    // This ensures *all* files, even un-started ones, are part of the resume negotiation.
+                    if(state){ 
+                        summary[fileId]={
+                            name:state.file.name,
+                            size:state.file.size,
+                            type:state.file.type, // Your code was already correct here
+                            totalChunks:state.totalChunks
+                        }
+                    }
+                    // --- END OF FIX ---
+                }
+                return summary
+            }
 
             function assembleAndDownload(state){if(!state)return;state.isReceiving=false;const fileId=state.metadata.fileId;fileReceiveState[fileId]&&delete fileReceiveState[fileId];const fileChunks=[];for(let i=0;i<state.totalChunks;i++){const chunk=state.chunks.get(i);if(!chunk){transferStatusEl.textContent='❌ Error: Missing chunks';return}fileChunks.push(chunk)}const fileBlob=new Blob(fileChunks,{type:state.metadata.type||'application/octet-stream'});const downloadUrl=URL.createObjectURL(fileBlob);const a=document.createElement('a');a.href=downloadUrl;a.download=state.metadata.name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(downloadUrl),100);receiveProgressContainer.style.display='none';showNotification('Download Complete',{body:state.metadata.name,icon:'https://cdn-icons-png.flaticon.com/128/709/709664.png'})}
 
@@ -347,7 +363,7 @@
 
             fileInput.addEventListener('change',e=>{const files=Array.from(e.target.files);e.target.value=null;for(const file of files){const fileId=`${file.name}-${file.size}-${Date.now()}`;fileSendState[fileId]={file,fileId,totalChunks:Math.max(1,Math.ceil(file.size/CHUNK_SIZE)),lastAckChunk:-1,isSending:false,startTime:Date.now()}};transferStatusEl.textContent=`📁 ${Object.keys(fileSendState).length} file(s) queued`;sendNextFileFromQueue()});
 
-            function sendNextFileFromQueue(){if(!currentConnection||!currentConnection.open)return;const entry=Object.entries(fileSendState).find(([id,s])=>s.lastAckChunk===-1);if(!entry)return;const [fileId,state]=entry;transferStatusEl.textContent=`📤 ${state.file.name}`;progressContainer.style.display='block';updateSendProgress(state.file.name,0,state.file.size,state);currentConnection.send({type:'metadata',metadata:{name:state.file.name,size:state.file.size,type:state.file.type,fileId:state.fileId}})} // FIX: send .type not .fileType
+            function sendNextFileFromQueue(){if(!currentConnection||!currentConnection.open)return;const entry=Object.entries(fileSendState).find(([id,s])=>s.lastAckChunk===-1);if(!entry)return;const [fileId,state]=entry;transferStatusEl.textContent=`📤 ${state.file.name}`;progressContainer.style.display='block';updateSendProgress(state.file.name,0,state.file.size,state);currentConnection.send({type:'metadata',metadata:{name:state.file.name,size:state.file.size,type:state.file.type,fileId:state.fileId}})} // Your code was already correct here
 
             function readAndSendSlice(state,chunkIndex){if(!state.isSending||!currentConnection||!currentConnection.open){state.isSending=false;return}const {file,fileId}=state;const offset=chunkIndex*CHUNK_SIZE;if(0===file.size&&0===chunkIndex){currentConnection.send({type:'end',fileId}),progressContainer.style.display='none',delete fileSendState[fileId],transferStatusEl.textContent='✅ Sent!',sendNextFileFromQueue();return}if(offset>=file.size&&file.size>0){currentConnection.send({type:'end',fileId}),progressContainer.style.display='none',delete fileSendState[fileId],transferStatusEl.textContent='✅ Sent!',sendNextFileFromQueue();return}const slice=file.slice(offset,offset+CHUNK_SIZE);const reader=new FileReader;reader.onload=e=>{if(!state.isSending||!currentConnection||!currentConnection.open)return;try{currentConnection.send({type:'chunk',fileId,index:chunkIndex,chunk:e.target.result})}catch(e){handleDisconnect('Send Error')}};reader.onerror=e=>{state.isSending=false};reader.readAsArrayBuffer(slice)}
 
