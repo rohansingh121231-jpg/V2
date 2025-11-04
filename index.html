@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>QR Send v2 - (File Resume)</title>
+    <title>QR Send v3 - (Resume/Cancel Prompt)</title>
     
     <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
@@ -718,6 +718,82 @@
             box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
         }
 
+        /* --- NAYA v3: Resume Prompt Modal --- */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 20000;
+            display: none; /* Default hidden */
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px var(--shadow);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            animation: slideUp 0.3s ease;
+        }
+
+        .modal-content h3 {
+            font-size: 18px;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .modal-content p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            word-wrap: break-word; /* Lambe file name ke liye */
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        #resume-btn {
+            background: var(--success);
+            color: white;
+        }
+        #resume-btn:hover {
+            transform: scale(1.05);
+        }
+
+        #cancel-resume-btn {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        #cancel-resume-btn:hover {
+            background: var(--error);
+            color: white;
+            border-color: var(--error);
+        }
+        /* --- END v3 Modal --- */
+
+
         @media (max-width: 600px) {
             body {
                 padding: 10px;
@@ -840,9 +916,22 @@
         </div>
     </div>
 
+    <!-- NAYA v3: Resume Prompt Modal HTML -->
+    <div class="modal-backdrop" id="resume-modal">
+        <div class="modal-content">
+            <h3>Connection Interrupted</h3>
+            <p>Paused file transfer for: <strong id="resume-file-name">filename.zip</strong></p>
+            <div class="modal-buttons">
+                <button class="modal-button" id="cancel-resume-btn">❌ Cancel Transfer</button>
+                <button class="modal-button" id="resume-btn">🔄 Resume</button>
+            </div>
+        </div>
+    </div>
+    <!-- END v3 Modal -->
+
     <div class="container">
         <header>
-            <h1>QR Send Pro v2</h1> <!-- v2 Title -->
+            <h1>QR Send Pro v3</h1> <!-- v3 Title -->
             <div id="status">Starting...</div>
         </header>
         
@@ -1088,10 +1177,10 @@
         }
 
 
-        // --- V2: NAYA FILE RESUME LOGIC SHURU ---
+        // --- V3: NAYA ROBUST FILE RESUME LOGIC SHURU ---
 
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 App v2 (Resume Enabled) initialized');
+            console.log('🚀 App v3 (Prompt Resume) initialized');
             
             // Sabhi UI elements ko chuna
             const statusEl = document.getElementById('status');
@@ -1121,6 +1210,12 @@
             const receiveProgressSize = document.getElementById('receive-progress-size');
             const receiveProgressFileName = document.getElementById('receive-progress-file-name');
 
+            // --- NAYA v3: Resume Modal UI ---
+            const resumeModal = document.getElementById('resume-modal');
+            const resumeFileName = document.getElementById('resume-file-name');
+            const resumeBtn = document.getElementById('resume-btn');
+            const cancelResumeBtn = document.getElementById('cancel-resume-btn');
+
             // Global variables
             const CHUNK_SIZE = 64 * 1024; // 64 KB
             let peer = null;
@@ -1131,7 +1226,8 @@
             let targetPeerId = null; // Client ke liye reconnect karne ke liye
             let reconnectInterval = null; // Reconnect interval timer
             let heartbeatInterval = null;
-            let isConnectedOnce = false; // *** NAYA BUG FIX (Go to Host) ***
+            let lastPongTime = 0; // NAYA v3: Heartbeat ke liye
+            let isConnectedOnce = false; 
 
             // Naya State Management
             let fileSendState = {}; // Bhej ne waali files ka state
@@ -1225,17 +1321,13 @@
                 peer.on('connection', (conn) => {
                     console.log(`📡 Incoming connection from ${conn.peer}`);
                     
-                    // --- NAYA RECONNECT FIX ---
-                    // Agar naya connection usi peer se hai jo pehle se connected hai,
-                    // toh puraane ko band karein aur naye ko accept karein.
+                    // --- NAYA RECONNECT FIX (v2 se) ---
                     if (currentConnection && currentConnection.peer === conn.peer) {
                         console.log(`⚠ Reconnection detected from ${conn.peer}. Closing old connection.`);
-                        currentConnection.close(); // Puraane, toote hue connection ko band karein
+                        currentConnection.close(); 
                         currentConnection = null;
                     } 
-                    // --- END FIX ---
                     
-                    // Agar (fix ke baad) abhi bhi koi aur connection active hai, toh reject karein
                     if (currentConnection && currentConnection.open) {
                         console.log(`⚠ Already connected to ${currentConnection.peer}. Rejecting new connection from ${conn.peer}.`);
                         conn.close();
@@ -1250,7 +1342,8 @@
                 peer.on('error', (err) => {
                     console.error('❌ Peer error:', err.type);
                     if (err.type === 'server-error' || err.type === 'socket-error' || err.type === 'network') {
-                        statusEl.textContent = '❌ Server Disconnected';
+                        // NAYA v3: UI ko theek se update karein
+                        statusEl.textContent = '⚠️ Connection Lost... Reconnecting...';
                         handleDisconnect('Server Error'); // Naya disconnect logic
                     } else if (err.type === 'peer-unavailable' && !isHost) {
                         statusEl.textContent = '❌ Peer not found';
@@ -1261,7 +1354,7 @@
 
             // Naya Reconnect Logic
             function startReconnectInterval() {
-                if (reconnectInterval || isHost) return; // Host reconnect nahi karta, woh wait karta hai
+                if (reconnectInterval || isHost) return; 
                 console.log('Starting reconnect interval...');
                 statusEl.textContent = '⚠️ Connection Lost... Reconnecting...';
 
@@ -1292,7 +1385,6 @@
             }
             
             function showSwitchButton() {
-                // *** NAYA BUG FIX: Agar ek baar bhi connect ho chuke hain, toh yeh button na dikhaayein ***
                 if (document.getElementById('switch-mode-btn') || isConnectedOnce) return;
 
                 const btn = document.createElement('button');
@@ -1331,13 +1423,11 @@
                 
                 conn.on('close', () => {
                     console.log('⚠ Connection closed.');
-                    // Naya logic: close par 'handleDisconnect' call karein
                     handleDisconnect('Closed');
                 });
             }
 
             function setupConnection(conn, isReconnect) {
-                // Pehle se agar koi connection hai (jo shayad 'close' event nahi bheja), usey band karein
                 if (currentConnection && currentConnection.peer !== conn.peer) {
                     console.log(`Cleaning up old connection to ${currentConnection.peer}`);
                     currentConnection.close();
@@ -1345,8 +1435,8 @@
                 
                 currentConnection = conn;
                 window.APP_CONNECTION = conn;
-                stopReconnectInterval(); // Reconnect safal hua
-                isConnectedOnce = true; // *** NAYA BUG FIX (Go to Host) ***
+                stopReconnectInterval(); 
+                isConnectedOnce = true; 
                 
                 statusEl.textContent = '🔐 Connected!';
                 fileInput.disabled = false;
@@ -1359,82 +1449,76 @@
                 const switchBtn = document.getElementById('switch-mode-btn');
                 if (switchBtn) switchBtn.remove();
                 
-                if (isHost) startHeartbeat();
+                // NAYA v3: Dono taraf heartbeat shuru karein
+                startHeartbeat();
 
                 if (isReconnect) {
                     console.log('✓ Reconnected! Negotiating resume...');
-                    // Dono taraf se resume negotiate karein
                     conn.send({ type: 'negotiate_resume', sendState: getSendStateSummary(), receiveState: getReceiveStateSummary() });
                 } else {
                     showConnectionAnimation();
                 }
 
-                // *** NAYA DATA HANDLER (RESUME LOGIC KE SAATH) ***
+                // *** NAYA v3 DATA HANDLER (Resume Prompt ke saath) ***
                 conn.on('data', (data) => {
-                    // Heartbeat
+                    
+                    // --- NAYA v3: Heartbeat Logic ---
                     if (data.type === 'heartbeat-ping') {
                         conn.send({ type: 'heartbeat-pong' });
                         return;
                     }
-                    if (data.type === 'heartbeat-pong') return;
-                    if (data.type === 'ready') return; // Puraana logic
+                    if (data.type === 'heartbeat-pong') {
+                        lastPongTime = Date.now(); // Pong mil gaya, timer reset
+                        return;
+                    }
+                    // --- END Heartbeat ---
+
 
                     // File transfer logic
                     switch (data.type) {
-                        // 1. Receiver ko file ke baare mein pata chala
                         case 'metadata': {
                             const { name, size, type, fileId } = data.metadata;
                             fileReceiveState[fileId] = {
                                 metadata: { name, size, type, fileId },
-                                chunks: new Map(), // Chunks ko index se store karein
+                                chunks: new Map(), 
                                 totalChunks: Math.ceil(size / CHUNK_SIZE),
                                 isReceiving: true
                             };
                             console.log(`Receiving metadata for: ${name} (ID: ${fileId})`);
                             receiveProgressFileName.textContent = `Receiving: ${name}`;
                             receiveProgressContainer.style.display = 'block';
-                            updateReceiveProgress(name, 0, size, 0); // Progress 0% dikhayein
+                            updateReceiveProgress(name, 0, size, 0); 
                             conn.send({ type: 'ack_metadata', fileId: fileId, nextChunk: 0 });
                             break;
                         }
 
-                        // 2. Receiver ko file ka tukda (chunk) mila
                         case 'chunk': {
                             const { fileId, index, chunk } = data;
                             const state = fileReceiveState[fileId];
                             if (!state || state.chunks.has(index)) {
-                                // Agar state nahi hai ya chunk pehle se hai, toh ACK bhej dein
                                 if(state) conn.send({ type: 'ack_chunk', fileId: fileId, nextChunk: state.chunks.size });
                                 return;
                             }
 
                             state.chunks.set(index, chunk);
-                            // Sahi received bytes calculate karein
                             let receivedBytes = 0;
                             state.chunks.forEach((c) => receivedBytes += c.byteLength);
                             
                             const totalSize = state.metadata.size;
-                            // Sahi percent calculate karein (chunk count se)
                             const percent = Math.round((state.chunks.size / state.totalChunks) * 100);
                             
-                            // Dono ko update karein
-                            // receivedBytes ko totalSize se zyada na jaane dein (aakhiri chunk ke liye)
                             updateReceiveProgress(state.metadata.name, Math.min(receivedBytes, totalSize), totalSize, percent);
 
-                            // Check karein ki poori file aa gayi
                             if (state.chunks.size === state.totalChunks) {
                                 console.log(`✓ File ${state.metadata.name} received completely.`);
                                 assembleAndDownload(state);
-                                // Note: assembleAndDownload ab state ko delete kar dega
                                 transferStatusEl.textContent = '✅ Received!';
                             } else {
-                                // Agle chunk ka request karein
                                 conn.send({ type: 'ack_chunk', fileId: fileId, nextChunk: state.chunks.size });
                             }
                             break;
                         }
 
-                        // 3. Sender ko metadata ka ACK mila
                         case 'ack_metadata': {
                             const { fileId, nextChunk } = data;
                             const state = fileSendState[fileId];
@@ -1442,57 +1526,45 @@
                                 console.log(`✓ Metadata ACK for ${state.file.name}. Starting upload from chunk ${nextChunk}`);
                                 state.isSending = true;
                                 state.lastAckChunk = nextChunk - 1;
-                                state.startTime = Date.now(); // ETA ke liye start time reset karein
+                                state.startTime = Date.now(); 
                                 readAndSendSlice(state, nextChunk);
                             }
                             break;
                         }
 
-                        // 4. Sender ko chunk ka ACK mila
                         case 'ack_chunk': {
                             const { fileId, nextChunk } = data;
                             const state = fileSendState[fileId];
                             if (state && state.isSending) {
                                 state.lastAckChunk = nextChunk - 1;
-                                // Sahi sent bytes calculate karein (chunk count se)
                                 const sentBytes = nextChunk * CHUNK_SIZE;
-                                
-                                // sentBytes ko file size se zyada na jaane dein (aakhiri chunk ke liye)
                                 const displayBytes = Math.min(sentBytes, state.file.size);
                                 updateSendProgress(state.file.name, displayBytes, state.file.size);
 
                                 if (nextChunk < state.totalChunks) {
-                                    // Agla chunk bhej
                                     readAndSendSlice(state, nextChunk);
                                 } else {
-                                    // File poori bhej di
                                     console.log(`✓ File ${state.file.name} sent completely.`);
                                     conn.send({ type: 'end', fileId: fileId });
                                     progressContainer.style.display = 'none';
                                     delete fileSendState[fileId];
                                     transferStatusEl.textContent = '✅ Sent!';
-                                    sendNextFileFromQueue(); // Agli file (agar hai toh)
+                                    sendNextFileFromQueue(); 
                                 }
                             }
                             break;
                         }
 
-                        // 5. File transfer poora hua
                         case 'end': {
                             const { fileId } = data;
                             const state = fileReceiveState[fileId];
-                            // Check karein ki state hai aur poore chunks aa chuke hain
                             if (state && state.chunks.size === state.totalChunks) {
                                 console.log(`✓ Received END signal for ${state.metadata.name}.`);
                                 assembleAndDownload(state);
-                                // Note: assembleAndDownload ab state ko delete kar dega
-                            } else if (state) {
-                                console.warn(`Received END signal for ${state.metadata.name}, but chunks are incomplete!`);
                             }
                             break;
                         }
                         
-                        // 6. Connection cancel hua
                         case 'cancel': {
                             const { fileId } = data;
                             console.log(`Transfer cancelled for ${fileId}`);
@@ -1511,54 +1583,30 @@
                             break;
                         }
 
-                        // 7. Reconnect hone par negotiation
+                        // --- NAYA v3: Resume/Cancel Logic ---
                         case 'negotiate_resume': {
                             console.log('Negotiating resume...', data);
                             
-                            // Sender side logic
+                            // Sender: Check karein ki receiver ko file resume karni hai
                             for (const fileId in data.receiveState) {
                                 const localSendState = fileSendState[fileId];
                                 const remoteNextChunk = data.receiveState[fileId].nextChunk;
-
-                                if (localSendState) { 
-                                    console.log(`Resuming send for ${localSendState.file.name} from chunk ${remoteNextChunk}`);
-                                    localSendState.isSending = true; // Force sending state
-                                    
-                                    // *** NAYA UI BUG FIX: Progress bar dikhayein aur update karein ***
-                                    progressContainer.style.display = 'block';
-                                    const sentBytes = remoteNextChunk * CHUNK_SIZE;
-                                    const displayBytes = Math.min(sentBytes, localSendState.file.size);
-                                    updateSendProgress(localSendState.file.name, displayBytes, localSendState.file.size);
-                                    // *** END UI BUG FIX ***
-
-                                    readAndSendSlice(localSendState, remoteNextChunk);
+                                if (localSendState && !localSendState.isSending) { 
+                                    console.log(`Prompting sender to resume: ${localSendState.file.name}`);
+                                    showResumePrompt(fileId, localSendState, 'send', remoteNextChunk);
                                 }
                             }
                             
-                            // Receiver side logic
+                            // Receiver: Check karein ki sender file resume karna chahta hai
                             for (const fileId in data.sendState) {
                                 const localReceiveState = fileReceiveState[fileId];
                                 const remoteFileInfo = data.sendState[fileId];
-
-                                if (localReceiveState) {
-                                    // Receiver ke paas file pehle se hai, resume karein
-                                    const nextChunk = localReceiveState.chunks.size;
-                                    console.log(`Resuming receive for ${localReceiveState.metadata.name}. Requesting chunk ${nextChunk}`);
-                                    localReceiveState.isReceiving = true;
-                                    
-                                    // *** NAYA UI BUG FIX: Progress bar dikhayein aur update karein ***
-                                    receiveProgressContainer.style.display = 'block';
-                                    let receivedBytes = 0;
-                                    localReceiveState.chunks.forEach((c) => receivedBytes += c.byteLength);
-                                    const totalSize = localReceiveState.metadata.size;
-                                    const percent = Math.round((localReceiveState.chunks.size / localReceiveState.totalChunks) * 100);
-                                    updateReceiveProgress(localReceiveState.metadata.name, Math.min(receivedBytes, totalSize), totalSize, percent);
-                                    // *** END UI BUG FIX ***
-
-                                    conn.send({ type: 'ack_chunk', fileId: fileId, nextChunk: nextChunk });
-
-                                } else {
-                                    // Metadata miss ho gaya tha, naya file receive shuru karein
+                                if (localReceiveState && localReceiveState.isReceiving) {
+                                    console.log(`Prompting receiver to resume: ${localReceiveState.metadata.name}`);
+                                    showResumePrompt(fileId, localReceiveState, 'receive');
+                                } else if (!localReceiveState && remoteFileInfo) {
+                                    // Metadata miss ho gaya tha
+                                    console.log(`Auto-accepting missed metadata for: ${remoteFileInfo.name}`);
                                     const metadata = {
                                         name: remoteFileInfo.name,
                                         size: remoteFileInfo.size,
@@ -1566,29 +1614,104 @@
                                         fileId: fileId
                                     };
                                     fileReceiveState[fileId] = {
-                                        metadata: metadata,
-                                        chunks: new Map(),
-                                        totalChunks: remoteFileInfo.totalChunks,
-                                        isReceiving: true
+                                        metadata: metadata, chunks: new Map(),
+                                        totalChunks: remoteFileInfo.totalChunks, isReceiving: true
                                     };
-                                    console.log(`Receiving missed metadata for ${metadata.name}`);
-
-                                    // *** NAYA UI BUG FIX: Progress bar dikhayein (0% par) ***
                                     receiveProgressContainer.style.display = 'block';
                                     updateReceiveProgress(metadata.name, 0, metadata.size, 0);
-                                    // *** END UI BUG FIX ***
-
                                     conn.send({ type: 'ack_metadata', fileId: fileId, nextChunk: 0 });
                                 }
                             }
                             break;
                         }
+                        
+                        case 'cancel_resume': {
+                            const { fileId } = data;
+                            console.log(`Resume cancelled for ${fileId} by other user.`);
+                            // Dono side se file state clean karein
+                            if (fileSendState[fileId]) delete fileSendState[fileId];
+                            if (fileReceiveState[fileId]) delete fileReceiveState[fileId];
+                            
+                            // UI reset karein
+                            progressContainer.style.display = 'none';
+                            receiveProgressContainer.style.display = 'none';
+                            resumeModal.style.display = 'none';
+                            transferStatusEl.textContent = 'Waiting...';
+                            break;
+                        }
+                        // --- END v3 ---
                     }
                 });
 
                 conn.on('close', () => handleDisconnect('Closed'));
                 conn.on('error', (err) => handleDisconnect('Error: ' + err.type));
             }
+
+            // --- NAYA v3: Resume Prompt Functions ---
+            function showResumePrompt(fileId, state, type, nextChunk = 0) {
+                // Pehle se khule modal ko band karein
+                resumeModal.style.display = 'none';
+
+                const fileName = (type === 'send') ? state.file.name : state.metadata.name;
+                const totalSize = (type === 'send') ? state.file.size : state.metadata.size;
+                const currentBytes = (type === 'send') ? (nextChunk * CHUNK_SIZE) : (state.chunks.size * CHUNK_SIZE);
+
+                console.log(`Showing resume prompt for ${fileName} (${type})`);
+                resumeFileName.textContent = `${fileName} (${formatBytes(currentBytes)} / ${formatBytes(totalSize)})`;
+                
+                resumeBtn.onclick = () => onResume(fileId, state, type, nextChunk);
+                cancelResumeBtn.onclick = () => onCancelResume(fileId, type);
+                
+                resumeModal.style.display = 'flex';
+            }
+
+            function onResume(fileId, state, type, nextChunk) {
+                resumeModal.style.display = 'none';
+                if (!currentConnection || !currentConnection.open) {
+                     handleDisconnect('Cannot resume, connection lost');
+                     return;
+                }
+
+                if (type === 'send') {
+                    console.log(`Resuming send for ${state.file.name} from chunk ${nextChunk}`);
+                    state.isSending = true;
+                    progressContainer.style.display = 'block';
+                    const sentBytes = nextChunk * CHUNK_SIZE;
+                    updateSendProgress(state.file.name, Math.min(sentBytes, state.file.size), state.file.size);
+                    readAndSendSlice(state, nextChunk);
+                
+                } else if (type === 'receive') {
+                    const nextChunkToRequest = state.chunks.size;
+                    console.log(`Resuming receive for ${state.metadata.name}. Requesting chunk ${nextChunkToRequest}`);
+                    state.isReceiving = true;
+                    receiveProgressContainer.style.display = 'block';
+                    let receivedBytes = 0;
+                    state.chunks.forEach((c) => receivedBytes += c.byteLength);
+                    const totalSize = state.metadata.size;
+                    const percent = Math.round((state.chunks.size / state.totalChunks) * 100);
+                    updateReceiveProgress(state.metadata.name, Math.min(receivedBytes, totalSize), totalSize, percent);
+                    
+                    currentConnection.send({ type: 'ack_chunk', fileId: fileId, nextChunk: nextChunkToRequest });
+                }
+            }
+
+            function onCancelResume(fileId, type) {
+                resumeModal.style.display = 'none';
+                console.log(`Cancelling resume for ${fileId}`);
+                
+                if (currentConnection && currentConnection.open) {
+                    currentConnection.send({ type: 'cancel_resume', fileId: fileId });
+                }
+                
+                if (type === 'send') delete fileSendState[fileId];
+                if (type === 'receive') delete fileReceiveState[fileId];
+                
+                transferStatusEl.textContent = 'Waiting...';
+                progressContainer.style.display = 'none';
+                receiveProgressContainer.style.display = 'none';
+            }
+            // --- END v3 Prompt Functions ---
+
 
             function getReceiveStateSummary() {
                 const summary = {};
@@ -1615,19 +1738,16 @@
                 return summary;
             }
 
-
             function assembleAndDownload(state) {
                 if (!state) return;
                 state.isReceiving = false;
                 
-                // Ek baar file assemble ho jaaye, toh receive state se nikaal dein
                 const fileId = state.metadata.fileId;
                 if (fileReceiveState[fileId]) {
                     delete fileReceiveState[fileId];
                 }
 
                 const fileChunks = [];
-                // Chunks ko order mein assemble karein
                 for (let i = 0; i < state.totalChunks; i++) {
                     const chunk = state.chunks.get(i);
                     if (!chunk) {
@@ -1655,52 +1775,63 @@
                 });
             }
             
+            // --- NAYA v3: Robust Heartbeat ---
             function startHeartbeat() {
                 stopHeartbeat();
+                lastPongTime = Date.now(); // Timer shuru karein
+                console.log('❤️ Heartbeat started.');
                 heartbeatInterval = setInterval(() => {
-                    if (currentConnection && currentConnection.open) {
-                        try {
-                            currentConnection.send({ type: 'heartbeat-ping' });
-                        } catch (e) {
-                            console.error('Heartbeat send failed', e);
-                            handleDisconnect('Heartbeat Failed');
-                        }
-                    } else if (!currentConnection) {
-                        // Agar connection nahi hai toh disconnect trigger karein
-                        handleDisconnect('Heartbeat: No connection');
+                    if (!currentConnection || !currentConnection.open) {
+                        console.log('Heartbeat: Connection lost, triggering disconnect.');
+                        handleDisconnect('Heartbeat: Connection check failed');
+                        return;
                     }
-                }, 5000);
+
+                    // Check karein ki pichhla pong kab aaya tha
+                    if (Date.now() - lastPongTime > 15000) { // 15s timeout
+                        console.log('Heartbeat: Pong timeout, triggering disconnect.');
+                        handleDisconnect('Heartbeat Timeout');
+                        return;
+                    }
+
+                    // Sab theek hai, naya ping bhej
+                    try {
+                        currentConnection.send({ type: 'heartbeat-ping' });
+                    } catch (e) {
+                        console.error('Heartbeat send failed', e);
+                        handleDisconnect('Heartbeat Failed');
+                    }
+                }, 5000); // Har 5s mein check karein
             }
 
             function stopHeartbeat() {
                 if (heartbeatInterval) {
                     clearInterval(heartbeatInterval);
                     heartbeatInterval = null;
+                    console.log('💔 Heartbeat stopped.');
                 }
             }
             
-            // NAYA Disconnect Logic (RELOAD NAHI KAREGA)
+            // NAYA v3 Disconnect Logic (RELOAD NAHI KAREGA)
             function handleDisconnect(message) {
                 console.log(`⚠ Disconnect: ${message}`);
                 stopHeartbeat();
+                stopReconnectInterval(); // Naya reconnect shuru karne se pehle puraana band karein
                 
-                // Connection (agar hai toh) band karein
                 if (currentConnection) {
                     currentConnection.close();
                     currentConnection = null;
                 }
 
-                // *** NAYA BUG FIX: Progress bar ko hide karein ***
                 progressContainer.style.display = 'none';
                 receiveProgressContainer.style.display = 'none';
 
                 // File transfer ko 'paused' state mein daal dein
                 Object.values(fileSendState).forEach(s => s.isSending = false);
-                Object.values(fileReceiveState).forEach(s => s.isReceiving = false);
+                Object.values(fileReceiveState).forEach(s => s.isReceiving = true); // Receive state ko active rakhein
 
                 if (!isHost && targetPeerId) {
                     // Client hai, reconnect koshish karein
-                    // *** NAYA BUG FIX: UI ko update karein ***
                     statusEl.textContent = '⚠️ Connection Lost... Reconnecting...';
                     startReconnectInterval();
                 } else if (isHost) {
@@ -1708,20 +1839,20 @@
                     statusEl.textContent = '⚠️ Client Disconnected. Waiting...';
                 }
             }
+            // --- END v3 Heartbeat & Disconnect ---
 
             fileInput.addEventListener('change', (event) => {
                 const files = Array.from(event.target.files);
-                event.target.value = null; // Input ko clear karein
+                event.target.value = null; 
                 
                 for (const file of files) {
                     const fileId = `${file.name}-${file.size}-${Date.now()}`;
                     fileSendState[fileId] = {
                         file: file,
                         fileId: fileId,
-                        // 0-byte files ke liye min 1 chunk maanein
                         totalChunks: Math.max(1, Math.ceil(file.size / CHUNK_SIZE)),
                         lastAckChunk: -1,
-                        isSending: false, // Metadata ACK milne par true hoga
+                        isSending: false, 
                         startTime: Date.now()
                     };
                 }
@@ -1736,7 +1867,6 @@
                     return;
                 }
                 
-                // Ek file dhoondhein jo bhej na shuru nahi hui hai (lastAckChunk === -1)
                 const [fileId, state] = Object.entries(fileSendState).find(([id, s]) => s.lastAckChunk === -1) || [];
                 
                 if (state) {
@@ -1745,7 +1875,6 @@
                     progressContainer.style.display = 'block';
                     updateSendProgress(state.file.name, 0, state.file.size);
 
-                    // Metadata ko ek object mein wrap karein
                     currentConnection.send({
                         type: 'metadata',
                         metadata: {
@@ -1755,11 +1884,9 @@
                             fileId: state.fileId
                         }
                     });
-                    // Ab hum 'ack_metadata' ka intezaar karenge
                 }
             }
 
-            // NAYA: Yeh function ab ACK ke response mein call hota hai
             function readAndSendSlice(state, chunkIndex) {
                 if (!state.isSending || !currentConnection || !currentConnection.open) {
                     console.log('Send cancelled or disconnected.');
@@ -1770,10 +1897,8 @@
                 const { file, fileId } = state;
                 const offset = chunkIndex * CHUNK_SIZE;
                 
-                // 0-byte file case
                 if (file.size === 0 && chunkIndex === 0) {
                      console.log(`✓ 0-byte file ${file.name} sent.`);
-                     // Acknowledge ka intezaar na karein, seedha end bhej dein
                      currentConnection.send({ type: 'end', fileId: fileId });
                      progressContainer.style.display = 'none';
                      delete fileSendState[fileId];
@@ -1782,14 +1907,13 @@
                      return;
                 }
 
-                // Agar offset file size se zyada hai, toh end bhej dein (safety check)
                 if (offset >= file.size && file.size > 0) {
                     console.log(`✓ File ${file.name} sent completely (offset check).`);
                     currentConnection.send({ type: 'end', fileId: fileId });
                     progressContainer.style.display = 'none';
                     delete fileSendState[fileId];
                     transferStatusEl.textContent = '✅ Sent!';
-                    sendNextFileFromQueue(); // Agli file (agar hai toh)
+                    sendNextFileFromQueue(); 
                     return;
                 }
 
@@ -1798,17 +1922,15 @@
 
                 reader.onload = (e) => {
                     if (!state.isSending || !currentConnection || !currentConnection.open) {
-                        return; // Cancel ho gaya
+                        return; 
                     }
                     try {
-                        // Chunk ko index ke saath bhej
                         currentConnection.send({
                             type: 'chunk',
                             fileId: fileId,
                             index: chunkIndex,
                             chunk: e.target.result
                         });
-                        // Agle chunk ka intezaar 'ack_chunk' par hoga
                     } catch (err) {
                         console.error("Send error:", err);
                         handleDisconnect('Send Error');
@@ -1824,7 +1946,6 @@
             }
             
             function updateSendProgress(fileName, sentBytes, totalBytes) {
-                // 0-byte file case
                 if (totalBytes === 0) {
                     progressFileName.textContent = `Sending: ${fileName}`;
                     progressBar.style.width = `100%`;
@@ -1849,7 +1970,6 @@
                     });
                 }
                 
-                // ETA logic
                 const state = Object.values(fileSendState).find(s => s.file.name === fileName);
                 if (state) {
                     const elapsedTime = (Date.now() - state.startTime) / 1000;
@@ -1865,7 +1985,6 @@
             }
             
             function updateReceiveProgress(fileName, receivedBytes, totalBytes, percent) {
-                // 0-byte file case
                  if (totalBytes === 0) {
                     receiveProgressFileName.textContent = `Receiving: ${fileName}`;
                     receiveProgressBar.style.width = `100%`;
@@ -1905,7 +2024,9 @@
             }
 
             cancelButton.addEventListener('click', () => {
+                // Maujooda active transfer ko dhoondhein
                 const [fileId, state] = Object.entries(fileSendState).find(([id, s]) => s.isSending) || [];
+                
                 if (state) {
                     state.isSending = false;
                     if (currentConnection && currentConnection.open) {
@@ -1994,4 +2115,3 @@
     </script>
 </body>
 </html>
-
