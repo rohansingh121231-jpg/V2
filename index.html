@@ -1414,17 +1414,18 @@
                             state.chunks.forEach((c) => receivedBytes += c.byteLength);
                             
                             const totalSize = state.metadata.size;
+                            // Sahi percent calculate karein (chunk count se)
                             const percent = Math.round((state.chunks.size / state.totalChunks) * 100);
                             
                             // Dono ko update karein
-                            updateReceiveProgress(state.metadata.name, receivedBytes, totalSize, percent);
-
+                            // receivedBytes ko totalSize se zyada na jaane dein (aakhiri chunk ke liye)
+                            updateReceiveProgress(state.metadata.name, Math.min(receivedBytes, totalSize), totalSize, percent);
 
                             // Check karein ki poori file aa gayi
                             if (state.chunks.size === state.totalChunks) {
                                 console.log(`✓ File ${state.metadata.name} received completely.`);
                                 assembleAndDownload(state);
-                                delete fileReceiveState[fileId];
+                                // Note: assembleAndDownload ab state ko delete kar dega
                                 transferStatusEl.textContent = '✅ Received!';
                             } else {
                                 // Agle chunk ka request karein
@@ -1453,10 +1454,10 @@
                             const state = fileSendState[fileId];
                             if (state && state.isSending) {
                                 state.lastAckChunk = nextChunk - 1;
-                                // Sahi sent bytes calculate karein
+                                // Sahi sent bytes calculate karein (chunk count se)
                                 const sentBytes = nextChunk * CHUNK_SIZE;
                                 
-                                // sentBytes ko file size se zyada na jaane dein
+                                // sentBytes ko file size se zyada na jaane dein (aakhiri chunk ke liye)
                                 const displayBytes = Math.min(sentBytes, state.file.size);
                                 updateSendProgress(state.file.name, displayBytes, state.file.size);
 
@@ -1480,10 +1481,13 @@
                         case 'end': {
                             const { fileId } = data;
                             const state = fileReceiveState[fileId];
+                            // Check karein ki state hai aur poore chunks aa chuke hain
                             if (state && state.chunks.size === state.totalChunks) {
                                 console.log(`✓ Received END signal for ${state.metadata.name}.`);
                                 assembleAndDownload(state);
-                                delete fileReceiveState[fileId];
+                                // Note: assembleAndDownload ab state ko delete kar dega
+                            } else if (state) {
+                                console.warn(`Received END signal for ${state.metadata.name}, but chunks are incomplete!`);
                             }
                             break;
                         }
@@ -1510,29 +1514,51 @@
                         // 7. Reconnect hone par negotiation
                         case 'negotiate_resume': {
                             console.log('Negotiating resume...', data);
-                            // Sender
+                            
+                            // Sender side logic
                             for (const fileId in data.receiveState) {
                                 const localSendState = fileSendState[fileId];
                                 const remoteNextChunk = data.receiveState[fileId].nextChunk;
+
                                 if (localSendState) { 
                                     console.log(`Resuming send for ${localSendState.file.name} from chunk ${remoteNextChunk}`);
                                     localSendState.isSending = true; // Force sending state
-                                    progressContainer.style.display = 'block'; // Progress bar dikhayein
+                                    
+                                    // *** NAYA UI BUG FIX: Progress bar dikhayein aur update karein ***
+                                    progressContainer.style.display = 'block';
+                                    const sentBytes = remoteNextChunk * CHUNK_SIZE;
+                                    const displayBytes = Math.min(sentBytes, localSendState.file.size);
+                                    updateSendProgress(localSendState.file.name, displayBytes, localSendState.file.size);
+                                    // *** END UI BUG FIX ***
+
                                     readAndSendSlice(localSendState, remoteNextChunk);
                                 }
                             }
-                            // Receiver
+                            
+                            // Receiver side logic
                             for (const fileId in data.sendState) {
                                 const localReceiveState = fileReceiveState[fileId];
                                 const remoteFileInfo = data.sendState[fileId];
+
                                 if (localReceiveState) {
+                                    // Receiver ke paas file pehle se hai, resume karein
                                     const nextChunk = localReceiveState.chunks.size;
                                     console.log(`Resuming receive for ${localReceiveState.metadata.name}. Requesting chunk ${nextChunk}`);
                                     localReceiveState.isReceiving = true;
-                                    receiveProgressContainer.style.display = 'block'; // Progress bar dikhayein
+                                    
+                                    // *** NAYA UI BUG FIX: Progress bar dikhayein aur update karein ***
+                                    receiveProgressContainer.style.display = 'block';
+                                    let receivedBytes = 0;
+                                    localReceiveState.chunks.forEach((c) => receivedBytes += c.byteLength);
+                                    const totalSize = localReceiveState.metadata.size;
+                                    const percent = Math.round((localReceiveState.chunks.size / localReceiveState.totalChunks) * 100);
+                                    updateReceiveProgress(localReceiveState.metadata.name, Math.min(receivedBytes, totalSize), totalSize, percent);
+                                    // *** END UI BUG FIX ***
+
                                     conn.send({ type: 'ack_chunk', fileId: fileId, nextChunk: nextChunk });
+
                                 } else {
-                                    // Metadata miss ho gaya tha
+                                    // Metadata miss ho gaya tha, naya file receive shuru karein
                                     const metadata = {
                                         name: remoteFileInfo.name,
                                         size: remoteFileInfo.size,
@@ -1546,7 +1572,12 @@
                                         isReceiving: true
                                     };
                                     console.log(`Receiving missed metadata for ${metadata.name}`);
-                                    receiveProgressContainer.style.display = 'block'; // Progress bar dikhayein
+
+                                    // *** NAYA UI BUG FIX: Progress bar dikhayein (0% par) ***
+                                    receiveProgressContainer.style.display = 'block';
+                                    updateReceiveProgress(metadata.name, 0, metadata.size, 0);
+                                    // *** END UI BUG FIX ***
+
                                     conn.send({ type: 'ack_metadata', fileId: fileId, nextChunk: 0 });
                                 }
                             }
@@ -1635,6 +1666,7 @@
                             handleDisconnect('Heartbeat Failed');
                         }
                     } else if (!currentConnection) {
+                        // Agar connection nahi hai toh disconnect trigger karein
                         handleDisconnect('Heartbeat: No connection');
                     }
                 }, 5000);
@@ -1652,6 +1684,7 @@
                 console.log(`⚠ Disconnect: ${message}`);
                 stopHeartbeat();
                 
+                // Connection (agar hai toh) band karein
                 if (currentConnection) {
                     currentConnection.close();
                     currentConnection = null;
@@ -1685,7 +1718,8 @@
                     fileSendState[fileId] = {
                         file: file,
                         fileId: fileId,
-                        totalChunks: Math.ceil(file.size / CHUNK_SIZE),
+                        // 0-byte files ke liye min 1 chunk maanein
+                        totalChunks: Math.max(1, Math.ceil(file.size / CHUNK_SIZE)),
                         lastAckChunk: -1,
                         isSending: false, // Metadata ACK milne par true hoga
                         startTime: Date.now()
@@ -1702,7 +1736,7 @@
                     return;
                 }
                 
-                // Ek file dhoondhein jo bhej na shuru nahi hui hai
+                // Ek file dhoondhein jo bhej na shuru nahi hui hai (lastAckChunk === -1)
                 const [fileId, state] = Object.entries(fileSendState).find(([id, s]) => s.lastAckChunk === -1) || [];
                 
                 if (state) {
@@ -1736,8 +1770,20 @@
                 const { file, fileId } = state;
                 const offset = chunkIndex * CHUNK_SIZE;
                 
+                // 0-byte file case
+                if (file.size === 0 && chunkIndex === 0) {
+                     console.log(`✓ 0-byte file ${file.name} sent.`);
+                     // Acknowledge ka intezaar na karein, seedha end bhej dein
+                     currentConnection.send({ type: 'end', fileId: fileId });
+                     progressContainer.style.display = 'none';
+                     delete fileSendState[fileId];
+                     transferStatusEl.textContent = '✅ Sent!';
+                     sendNextFileFromQueue();
+                     return;
+                }
+
                 // Agar offset file size se zyada hai, toh end bhej dein (safety check)
-                if (offset > file.size && chunkIndex > 0) { // chunkIndex > 0 check 0-byte files ke liye
+                if (offset >= file.size && file.size > 0) {
                     console.log(`✓ File ${file.name} sent completely (offset check).`);
                     currentConnection.send({ type: 'end', fileId: fileId });
                     progressContainer.style.display = 'none';
@@ -1748,18 +1794,6 @@
                 }
 
                 const slice = file.slice(offset, offset + CHUNK_SIZE);
-                
-                // 0-byte file case
-                if (file.size === 0 && chunkIndex === 0) {
-                     console.log(`✓ 0-byte file ${file.name} sent.`);
-                     currentConnection.send({ type: 'end', fileId: fileId });
-                     progressContainer.style.display = 'none';
-                     delete fileSendState[fileId];
-                     transferStatusEl.textContent = '✅ Sent!';
-                     sendNextFileFromQueue();
-                     return;
-                }
-
                 const reader = new FileReader();
 
                 reader.onload = (e) => {
@@ -1824,8 +1858,8 @@
                         const remainingBytes = totalBytes - sentBytes;
                         const remainingTime = remainingBytes / speed;
                         progressEta.textContent = `ETA: ${formatTime(remainingTime)}`;
-                    } else {
-                        progressEta.textContent = `ETA: --:--`;
+                    } else if (sentBytes === 0) {
+                         progressEta.textContent = `ETA: --:--`;
                     }
                 }
             }
