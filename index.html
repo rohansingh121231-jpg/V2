@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>QR Send v3 - (Resume/Cancel Prompt)</title>
+    <title>QR Send v4 - (Robust Resume)</title>
     
     <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
@@ -931,7 +931,7 @@
 
     <div class="container">
         <header>
-            <h1>QR Send Pro v3</h1> <!-- v3 Title -->
+            <h1>QR Send Pro v4</h1> <!-- v4 Title -->
             <div id="status">Starting...</div>
         </header>
         
@@ -1177,10 +1177,10 @@
         }
 
 
-        // --- V3: NAYA ROBUST FILE RESUME LOGIC SHURU ---
+        // --- V4: FINAL ROBUST FILE RESUME LOGIC ---
 
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 App v3 (Prompt Resume) initialized');
+            console.log('🚀 App v4 (Correct Resume Prompt) initialized');
             
             // Sabhi UI elements ko chuna
             const statusEl = document.getElementById('status');
@@ -1236,7 +1236,6 @@
             requestNotificationPermission();
 
             window.addEventListener('beforeunload', (event) => {
-                // Check karein ki koi file send ya receive ho rahi hai
                 const isTransferActive = Object.values(fileSendState).some(s => s.isSending) || 
                                        Object.values(fileReceiveState).some(s => s.isReceiving);
                 if (isTransferActive) {
@@ -1292,12 +1291,12 @@
                     if (hashId) {
                         // --- CLIENT MODE ---
                         isHost = false;
-                        targetPeerId = hashId; // Reconnect ke liye Peer ID save karein
+                        targetPeerId = hashId; 
                         statusEl.textContent = '🔗 Connecting...';
                         qrCodeContainer.style.display = 'none'; 
                         shareButtonsContainer.style.display = 'none'; 
                         scanInstructions.style.display = 'none';
-                        attemptConnection(targetPeerId, false); // false = yeh pehli koshish hai
+                        attemptConnection(targetPeerId, false); 
                     } else {
                         // --- HOST MODE ---
                         isHost = true;
@@ -1321,7 +1320,6 @@
                 peer.on('connection', (conn) => {
                     console.log(`📡 Incoming connection from ${conn.peer}`);
                     
-                    // --- NAYA RECONNECT FIX (v2 se) ---
                     if (currentConnection && currentConnection.peer === conn.peer) {
                         console.log(`⚠ Reconnection detected from ${conn.peer}. Closing old connection.`);
                         currentConnection.close(); 
@@ -1335,16 +1333,15 @@
                     }
                     
                     console.log('✓ Connection accepted.');
-                    setupConnection(conn, false); // false = yeh pehli koshish hai
+                    setupConnection(conn, false); 
                 });
 
 
                 peer.on('error', (err) => {
                     console.error('❌ Peer error:', err.type);
                     if (err.type === 'server-error' || err.type === 'socket-error' || err.type === 'network') {
-                        // NAYA v3: UI ko theek se update karein
                         statusEl.textContent = '⚠️ Connection Lost... Reconnecting...';
-                        handleDisconnect('Server Error'); // Naya disconnect logic
+                        handleDisconnect('Server Error'); 
                     } else if (err.type === 'peer-unavailable' && !isHost) {
                         statusEl.textContent = '❌ Peer not found';
                         showSwitchButton(); 
@@ -1352,7 +1349,6 @@
                 });
             }
 
-            // Naya Reconnect Logic
             function startReconnectInterval() {
                 if (reconnectInterval || isHost) return; 
                 console.log('Starting reconnect interval...');
@@ -1367,13 +1363,13 @@
                     }
                     if (peer.disconnected) {
                         console.log('Peer is disconnected, attempting to reconnect to server...');
-                        peer.reconnect(); // Peer server se reconnect karein
+                        peer.reconnect(); 
                     }
                     if (targetPeerId) {
                         console.log('🔄 Attempting to reconnect to peer:', targetPeerId);
-                        attemptConnection(targetPeerId, true); // true = yeh ek reconnect koshish hai
+                        attemptConnection(targetPeerId, true); 
                     }
-                }, 5000); // Har 5 second mein koshish karein
+                }, 5000); 
             }
 
             function stopReconnectInterval() {
@@ -1449,7 +1445,6 @@
                 const switchBtn = document.getElementById('switch-mode-btn');
                 if (switchBtn) switchBtn.remove();
                 
-                // NAYA v3: Dono taraf heartbeat shuru karein
                 startHeartbeat();
 
                 if (isReconnect) {
@@ -1459,22 +1454,18 @@
                     showConnectionAnimation();
                 }
 
-                // *** NAYA v3 DATA HANDLER (Resume Prompt ke saath) ***
+                // *** NAYA v4 DATA HANDLER (BUG FIX KE SAATH) ***
                 conn.on('data', (data) => {
                     
-                    // --- NAYA v3: Heartbeat Logic ---
                     if (data.type === 'heartbeat-ping') {
                         conn.send({ type: 'heartbeat-pong' });
                         return;
                     }
                     if (data.type === 'heartbeat-pong') {
-                        lastPongTime = Date.now(); // Pong mil gaya, timer reset
+                        lastPongTime = Date.now(); 
                         return;
                     }
-                    // --- END Heartbeat ---
 
-
-                    // File transfer logic
                     switch (data.type) {
                         case 'metadata': {
                             const { name, size, type, fileId } = data.metadata;
@@ -1583,43 +1574,57 @@
                             break;
                         }
 
-                        // --- NAYA v3: Resume/Cancel Logic ---
+                        // --- NAYA v4: Resume/Cancel Logic (FIXED) ---
                         case 'negotiate_resume': {
                             console.log('Negotiating resume...', data);
                             
-                            // Sender: Check karein ki receiver ko file resume karni hai
-                            for (const fileId in data.receiveState) {
-                                const localSendState = fileSendState[fileId];
-                                const remoteNextChunk = data.receiveState[fileId].nextChunk;
-                                if (localSendState && !localSendState.isSending) { 
-                                    console.log(`Prompting sender to resume: ${localSendState.file.name}`);
-                                    showResumePrompt(fileId, localSendState, 'send', remoteNextChunk);
+                            // *** FIX: Yeh code SIRF SENDER par chalna chahiye ***
+                            if (isHost) {
+                                // HOST (Receiver) LOGIC
+                                for (const fileId in data.sendState) {
+                                    const localReceiveState = fileReceiveState[fileId];
+                                    const remoteFileInfo = data.sendState[fileId];
+                                    if (localReceiveState && localReceiveState.isReceiving) {
+                                        // --- NAYA v4 LOGIC: Receiver ko prompt nahi, 'Paused' UI dikhayein ---
+                                        console.log(`Receiver UI Paused for: ${localReceiveState.metadata.name}`);
+                                        
+                                        receiveProgressContainer.style.display = 'block';
+                                        let receivedBytes = 0;
+                                        localReceiveState.chunks.forEach((c) => receivedBytes += c.byteLength);
+                                        const totalSize = localReceiveState.metadata.size;
+                                        const percent = Math.round((localReceiveState.chunks.size / localReceiveState.totalChunks) * 100);
+                                        
+                                        updateReceiveProgress(localReceiveState.metadata.name, Math.min(receivedBytes, totalSize), totalSize, percent);
+                                        receiveProgressFileName.textContent = `Paused: ${localReceiveState.metadata.name}`;
+                                        transferStatusEl.textContent = "Waiting for Sender to resume...";
+                                        // --- END v4 LOGIC ---
+
+                                    } else if (!localReceiveState && remoteFileInfo) {
+                                        // Metadata miss ho gaya tha
+                                        console.log(`Auto-accepting missed metadata for: ${remoteFileInfo.name}`);
+                                        const metadata = {
+                                            name: remoteFileInfo.name, size: remoteFileInfo.size,
+                                            type: remoteFileInfo.type, fileId: fileId
+                                        };
+                                        fileReceiveState[fileId] = {
+                                            metadata: metadata, chunks: new Map(),
+                                            totalChunks: remoteFileInfo.totalChunks, isReceiving: true
+                                        };
+                                        receiveProgressContainer.style.display = 'block';
+                                        updateReceiveProgress(metadata.name, 0, metadata.size, 0);
+                                        conn.send({ type: 'ack_metadata', fileId: fileId, nextChunk: 0 });
+                                    }
                                 }
-                            }
-                            
-                            // Receiver: Check karein ki sender file resume karna chahta hai
-                            for (const fileId in data.sendState) {
-                                const localReceiveState = fileReceiveState[fileId];
-                                const remoteFileInfo = data.sendState[fileId];
-                                if (localReceiveState && localReceiveState.isReceiving) {
-                                    console.log(`Prompting receiver to resume: ${localReceiveState.metadata.name}`);
-                                    showResumePrompt(fileId, localReceiveState, 'receive');
-                                } else if (!localReceiveState && remoteFileInfo) {
-                                    // Metadata miss ho gaya tha
-                                    console.log(`Auto-accepting missed metadata for: ${remoteFileInfo.name}`);
-                                    const metadata = {
-                                        name: remoteFileInfo.name,
-                                        size: remoteFileInfo.size,
-                                        type: remoteFileInfo.type,
-                                        fileId: fileId
-                                    };
-                                    fileReceiveState[fileId] = {
-                                        metadata: metadata, chunks: new Map(),
-                                        totalChunks: remoteFileInfo.totalChunks, isReceiving: true
-                                    };
-                                    receiveProgressContainer.style.display = 'block';
-                                    updateReceiveProgress(metadata.name, 0, metadata.size, 0);
-                                    conn.send({ type: 'ack_metadata', fileId: fileId, nextChunk: 0 });
+                            } else {
+                                // CLIENT (Sender) LOGIC
+                                for (const fileId in data.receiveState) {
+                                    const localSendState = fileSendState[fileId];
+                                    const remoteNextChunk = data.receiveState[fileId].nextChunk;
+                                    if (localSendState && !localSendState.isSending) { 
+                                        console.log(`Prompting sender to resume: ${localSendState.file.name}`);
+                                        // *** YEH SAHI HAI: Sirf Sender ko prompt dikhaayein ***
+                                        showResumePrompt(fileId, localSendState, 'send', remoteNextChunk);
+                                    }
                                 }
                             }
                             break;
@@ -1628,18 +1633,16 @@
                         case 'cancel_resume': {
                             const { fileId } = data;
                             console.log(`Resume cancelled for ${fileId} by other user.`);
-                            // Dono side se file state clean karein
                             if (fileSendState[fileId]) delete fileSendState[fileId];
                             if (fileReceiveState[fileId]) delete fileReceiveState[fileId];
                             
-                            // UI reset karein
                             progressContainer.style.display = 'none';
                             receiveProgressContainer.style.display = 'none';
                             resumeModal.style.display = 'none';
                             transferStatusEl.textContent = 'Waiting...';
                             break;
                         }
-                        // --- END v3 ---
+                        // --- END v4 ---
                     }
                 });
 
@@ -1647,22 +1650,27 @@
                 conn.on('error', (err) => handleDisconnect('Error: ' + err.type));
             }
 
-            // --- NAYA v3: Resume Prompt Functions ---
+            // --- NAYA v4: Resume Prompt Functions (FIXED) ---
             function showResumePrompt(fileId, state, type, nextChunk = 0) {
-                // Pehle se khule modal ko band karein
-                resumeModal.style.display = 'none';
-
-                const fileName = (type === 'send') ? state.file.name : state.metadata.name;
-                const totalSize = (type === 'send') ? state.file.size : state.metadata.size;
-                const currentBytes = (type === 'send') ? (nextChunk * CHUNK_SIZE) : (state.chunks.size * CHUNK_SIZE);
-
-                console.log(`Showing resume prompt for ${fileName} (${type})`);
-                resumeFileName.textContent = `${fileName} (${formatBytes(currentBytes)} / ${formatBytes(totalSize)})`;
+                // Yeh function ab sirf Sender (type === 'send') ke liye call hoga
+                // Isliye 'type' check ki zaroorat nahi, lekin safety ke liye rakhte hain
                 
-                resumeBtn.onclick = () => onResume(fileId, state, type, nextChunk);
-                cancelResumeBtn.onclick = () => onCancelResume(fileId, type);
-                
-                resumeModal.style.display = 'flex';
+                resumeModal.style.display = 'none'; // Purana modal band karein
+
+                if (type === 'send') {
+                    const fileName = state.file.name;
+                    const totalSize = state.file.size;
+                    const currentBytes = nextChunk * CHUNK_SIZE;
+
+                    console.log(`Showing resume prompt for ${fileName} (send)`);
+                    resumeFileName.textContent = `${fileName} (${formatBytes(currentBytes)} / ${formatBytes(totalSize)})`;
+                    
+                    // Naye event listener set karein
+                    resumeBtn.onclick = () => onResume(fileId, state, type, nextChunk);
+                    cancelResumeBtn.onclick = () => onCancelResume(fileId, type);
+                    
+                    resumeModal.style.display = 'flex';
+                }
             }
 
             function onResume(fileId, state, type, nextChunk) {
@@ -1678,21 +1686,10 @@
                     progressContainer.style.display = 'block';
                     const sentBytes = nextChunk * CHUNK_SIZE;
                     updateSendProgress(state.file.name, Math.min(sentBytes, state.file.size), state.file.size);
-                    readAndSendSlice(state, nextChunk);
-                
-                } else if (type === 'receive') {
-                    const nextChunkToRequest = state.chunks.size;
-                    console.log(`Resuming receive for ${state.metadata.name}. Requesting chunk ${nextChunkToRequest}`);
-                    state.isReceiving = true;
-                    receiveProgressContainer.style.display = 'block';
-                    let receivedBytes = 0;
-                    state.chunks.forEach((c) => receivedBytes += c.byteLength);
-                    const totalSize = state.metadata.size;
-                    const percent = Math.round((state.chunks.size / state.totalChunks) * 100);
-                    updateReceiveProgress(state.metadata.name, Math.min(receivedBytes, totalSize), totalSize, percent);
-                    
-                    currentConnection.send({ type: 'ack_chunk', fileId: fileId, nextChunk: nextChunkToRequest });
-                }
+                    // Receiver ko batayein ki hum resume kar rahe hain (Receiver ko ack_chunk bhej kar trigger karein)
+                    currentConnection.send({ type: 'ack_metadata', fileId: fileId, nextChunk: nextChunk });
+                } 
+                // Receiver ka 'onResume' logic hata diya gaya hai, kyunki use prompt nahi milta
             }
 
             function onCancelResume(fileId, type) {
@@ -1710,7 +1707,7 @@
                 progressContainer.style.display = 'none';
                 receiveProgressContainer.style.display = 'none';
             }
-            // --- END v3 Prompt Functions ---
+            // --- END v4 Prompt Functions ---
 
 
             function getReceiveStateSummary() {
@@ -1727,13 +1724,16 @@
             function getSendStateSummary() {
                 const summary = {};
                 for (const fileId in fileSendState) {
-                    const state = fileSendState[fileId];
-                    summary[fileId] = {
-                        name: state.file.name,
-                        size: state.file.size,
-                        type: state.file.type,
-                        totalChunks: state.totalChunks
-                    };
+                    const state = fileSendState[fileFileId];
+                    // Sirf wahi state bhej jo pause ho chuki hai (yaani, send shuru ho chuki thi)
+                    if (state && state.lastAckChunk > -1) { 
+                        summary[fileId] = {
+                            name: state.file.name,
+                            size: state.file.size,
+                            type: state.file.type,
+                            totalChunks: state.totalChunks
+                        };
+                    }
                 }
                 return summary;
             }
@@ -1775,10 +1775,9 @@
                 });
             }
             
-            // --- NAYA v3: Robust Heartbeat ---
             function startHeartbeat() {
                 stopHeartbeat();
-                lastPongTime = Date.now(); // Timer shuru karein
+                lastPongTime = Date.now(); 
                 console.log('❤️ Heartbeat started.');
                 heartbeatInterval = setInterval(() => {
                     if (!currentConnection || !currentConnection.open) {
@@ -1787,21 +1786,19 @@
                         return;
                     }
 
-                    // Check karein ki pichhla pong kab aaya tha
                     if (Date.now() - lastPongTime > 15000) { // 15s timeout
                         console.log('Heartbeat: Pong timeout, triggering disconnect.');
                         handleDisconnect('Heartbeat Timeout');
                         return;
                     }
 
-                    // Sab theek hai, naya ping bhej
                     try {
                         currentConnection.send({ type: 'heartbeat-ping' });
                     } catch (e) {
                         console.error('Heartbeat send failed', e);
                         handleDisconnect('Heartbeat Failed');
                     }
-                }, 5000); // Har 5s mein check karein
+                }, 5000); 
             }
 
             function stopHeartbeat() {
@@ -1812,11 +1809,10 @@
                 }
             }
             
-            // NAYA v3 Disconnect Logic (RELOAD NAHI KAREGA)
             function handleDisconnect(message) {
                 console.log(`⚠ Disconnect: ${message}`);
                 stopHeartbeat();
-                stopReconnectInterval(); // Naya reconnect shuru karne se pehle puraana band karein
+                stopReconnectInterval(); 
                 
                 if (currentConnection) {
                     currentConnection.close();
@@ -1839,7 +1835,6 @@
                     statusEl.textContent = '⚠️ Client Disconnected. Waiting...';
                 }
             }
-            // --- END v3 Heartbeat & Disconnect ---
 
             fileInput.addEventListener('change', (event) => {
                 const files = Array.from(event.target.files);
@@ -1867,6 +1862,7 @@
                     return;
                 }
                 
+                // Ek file dhoondhein jo bhej na shuru nahi hui hai (lastAckChunk === -1)
                 const [fileId, state] = Object.entries(fileSendState).find(([id, s]) => s.lastAckChunk === -1) || [];
                 
                 if (state) {
@@ -2024,7 +2020,6 @@
             }
 
             cancelButton.addEventListener('click', () => {
-                // Maujooda active transfer ko dhoondhein
                 const [fileId, state] = Object.entries(fileSendState).find(([id, s]) => s.isSending) || [];
                 
                 if (state) {
@@ -2115,3 +2110,4 @@
     </script>
 </body>
 </html>
+
