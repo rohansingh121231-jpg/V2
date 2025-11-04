@@ -17,12 +17,6 @@
             --success-color: #10b981;
             --error-color: #ef4444;
             --warning-color: #f59e0b;
-            --bg-light: #f8fafc;
-            --bg-dark: #1e293b;
-            --text-light: #334155;
-            --text-dark: #f1f5f9;
-            --card-light: #ffffff;
-            --card-dark: #334155;
         }
 
         body {
@@ -30,40 +24,6 @@
             background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
             min-height: 100vh;
             padding: 20px;
-            transition: background 0.3s ease;
-        }
-
-        body.dark-mode {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        }
-
-        .theme-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 1000;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        .theme-toggle:hover {
-            transform: scale(1.1) rotate(10deg);
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .theme-toggle svg {
-            width: 28px;
-            height: 28px;
-            fill: white;
         }
 
         .container {
@@ -82,17 +42,11 @@
         }
 
         .card {
-            background: var(--card-light);
+            background: white;
             border-radius: 24px;
             padding: 32px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-            transition: all 0.3s ease;
             animation: fadeInUp 0.6s ease;
-        }
-
-        body.dark-mode .card {
-            background: var(--card-dark);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
         }
 
         @keyframes fadeInUp {
@@ -106,62 +60,18 @@
             }
         }
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.2);
-        }
-
-        body.dark-mode .card:hover {
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 24px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-
-        body.dark-mode .card-header {
-            border-bottom-color: #475569;
-        }
-
-        .card-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-        }
-
         h1 {
             text-align: center;
             color: white;
             font-size: 48px;
             margin-bottom: 40px;
-            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            animation: fadeIn 0.8s ease;
             grid-column: 1 / -1;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
         h2 {
-            color: var(--text-light);
+            color: #334155;
             font-size: 24px;
-            font-weight: 600;
-        }
-
-        body.dark-mode h2 {
-            color: var(--text-dark);
+            margin-bottom: 24px;
         }
 
         .input-group {
@@ -171,13 +81,8 @@
         label {
             display: block;
             margin-bottom: 8px;
-            color: var(--text-light);
+            color: #334155;
             font-weight: 500;
-            font-size: 14px;
-        }
-
-        body.dark-mode label {
-            color: var(--text-dark);
         }
 
         input[type="text"],
@@ -187,23 +92,6 @@
             border: 2px solid #e2e8f0;
             border-radius: 12px;
             font-size: 16px;
-            transition: all 0.3s ease;
-            background: white;
-            color: var(--text-light);
-        }
-
-        body.dark-mode input[type="text"],
-        body.dark-mode input[type="file"] {
-            background: #1e293b;
-            border-color: #475569;
-            color: var(--text-dark);
-        }
-
-        input[type="text"]:focus,
-        input[type="file"]:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
         }
 
         button {
@@ -217,32 +105,12 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transition: left 0.5s ease;
-        }
-
-        button:hover::before {
-            left: 100%;
+            margin-top: 10px;
         }
 
         button:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        button:active {
-            transform: translateY(0);
         }
 
         button:disabled {
@@ -251,144 +119,36 @@
             transform: none;
         }
 
-        button:disabled:hover {
-            box-shadow: none;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .status {
             padding: 12px 16px;
             border-radius: 10px;
             margin-bottom: 20px;
             font-size: 14px;
-            font-weight: 500;
         }
 
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .status-indicator.disconnected {
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--error-color);
-        }
-
-        .status-indicator.disconnected .status-dot {
-            background: var(--error-color);
-        }
-
-        .status-indicator.connecting {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning-color);
-        }
-
-        .status-indicator.connecting .status-dot {
-            background: var(--warning-color);
-        }
-
-        .status-indicator.connected {
+        .status.success {
             background: rgba(16, 185, 129, 0.1);
             color: var(--success-color);
         }
 
-        .status-indicator.connected .status-dot {
-            background: var(--success-color);
+        .status.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error-color);
         }
 
-        .peer-info {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+        .status.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+
+        .peer-id {
+            background: #f1f5f9;
             padding: 16px;
             border-radius: 12px;
-            margin-top: 20px;
+            font-family: monospace;
             font-size: 13px;
-            color: var(--text-light);
             word-break: break-all;
-        }
-
-        body.dark-mode .peer-info {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-dark);
-        }
-
-        .file-preview {
-            display: none;
-            margin-top: 20px;
-            padding: 20px;
-            background: #f1f5f9;
-            border-radius: 12px;
-            border-left: 4px solid var(--primary-color);
-        }
-
-        body.dark-mode .file-preview {
-            background: #1e293b;
-        }
-
-        .file-preview.show {
-            display: block;
-            animation: slideDown 0.3s ease;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                max-height: 0;
-            }
-            to {
-                opacity: 1;
-                max-height: 500px;
-            }
-        }
-
-        .file-preview-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .file-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--primary-color);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 18px;
-        }
-
-        .file-details {
-            flex: 1;
-        }
-
-        .file-name {
-            font-weight: 600;
-            color: var(--text-light);
-            margin-bottom: 4px;
-        }
-
-        body.dark-mode .file-name {
-            color: var(--text-dark);
-        }
-
-        .file-size {
-            font-size: 13px;
-            color: #64748b;
-        }
-
-        body.dark-mode .file-size {
-            color: #94a3b8;
+            margin-top: 15px;
         }
 
         .progress-container {
@@ -398,165 +158,33 @@
 
         .progress-container.show {
             display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 14px;
-            color: var(--text-light);
-        }
-
-        body.dark-mode .progress-header {
-            color: var(--text-dark);
         }
 
         .progress-bar {
             width: 100%;
-            height: 8px;
+            height: 30px;
             background: #e2e8f0;
-            border-radius: 10px;
+            border-radius: 15px;
             overflow: hidden;
-            position: relative;
-        }
-
-        body.dark-mode .progress-bar {
-            background: #475569;
+            margin-bottom: 10px;
         }
 
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-            border-radius: 10px;
             transition: width 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .progress-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
-        .progress-stats {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 12px;
-            font-size: 13px;
-            color: #64748b;
-        }
-
-        body.dark-mode .progress-stats {
-            color: #94a3b8;
-        }
-
-        .notification {
-            position: fixed;
-            top: 100px;
-            right: 30px;
-            background: white;
-            padding: 20px 24px;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            min-width: 320px;
-            animation: slideInRight 0.3s ease;
-            display: none;
-        }
-
-        body.dark-mode .notification {
-            background: var(--card-dark);
-        }
-
-        @keyframes slideInRight {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .notification.show {
-            display: block;
-        }
-
-        .notification.success {
-            border-left: 4px solid var(--success-color);
-        }
-
-        .notification.error {
-            border-left: 4px solid var(--error-color);
-        }
-
-        .notification.warning {
-            border-left: 4px solid var(--warning-color);
-        }
-
-        .notification-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-
-        .notification-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
-        }
-
-        .notification.success .notification-icon {
-            background: var(--success-color);
             color: white;
+            font-weight: bold;
         }
 
-        .notification.error .notification-icon {
-            background: var(--error-color);
-            color: white;
-        }
-
-        .notification.warning .notification-icon {
-            background: var(--warning-color);
-            color: white;
-        }
-
-        .notification-title {
-            font-weight: 600;
-            color: var(--text-light);
-        }
-
-        body.dark-mode .notification-title {
-            color: var(--text-dark);
-        }
-
-        .notification-message {
-            font-size: 14px;
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
             color: #64748b;
-            margin-left: 36px;
-        }
-
-        body.dark-mode .notification-message {
-            color: #94a3b8;
         }
 
         .modal-overlay {
@@ -571,7 +199,6 @@
             justify-content: center;
             align-items: center;
             z-index: 2000;
-            animation: fadeIn 0.3s ease;
         }
 
         .modal-overlay.show {
@@ -585,90 +212,32 @@
             max-width: 480px;
             width: 90%;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            animation: scaleIn 0.3s ease;
         }
 
-        body.dark-mode .modal {
-            background: var(--card-dark);
-        }
-
-        @keyframes scaleIn {
-            from {
-                transform: scale(0.9);
-                opacity: 0;
-            }
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        .modal-header {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-
-        .modal-icon {
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, var(--warning-color), #fb923c);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-        }
-
-        .modal-title {
+        .modal h3 {
             font-size: 24px;
-            font-weight: 700;
-            color: var(--text-light);
+            margin-bottom: 16px;
+            color: #334155;
         }
 
-        body.dark-mode .modal-title {
-            color: var(--text-dark);
-        }
-
-        .modal-body {
-            margin-bottom: 28px;
+        .modal p {
             color: #64748b;
+            margin-bottom: 20px;
             line-height: 1.6;
         }
 
-        body.dark-mode .modal-body {
-            color: #94a3b8;
-        }
-
-        .modal-progress {
+        .modal .progress-display {
             background: #f1f5f9;
             padding: 16px;
             border-radius: 12px;
             margin-bottom: 20px;
+            text-align: center;
         }
 
-        body.dark-mode .modal-progress {
-            background: #1e293b;
-        }
-
-        .modal-progress-label {
-            font-size: 13px;
-            color: #64748b;
-            margin-bottom: 8px;
-        }
-
-        body.dark-mode .modal-progress-label {
-            color: #94a3b8;
-        }
-
-        .modal-progress-value {
+        .modal .progress-value {
             font-size: 32px;
             font-weight: 700;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--primary-color);
         }
 
         .modal-buttons {
@@ -678,316 +247,108 @@
         }
 
         .btn-secondary {
-            background: #e2e8f0;
-            color: var(--text-light);
+            background: #e2e8f0 !important;
+            color: #334155 !important;
         }
 
-        body.dark-mode .btn-secondary {
-            background: #475569;
-            color: var(--text-dark);
-        }
-
-        .btn-secondary:hover {
-            background: #cbd5e1;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        body.dark-mode .btn-secondary:hover {
-            background: #64748b;
-        }
-
-        .transfer-list {
-            margin-top: 24px;
-        }
-
-        .transfer-item {
-            background: #f8fafc;
-            padding: 16px;
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px 20px;
             border-radius: 12px;
-            margin-bottom: 12px;
-            border-left: 4px solid var(--primary-color);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 3000;
+            min-width: 300px;
+            display: none;
         }
 
-        body.dark-mode .transfer-item {
-            background: #1e293b;
+        .notification.show {
+            display: block;
+            animation: slideIn 0.3s ease;
         }
 
-        .transfer-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .transfer-item-name {
-            font-weight: 600;
-            color: var(--text-light);
-        }
-
-        body.dark-mode .transfer-item-name {
-            color: var(--text-dark);
-        }
-
-        .transfer-item-status {
-            font-size: 12px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-
-        .transfer-item-status.sending {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
-        }
-
-        .transfer-item-status.receiving {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success-color);
-        }
-
-        .transfer-item-status.paused {
-            background: rgba(245, 158, 11, 0.1);
-            color: var(--warning-color);
-        }
-
-        .transfer-item-status.completed {
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--success-color);
-        }
-
-        .transfer-item-progress {
-            height: 4px;
-            background: #e2e8f0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        body.dark-mode .transfer-item-progress {
-            background: #475569;
-        }
-
-        .transfer-item-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-            transition: width 0.3s ease;
-        }
-
-        .speed-meter {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 12px;
-            font-size: 13px;
-            color: #64748b;
-        }
-
-        body.dark-mode .speed-meter {
-            color: #94a3b8;
-        }
-
-        .speed-value {
-            font-weight: 600;
-            color: var(--primary-color);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #94a3b8;
-        }
-
-        .empty-state-icon {
-            font-size: 64px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 32px;
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
             }
-
-            .container {
-                padding: 10px;
-            }
-
-            .card {
-                padding: 20px;
-            }
-
-            .modal {
-                padding: 24px;
-            }
-
-            .notification {
-                right: 20px;
-                min-width: 280px;
+            to {
+                transform: translateX(0);
             }
         }
 
-        .connection-quality {
-            display: flex;
-            gap: 4px;
-            align-items: center;
+        .notification.success {
+            border-left: 4px solid var(--success-color);
         }
 
-        .quality-bar {
-            width: 4px;
-            height: 12px;
-            background: #e2e8f0;
-            border-radius: 2px;
+        .notification.error {
+            border-left: 4px solid var(--error-color);
         }
 
-        .quality-bar.active {
-            background: var(--success-color);
-        }
-
-        .quality-bar:nth-child(2) {
-            height: 16px;
-        }
-
-        .quality-bar:nth-child(3) {
-            height: 20px;
-        }
-
-        .quality-bar:nth-child(4) {
-            height: 24px;
+        .notification.warning {
+            border-left: 4px solid var(--warning-color);
         }
     </style>
 </head>
 <body>
-    <!-- Theme Toggle -->
-    <div class="theme-toggle" onclick="toggleTheme()">
-        <svg class="sun-icon" viewBox="0 0 24 24">
-            <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-        </svg>
-    </div>
-
-    <h1>🚀 P2P File Transfer Pro</h1>
+    <h1>🚀 P2P File Transfer</h1>
 
     <div class="container">
         <!-- Connection Card -->
         <div class="card">
-            <div class="card-header">
-                <div class="card-icon">🔗</div>
-                <h2>Connection</h2>
-            </div>
-
-            <div class="status-indicator disconnected" id="statusIndicator">
-                <div class="status-dot"></div>
-                <span id="statusText">Disconnected</span>
-                <div class="connection-quality" id="connectionQuality" style="margin-left: auto; display: none;">
-                    <div class="quality-bar"></div>
-                    <div class="quality-bar"></div>
-                    <div class="quality-bar"></div>
-                    <div class="quality-bar"></div>
-                </div>
+            <h2>🔗 Connection</h2>
+            
+            <div class="input-group">
+                <label>Your Peer ID</label>
+                <div class="peer-id" id="myPeerId">Connecting...</div>
             </div>
 
             <div class="input-group">
-                <label for="roomId">Room ID</label>
-                <input type="text" id="roomId" placeholder="Enter or generate room ID">
+                <label>Remote Peer ID</label>
+                <input type="text" id="remotePeerId" placeholder="Enter remote peer ID">
             </div>
 
-            <button id="generateRoomBtn" onclick="generateRoomId()">🎲 Generate Room ID</button>
-            <button id="connectBtn" onclick="connectToRoom()" style="margin-top: 12px;">Connect to Room</button>
-            <button id="disconnectBtn" onclick="disconnectFromRoom()" style="margin-top: 12px; display: none;">Disconnect</button>
-
-            <div class="peer-info" id="peerInfo" style="display: none;">
-                <div style="margin-bottom: 8px;"><strong>Your Peer ID:</strong></div>
-                <div id="yourPeerId" style="font-family: monospace; font-size: 12px;"></div>
-            </div>
+            <button id="connectBtn" onclick="connectToPeer()">Connect to Peer</button>
+            
+            <div id="connectionStatus"></div>
         </div>
 
         <!-- Send File Card -->
         <div class="card">
-            <div class="card-header">
-                <div class="card-icon">📤</div>
-                <h2>Send File</h2>
-            </div>
-
+            <h2>📤 Send File</h2>
+            
             <div class="input-group">
-                <label for="fileInput">Choose File</label>
+                <label>Select File</label>
                 <input type="file" id="fileInput" onchange="handleFileSelect(event)">
             </div>
 
-            <div class="file-preview" id="filePreview">
-                <div class="file-preview-header">
-                    <div class="file-icon" id="fileIconPreview">📄</div>
-                    <div class="file-details">
-                        <div class="file-name" id="fileNamePreview"></div>
-                        <div class="file-size" id="fileSizePreview"></div>
-                    </div>
-                </div>
-            </div>
-
-            <button id="sendBtn" onclick="startTransfer()" disabled>Send File</button>
+            <button id="sendBtn" onclick="sendFile()" disabled>Send File</button>
 
             <div class="progress-container" id="sendProgress">
-                <div class="progress-header">
-                    <span>Sending...</span>
-                    <span id="sendPercentage">0%</span>
-                </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" id="sendProgressFill"></div>
+                    <div class="progress-fill" id="sendProgressFill">0%</div>
                 </div>
-                <div class="progress-stats">
+                <div class="progress-info">
                     <span id="sendSpeed">0 KB/s</span>
                     <span id="sendData">0 MB / 0 MB</span>
-                    <span id="sendTimeLeft">--:--</span>
                 </div>
             </div>
         </div>
 
         <!-- Receive File Card -->
         <div class="card">
-            <div class="card-header">
-                <div class="card-icon">📥</div>
-                <h2>Receive File</h2>
-            </div>
-
-            <div class="empty-state" id="receiveEmptyState">
-                <div class="empty-state-icon">📭</div>
-                <div>Waiting for incoming files...</div>
-            </div>
-
-            <div class="file-preview" id="receiveFilePreview">
-                <div class="file-preview-header">
-                    <div class="file-icon" id="receiveFileIcon">📄</div>
-                    <div class="file-details">
-                        <div class="file-name" id="receiveFileName"></div>
-                        <div class="file-size" id="receiveFileSize"></div>
-                    </div>
-                </div>
-            </div>
+            <h2>📥 Receive File</h2>
+            
+            <div id="receiveStatus">Waiting for incoming files...</div>
 
             <div class="progress-container" id="receiveProgress">
-                <div class="progress-header">
-                    <span>Receiving...</span>
-                    <span id="receivePercentage">0%</span>
-                </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" id="receiveProgressFill"></div>
+                    <div class="progress-fill" id="receiveProgressFill">0%</div>
                 </div>
-                <div class="progress-stats">
+                <div class="progress-info">
                     <span id="receiveSpeed">0 KB/s</span>
                     <span id="receiveData">0 MB / 0 MB</span>
-                    <span id="receiveTimeLeft">--:--</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Transfer History Card -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-icon">📋</div>
-                <h2>Transfer History</h2>
-            </div>
-
-            <div class="transfer-list" id="transferHistory">
-                <div class="empty-state">
-                    <div class="empty-state-icon">📂</div>
-                    <div>No transfer history</div>
                 </div>
             </div>
         </div>
@@ -996,61 +357,36 @@
     <!-- Resume Modal -->
     <div class="modal-overlay" id="resumeModal">
         <div class="modal">
-            <div class="modal-header">
-                <div class="modal-icon">⚠️</div>
-                <div class="modal-title">Transfer Interrupted</div>
-            </div>
-            <div class="modal-body">
-                <p id="resumeModalMessage">Your previous transfer was interrupted. Would you like to resume from where it left off?</p>
-                <div class="modal-progress">
-                    <div class="modal-progress-label">Progress</div>
-                    <div class="modal-progress-value" id="resumeModalProgress">0%</div>
-                </div>
+            <h3>⚠️ Transfer Interrupted</h3>
+            <p id="resumeMessage">Your previous transfer was interrupted. Would you like to resume?</p>
+            <div class="progress-display">
+                <div style="font-size: 13px; color: #64748b; margin-bottom: 8px;">Completed</div>
+                <div class="progress-value" id="resumeProgress">0%</div>
             </div>
             <div class="modal-buttons">
                 <button class="btn-secondary" onclick="cancelResume()">Cancel</button>
-                <button onclick="resumeTransfer()">Resume Transfer</button>
+                <button onclick="acceptResume()">Resume</button>
             </div>
         </div>
     </div>
 
     <!-- Notification -->
     <div class="notification" id="notification">
-        <div class="notification-header">
-            <div class="notification-icon" id="notificationIcon">✓</div>
-            <div class="notification-title" id="notificationTitle">Success</div>
-        </div>
-        <div class="notification-message" id="notificationMessage"></div>
+        <div id="notificationMessage"></div>
     </div>
 
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.0/dist/peerjs.min.js"></script>
     <script>
-        // Configuration
-        const CONFIG = {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' }
-            ],
-            chunkSize: 16384, // 16KB
-            maxRetries: 5,
-            retryDelay: 2000
-        };
+        const CHUNK_SIZE = 16384; // 16KB
+        const SERVER_URL = 'YOUR_SIGNALING_SERVER_URL'; // Replace with your server
 
-        // State Management
-        const state = {
-            peerConnection: null,
-            dataChannel: null,
-            connectedPeerId: null,
-            roomId: null,
-            isConnected: false,
-            currentTransfer: null,
-            transferHistory: [],
-            retryCount: 0
-        };
-
-        // Transfer State for Resume
+        let socket;
+        let peer;
+        let conn;
+        let selectedFile;
+        
+        // Transfer State with Resume Support
         let transferState = {
             fileId: null,
             fileName: null,
@@ -1059,290 +395,244 @@
             direction: null, // 'send' or 'receive'
             sentBytes: 0,
             receivedBytes: 0,
-            chunks: [],
             receivedChunks: new Map(),
             isTransferring: false,
             isPaused: false,
             lastChunkIndex: 0,
             totalChunks: 0,
             startTime: null,
-            speeds: [],
-            selectedFile: null
+            fileData: null
         };
 
-        // Initialize on page load
-        window.addEventListener('load', () => {
-            loadSavedTheme();
-            loadTransferState();
-            checkForInterruptedTransfer();
-        });
-
-        // Theme Management
-        function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
-        }
-
-        function loadSavedTheme() {
-            const theme = localStorage.getItem('theme');
-            if (theme === 'dark') {
-                document.body.classList.add('dark-mode');
-            }
-        }
-
-        // Room Management
-        function generateRoomId() {
-            const roomId = 'room-' + Math.random().toString(36).substr(2, 9);
-            document.getElementById('roomId').value = roomId;
-            showNotification('Room ID generated', 'Copy and share this Room ID with your peer', 'success');
-        }
-
-        async function connectToRoom() {
-            const roomIdInput = document.getElementById('roomId');
-            const roomId = roomIdInput.value.trim();
-
-            if (!roomId) {
-                showNotification('Error', 'Please enter a Room ID', 'error');
-                return;
-            }
-
-            state.roomId = roomId;
-            updateConnectionStatus('connecting');
-
-            try {
-                await initializePeerConnection();
-                showNotification('Connected', `Successfully connected to room: ${roomId}`, 'success');
-                
-                document.getElementById('connectBtn').style.display = 'none';
-                document.getElementById('disconnectBtn').style.display = 'block';
-                document.getElementById('sendBtn').disabled = false;
-                document.getElementById('peerInfo').style.display = 'block';
-                document.getElementById('yourPeerId').textContent = generatePeerId();
-
-            } catch (error) {
-                console.error('Connection error:', error);
-                showNotification('Error', 'Failed to connect to room', 'error');
-                updateConnectionStatus('disconnected');
-            }
-        }
-
-        function disconnectFromRoom() {
-            if (state.peerConnection) {
-                state.peerConnection.close();
-                state.peerConnection = null;
-            }
-            if (state.dataChannel) {
-                state.dataChannel.close();
-                state.dataChannel = null;
-            }
-
-            state.isConnected = false;
-            state.roomId = null;
-
-            updateConnectionStatus('disconnected');
-            document.getElementById('connectBtn').style.display = 'block';
-            document.getElementById('disconnectBtn').style.display = 'none';
-            document.getElementById('sendBtn').disabled = true;
-            document.getElementById('peerInfo').style.display = 'none';
-
-            showNotification('Disconnected', 'You have been disconnected from the room', 'warning');
-        }
-
-        // WebRTC Connection
-        async function initializePeerConnection() {
-            state.peerConnection = new RTCPeerConnection({ iceServers: CONFIG.iceServers });
-
-            // Create data channel
-            state.dataChannel = state.peerConnection.createDataChannel('fileTransfer', {
-                ordered: true,
-                maxRetransmits: 3
+        // Initialize Socket.IO
+        function initSocket() {
+            socket = io(SERVER_URL, {
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionAttempts: Infinity
             });
 
-            setupDataChannelHandlers(state.dataChannel);
-
-            // Handle incoming data channels
-            state.peerConnection.ondatachannel = (event) => {
-                state.dataChannel = event.channel;
-                setupDataChannelHandlers(state.dataChannel);
-            };
-
-            // ICE candidate handling
-            state.peerConnection.onicecandidate = (event) => {
-                if (event.candidate) {
-                    // Send candidate to peer via signaling server
-                    console.log('ICE Candidate:', event.candidate);
-                }
-            };
-
-            // Connection state monitoring
-            state.peerConnection.onconnectionstatechange = () => {
-                const connectionState = state.peerConnection.connectionState;
-                console.log('Connection state:', connectionState);
-
-                switch (connectionState) {
-                    case 'connected':
-                        updateConnectionStatus('connected');
-                        state.isConnected = true;
-                        state.retryCount = 0;
-                        
-                        // Check for interrupted transfers
-                        if (transferState.isPaused && transferState.isTransferring) {
+            socket.on('connect', () => {
+                console.log('Connected to signaling server');
+                showNotification('Connected to server', 'success');
+                
+                // Check for interrupted transfer
+                if (transferState.isPaused && transferState.isTransferring) {
+                    setTimeout(() => {
+                        if (conn && conn.open) {
                             showResumeDialog();
                         }
-                        break;
-
-                    case 'disconnected':
-                    case 'failed':
-                        updateConnectionStatus('disconnected');
-                        state.isConnected = false;
-                        
-                        // Pause any ongoing transfer
-                        if (transferState.isTransferring && !transferState.isPaused) {
-                            pauseTransfer();
-                            showNotification('Connection Lost', 'Transfer paused. Reconnecting...', 'warning');
-                        }
-                        
-                        // Attempt reconnection
-                        attemptReconnection();
-                        break;
-
-                    case 'closed':
-                        updateConnectionStatus('disconnected');
-                        state.isConnected = false;
-                        break;
+                    }, 1000);
                 }
-            };
+            });
 
-            // Create and send offer
-            const offer = await state.peerConnection.createOffer();
-            await state.peerConnection.setLocalDescription(offer);
+            socket.on('disconnect', () => {
+                console.log('Disconnected from signaling server');
+                showNotification('Disconnected from server', 'error');
+                
+                // Pause transfer on disconnect
+                if (transferState.isTransferring && !transferState.isPaused) {
+                    pauseTransfer();
+                }
+            });
 
-            // In a real implementation, send offer via signaling server
-            console.log('Offer created:', offer);
+            socket.on('reconnect', () => {
+                showNotification('Reconnected to server', 'success');
+            });
         }
 
-        function setupDataChannelHandlers(channel) {
-            channel.onopen = () => {
-                console.log('Data channel opened');
-                state.isConnected = true;
-                updateConnectionStatus('connected');
-                updateConnectionQuality(4);
-            };
-
-            channel.onclose = () => {
-                console.log('Data channel closed');
-                state.isConnected = false;
-                updateConnectionStatus('disconnected');
-            };
-
-            channel.onerror = (error) => {
-                console.error('Data channel error:', error);
-                showNotification('Error', 'Data channel error occurred', 'error');
-            };
-
-            channel.onmessage = (event) => {
-                handleIncomingMessage(event.data);
-            };
-
-            // Monitor buffer
-            setInterval(() => {
-                if (channel.bufferedAmount > 0) {
-                    console.log('Buffered amount:', channel.bufferedAmount);
+        // Initialize PeerJS
+        function initPeer() {
+            peer = new Peer({
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
                 }
-            }, 1000);
+            });
+
+            peer.on('open', (id) => {
+                console.log('My peer ID:', id);
+                document.getElementById('myPeerId').textContent = id;
+                showNotification('Peer initialized', 'success');
+            });
+
+            peer.on('connection', (connection) => {
+                console.log('Incoming connection from:', connection.peer);
+                setupConnection(connection);
+            });
+
+            peer.on('disconnected', () => {
+                console.log('Peer disconnected');
+                showNotification('Peer disconnected', 'warning');
+                
+                // Pause transfer
+                if (transferState.isTransferring && !transferState.isPaused) {
+                    pauseTransfer();
+                }
+                
+                // Try to reconnect
+                setTimeout(() => {
+                    if (!peer.destroyed) {
+                        peer.reconnect();
+                    }
+                }, 2000);
+            });
+
+            peer.on('error', (error) => {
+                console.error('Peer error:', error);
+                showNotification('Peer error: ' + error.type, 'error');
+            });
         }
 
-        function attemptReconnection() {
-            if (state.retryCount >= CONFIG.maxRetries) {
-                showNotification('Connection Failed', 'Unable to reconnect after multiple attempts', 'error');
-                return;
-            }
-
-            state.retryCount++;
-            updateConnectionStatus('connecting');
+        // Connect to Remote Peer
+        function connectToPeer() {
+            const remotePeerId = document.getElementById('remotePeerId').value.trim();
             
-            setTimeout(async () => {
-                try {
-                    await initializePeerConnection();
-                    showNotification('Reconnected', 'Connection restored successfully', 'success');
-                } catch (error) {
-                    console.error('Reconnection failed:', error);
-                    attemptReconnection();
-                }
-            }, CONFIG.retryDelay * state.retryCount);
-        }
-
-        // File Handling
-        function handleFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            transferState.selectedFile = file;
-
-            // Show file preview
-            const preview = document.getElementById('filePreview');
-            const icon = document.getElementById('fileIconPreview');
-            const name = document.getElementById('fileNamePreview');
-            const size = document.getElementById('fileSizePreview');
-
-            icon.textContent = getFileIcon(file.type);
-            name.textContent = file.name;
-            size.textContent = formatBytes(file.size);
-
-            preview.classList.add('show');
-            document.getElementById('sendBtn').disabled = !state.isConnected;
-        }
-
-        function getFileIcon(type) {
-            if (type.startsWith('image/')) return '🖼️';
-            if (type.startsWith('video/')) return '🎥';
-            if (type.startsWith('audio/')) return '🎵';
-            if (type.includes('pdf')) return '📕';
-            if (type.includes('zip') || type.includes('rar')) return '🗜️';
-            if (type.includes('text')) return '📝';
-            return '📄';
-        }
-
-        // Transfer Management
-        function startTransfer() {
-            if (!transferState.selectedFile || !state.isConnected) {
-                showNotification('Error', 'Please select a file and connect first', 'error');
+            if (!remotePeerId) {
+                showNotification('Please enter remote peer ID', 'error');
                 return;
             }
 
-            const file = transferState.selectedFile;
+            if (!peer || peer.destroyed) {
+                showNotification('Peer not initialized', 'error');
+                return;
+            }
 
+            conn = peer.connect(remotePeerId, {
+                reliable: true,
+                serialization: 'json'
+            });
+
+            setupConnection(conn);
+        }
+
+        // Setup Connection Handlers
+        function setupConnection(connection) {
+            conn = connection;
+
+            conn.on('open', () => {
+                console.log('Connection opened with:', conn.peer);
+                document.getElementById('connectionStatus').innerHTML = 
+                    '<div class="status success">✓ Connected to peer</div>';
+                document.getElementById('sendBtn').disabled = false;
+                showNotification('Connected to peer', 'success');
+                
+                // Load saved state and check for resume
+                loadTransferState();
+                if (transferState.isPaused && transferState.isTransferring) {
+                    showResumeDialog();
+                }
+            });
+
+            conn.on('data', (data) => {
+                handleIncomingData(data);
+            });
+
+            conn.on('close', () => {
+                console.log('Connection closed');
+                document.getElementById('connectionStatus').innerHTML = 
+                    '<div class="status error">✕ Connection closed</div>';
+                document.getElementById('sendBtn').disabled = true;
+                showNotification('Connection closed', 'warning');
+                
+                // Pause transfer
+                if (transferState.isTransferring && !transferState.isPaused) {
+                    pauseTransfer();
+                }
+            });
+
+            conn.on('error', (error) => {
+                console.error('Connection error:', error);
+                showNotification('Connection error', 'error');
+            });
+        }
+
+        // Handle Incoming Data
+        function handleIncomingData(data) {
+            switch (data.type) {
+                case 'metadata':
+                    handleMetadata(data);
+                    break;
+                    
+                case 'chunk':
+                    handleChunk(data);
+                    break;
+                    
+                case 'complete':
+                    handleTransferComplete();
+                    break;
+                    
+                case 'request-resume':
+                    handleResumeRequest();
+                    break;
+                    
+                case 'resume-info':
+                    handleResumeInfo(data);
+                    break;
+                    
+                case 'resume-accepted':
+                    continueTransfer(data.fromChunk);
+                    break;
+                    
+                case 'cancel':
+                    handleTransferCancelled();
+                    break;
+                    
+                default:
+                    console.log('Unknown message type:', data.type);
+            }
+        }
+
+        // File Selection
+        function handleFileSelect(event) {
+            selectedFile = event.target.files[0];
+            if (selectedFile) {
+                showNotification('File selected: ' + selectedFile.name, 'success');
+            }
+        }
+
+        // Send File
+        async function sendFile() {
+            if (!selectedFile) {
+                showNotification('Please select a file', 'error');
+                return;
+            }
+
+            if (!conn || !conn.open) {
+                showNotification('Not connected to peer', 'error');
+                return;
+            }
+
+            // Initialize transfer state
             transferState = {
                 fileId: generateFileId(),
-                fileName: file.name,
-                fileSize: file.size,
-                fileType: file.type,
+                fileName: selectedFile.name,
+                fileSize: selectedFile.size,
+                fileType: selectedFile.type,
                 direction: 'send',
                 sentBytes: 0,
                 receivedBytes: 0,
-                chunks: [],
                 receivedChunks: new Map(),
                 isTransferring: true,
                 isPaused: false,
                 lastChunkIndex: 0,
-                totalChunks: Math.ceil(file.size / CONFIG.chunkSize),
+                totalChunks: Math.ceil(selectedFile.size / CHUNK_SIZE),
                 startTime: Date.now(),
-                speeds: [],
-                selectedFile: file
+                fileData: selectedFile
             };
 
             // Send metadata
-            const metadata = {
+            conn.send({
                 type: 'metadata',
                 fileId: transferState.fileId,
                 fileName: transferState.fileName,
                 fileSize: transferState.fileSize,
                 fileType: transferState.fileType,
                 totalChunks: transferState.totalChunks
-            };
+            });
 
-            sendMessage(metadata);
-            
             // Show progress
             document.getElementById('sendProgress').classList.add('show');
             
@@ -1352,124 +642,69 @@
             // Start sending chunks
             sendNextChunk(0);
             
-            showNotification('Transfer Started', `Sending ${file.name}`, 'success');
+            showNotification('Sending file...', 'success');
         }
 
+        // Send Next Chunk
         async function sendNextChunk(chunkIndex) {
             if (!transferState.isTransferring || transferState.isPaused) {
                 return;
             }
 
-            if (!state.isConnected) {
+            if (!conn || !conn.open) {
                 pauseTransfer();
-                showNotification('Connection Lost', 'Transfer paused', 'warning');
+                showNotification('Connection lost - transfer paused', 'warning');
                 return;
             }
 
-            const file = transferState.selectedFile;
-            const start = chunkIndex * CONFIG.chunkSize;
-            const end = Math.min(start + CONFIG.chunkSize, file.size);
-            const chunk = file.slice(start, end);
+            const start = chunkIndex * CHUNK_SIZE;
+            const end = Math.min(start + CHUNK_SIZE, transferState.fileSize);
+            const chunk = transferState.fileData.slice(start, end);
 
             try {
                 const arrayBuffer = await chunk.arrayBuffer();
-                
-                const chunkData = {
+                const base64 = arrayBufferToBase64(arrayBuffer);
+
+                conn.send({
                     type: 'chunk',
                     fileId: transferState.fileId,
                     chunkIndex: chunkIndex,
-                    data: arrayBuffer,
+                    data: base64,
                     totalChunks: transferState.totalChunks
-                };
-
-                // Wait if buffer is full
-                while (state.dataChannel && state.dataChannel.bufferedAmount > CONFIG.chunkSize * 10) {
-                    await new Promise(resolve => setTimeout(resolve, 10));
-                }
-
-                sendMessage(chunkData);
+                });
 
                 transferState.sentBytes += (end - start);
                 transferState.lastChunkIndex = chunkIndex;
 
-                // Update UI
+                // Update progress
                 updateSendProgress();
-                
-                // Save state periodically
+
+                // Save state every 10 chunks
                 if (chunkIndex % 10 === 0) {
                     saveTransferState();
                 }
 
-                if (end < file.size) {
+                if (end < transferState.fileSize) {
                     // Continue sending
-                    setTimeout(() => sendNextChunk(chunkIndex + 1), 0);
+                    setTimeout(() => sendNextChunk(chunkIndex + 1), 10);
                 } else {
                     // Transfer complete
-                    const completeMessage = {
+                    conn.send({
                         type: 'complete',
                         fileId: transferState.fileId
-                    };
-                    sendMessage(completeMessage);
+                    });
                     
-                    handleTransferComplete('send');
+                    completeSending();
                 }
 
             } catch (error) {
                 console.error('Error sending chunk:', error);
                 pauseTransfer();
-                showNotification('Error', 'Failed to send chunk', 'error');
+                showNotification('Error sending chunk', 'error');
             }
         }
 
-        function handleIncomingMessage(data) {
-            let message;
-
-            try {
-                // Try to parse as JSON
-                if (typeof data === 'string') {
-                    message = JSON.parse(data);
-                } else {
-                    message = data;
-                }
-            } catch (e) {
-                console.error('Failed to parse message:', e);
-                return;
-            }
-
-            switch (message.type) {
-                case 'metadata':
-                    handleMetadata(message);
-                    break;
-
-                case 'chunk':
-                    handleChunk(message);
-                    break;
-
-                case 'complete':
-                    handleTransferComplete('receive');
-                    break;
-
-                case 'request-resume':
-                    handleResumeRequest(message);
-                    break;
-
-                case 'resume-info':
-                    handleResumeInfo(message);
-                    break;
-
-                case 'resume-accepted':
-                    continueTransfer(message.fromChunk);
-                    break;
-
-                case 'cancel':
-                    handleTransferCancelled();
-                    break;
-
-                default:
-                    console.log('Unknown message type:', message.type);
-            }
-        }
-
+        // Handle Metadata
         function handleMetadata(metadata) {
             transferState = {
                 fileId: metadata.fileId,
@@ -1479,194 +714,204 @@
                 direction: 'receive',
                 sentBytes: 0,
                 receivedBytes: 0,
-                chunks: [],
                 receivedChunks: new Map(),
                 isTransferring: true,
                 isPaused: false,
-                lastChunkIndex: 0,
+                lastChunkIndex: -1,
                 totalChunks: metadata.totalChunks,
                 startTime: Date.now(),
-                speeds: [],
-                selectedFile: null
+                fileData: null
             };
 
-            // Update UI
-            document.getElementById('receiveEmptyState').style.display = 'none';
-            
-            const preview = document.getElementById('receiveFilePreview');
-            const icon = document.getElementById('receiveFileIcon');
-            const name = document.getElementById('receiveFileName');
-            const size = document.getElementById('receiveFileSize');
-
-            icon.textContent = getFileIcon(metadata.fileType);
-            name.textContent = metadata.fileName;
-            size.textContent = formatBytes(metadata.fileSize);
-
-            preview.classList.add('show');
+            document.getElementById('receiveStatus').innerHTML = 
+                `<div class="status success">Receiving: ${metadata.fileName}</div>`;
             document.getElementById('receiveProgress').classList.add('show');
 
             saveTransferState();
-            showNotification('Incoming File', `Receiving ${metadata.fileName}`, 'success');
+            showNotification('Receiving file: ' + metadata.fileName, 'success');
         }
 
+        // Handle Chunk
         function handleChunk(chunkData) {
             if (chunkData.fileId !== transferState.fileId) {
-                console.warn('Chunk from different file, ignoring');
+                console.warn('Chunk from different file');
                 return;
             }
 
-            // Store chunk
-            transferState.receivedChunks.set(chunkData.chunkIndex, chunkData.data);
-            transferState.receivedBytes += chunkData.data.byteLength;
-            transferState.lastChunkIndex = Math.max(transferState.lastChunkIndex, chunkData.chunkIndex);
+            try {
+                const arrayBuffer = base64ToArrayBuffer(chunkData.data);
+                transferState.receivedChunks.set(chunkData.chunkIndex, arrayBuffer);
+                transferState.receivedBytes += arrayBuffer.byteLength;
+                transferState.lastChunkIndex = Math.max(transferState.lastChunkIndex, chunkData.chunkIndex);
 
-            // Update UI
-            updateReceiveProgress();
+                // Update progress
+                updateReceiveProgress();
 
-            // Save state periodically
-            if (chunkData.chunkIndex % 10 === 0) {
-                saveTransferState();
+                // Save state every 10 chunks
+                if (chunkData.chunkIndex % 10 === 0) {
+                    saveTransferState();
+                }
+
+            } catch (error) {
+                console.error('Error handling chunk:', error);
             }
         }
 
-        function handleTransferComplete(direction) {
-            if (direction === 'receive') {
-                // Reconstruct file
-                const chunks = [];
-                for (let i = 0; i < transferState.totalChunks; i++) {
-                    const chunk = transferState.receivedChunks.get(i);
-                    if (chunk) {
-                        chunks.push(chunk);
-                    } else {
-                        console.error('Missing chunk:', i);
-                        showNotification('Error', 'Transfer incomplete - missing chunks', 'error');
-                        return;
-                    }
+        // Handle Transfer Complete
+        function handleTransferComplete() {
+            // Reconstruct file
+            const chunks = [];
+            for (let i = 0; i < transferState.totalChunks; i++) {
+                const chunk = transferState.receivedChunks.get(i);
+                if (!chunk) {
+                    console.error('Missing chunk:', i);
+                    showNotification('Transfer incomplete - missing chunks', 'error');
+                    return;
                 }
-
-                const blob = new Blob(chunks, { type: transferState.fileType });
-                downloadFile(blob, transferState.fileName);
-
-                showNotification('Transfer Complete', `Successfully received ${transferState.fileName}`, 'success');
-            } else {
-                showNotification('Transfer Complete', `Successfully sent ${transferState.fileName}`, 'success');
+                chunks.push(chunk);
             }
 
-            // Add to history
-            addToHistory({
-                fileName: transferState.fileName,
-                fileSize: transferState.fileSize,
-                direction: direction,
-                timestamp: Date.now(),
-                status: 'completed'
-            });
+            const blob = new Blob(chunks, { type: transferState.fileType });
+            downloadFile(blob, transferState.fileName);
 
-            // Reset state
+            showNotification('File received successfully!', 'success');
             resetTransferState();
         }
 
+        function completeSending() {
+            showNotification('File sent successfully!', 'success');
+            resetTransferState();
+        }
+
+        // Pause Transfer
         function pauseTransfer() {
             if (!transferState.isTransferring) return;
-
+            
             transferState.isPaused = true;
             saveTransferState();
             
             console.log('Transfer paused at chunk:', transferState.lastChunkIndex);
+            showNotification('Transfer paused', 'warning');
         }
 
-        function resumeTransfer() {
+        // Show Resume Dialog
+        function showResumeDialog() {
+            const modal = document.getElementById('resumeModal');
+            const message = document.getElementById('resumeMessage');
+            const progress = document.getElementById('resumeProgress');
+
+            const percent = transferState.direction === 'send'
+                ? ((transferState.sentBytes / transferState.fileSize) * 100).toFixed(1)
+                : ((transferState.receivedBytes / transferState.fileSize) * 100).toFixed(1);
+
+            message.textContent = `Your previous ${transferState.direction === 'send' ? 'upload' : 'download'} of "${transferState.fileName}" was interrupted at ${percent}%. Would you like to resume?`;
+            progress.textContent = percent + '%';
+
+            modal.classList.add('show');
+        }
+
+        // Accept Resume
+        function acceptResume() {
             document.getElementById('resumeModal').classList.remove('show');
 
-            if (!state.isConnected) {
-                showNotification('Error', 'Not connected to peer', 'error');
+            if (!conn || !conn.open) {
+                showNotification('Not connected to peer', 'error');
                 return;
             }
 
             transferState.isPaused = false;
+            transferState.startTime = Date.now();
 
             if (transferState.direction === 'send') {
                 // Request resume info from receiver
-                const resumeRequest = {
+                conn.send({
                     type: 'request-resume',
                     fileId: transferState.fileId
-                };
-                sendMessage(resumeRequest);
+                });
+                
+                showNotification('Requesting resume information...', 'success');
             } else {
-                // Receiver ready to continue
-                const resumeInfo = {
+                // Receiver ready - send current progress
+                conn.send({
                     type: 'resume-info',
                     fileId: transferState.fileId,
                     lastChunkReceived: transferState.lastChunkIndex,
                     receivedBytes: transferState.receivedBytes
-                };
-                sendMessage(resumeInfo);
-            }
-
-            showNotification('Resuming', 'Transfer resuming from last position', 'success');
-        }
-
-        function handleResumeRequest(message) {
-            if (message.fileId === transferState.fileId) {
-                // Send current progress to sender
-                const resumeInfo = {
-                    type: 'resume-info',
-                    fileId: transferState.fileId,
-                    lastChunkReceived: transferState.lastChunkIndex,
-                    receivedBytes: transferState.receivedBytes
-                };
-                sendMessage(resumeInfo);
-            }
-        }
-
-        function handleResumeInfo(message) {
-            if (message.fileId === transferState.fileId) {
-                // Update sender's knowledge of receiver's progress
-                transferState.lastChunkIndex = message.lastChunkReceived;
-                transferState.sentBytes = message.receivedBytes;
+                });
                 
-                // Continue from next chunk
-                const resumeAccepted = {
-                    type: 'resume-accepted',
-                    fileId: transferState.fileId,
-                    fromChunk: message.lastChunkReceived + 1
-                };
-                sendMessage(resumeAccepted);
-                
-                continueTransfer(message.lastChunkReceived + 1);
+                showNotification('Ready to resume receiving...', 'success');
             }
         }
 
-        function continueTransfer(fromChunk) {
-            transferState.isPaused = false;
-            transferState.startTime = Date.now(); // Reset timer
-            
-            if (transferState.direction === 'send') {
-                sendNextChunk(fromChunk);
-            }
-            // Receiver just waits for chunks
-        }
-
+        // Cancel Resume
         function cancelResume() {
             document.getElementById('resumeModal').classList.remove('show');
             
-            // Notify peer
-            const cancelMessage = {
-                type: 'cancel',
-                fileId: transferState.fileId
-            };
-            sendMessage(cancelMessage);
+            if (conn && conn.open) {
+                conn.send({
+                    type: 'cancel',
+                    fileId: transferState.fileId
+                });
+            }
             
-            // Reset state
             resetTransferState();
-            
-            showNotification('Transfer Cancelled', 'The transfer has been cancelled', 'warning');
+            showNotification('Transfer cancelled', 'warning');
         }
 
+        // Handle Resume Request
+        function handleResumeRequest() {
+            if (transferState.fileId) {
+                conn.send({
+                    type: 'resume-info',
+                    fileId: transferState.fileId,
+                    lastChunkReceived: transferState.lastChunkIndex,
+                    receivedBytes: transferState.receivedBytes
+                });
+            }
+        }
+
+        // Handle Resume Info
+        function handleResumeInfo(data) {
+            if (data.fileId === transferState.fileId) {
+                transferState.lastChunkIndex = data.lastChunkReceived;
+                transferState.sentBytes = data.receivedBytes;
+                
+                // Accept and continue
+                conn.send({
+                    type: 'resume-accepted',
+                    fileId: transferState.fileId,
+                    fromChunk: data.lastChunkReceived + 1
+                });
+                
+                continueTransfer(data.lastChunkReceived + 1);
+            }
+        }
+
+        // Continue Transfer
+        function continueTransfer(fromChunk) {
+            transferState.isPaused = false;
+            
+            if (transferState.direction === 'send') {
+                // Show progress UI
+                document.getElementById('sendProgress').classList.add('show');
+                
+                // Resume sending
+                sendNextChunk(fromChunk);
+                showNotification('Resuming upload...', 'success');
+            } else {
+                // Show progress UI
+                document.getElementById('receiveProgress').classList.add('show');
+                showNotification('Resuming download...', 'success');
+            }
+        }
+
+        // Handle Transfer Cancelled
         function handleTransferCancelled() {
             resetTransferState();
-            showNotification('Transfer Cancelled', 'The peer cancelled the transfer', 'warning');
+            showNotification('Transfer cancelled by peer', 'warning');
         }
 
+        // Reset Transfer State
         function resetTransferState() {
             transferState = {
                 fileId: null,
@@ -1676,41 +921,52 @@
                 direction: null,
                 sentBytes: 0,
                 receivedBytes: 0,
-                chunks: [],
                 receivedChunks: new Map(),
                 isTransferring: false,
                 isPaused: false,
                 lastChunkIndex: 0,
                 totalChunks: 0,
                 startTime: null,
-                speeds: [],
-                selectedFile: null
+                fileData: null
             };
 
             clearTransferState();
 
-            // Hide progress
             document.getElementById('sendProgress').classList.remove('show');
             document.getElementById('receiveProgress').classList.remove('show');
-            document.getElementById('filePreview').classList.remove('show');
-            document.getElementById('receiveFilePreview').classList.remove('show');
-            document.getElementById('receiveEmptyState').style.display = 'block';
-
-            // Reset file input
             document.getElementById('fileInput').value = '';
+            selectedFile = null;
+        }
+
+        // Update Progress
+        function updateSendProgress() {
+            const percent = ((transferState.sentBytes / transferState.fileSize) * 100).toFixed(1);
+            const speed = calculateSpeed(transferState.sentBytes, transferState.startTime);
+
+            document.getElementById('sendProgressFill').style.width = percent + '%';
+            document.getElementById('sendProgressFill').textContent = percent + '%';
+            document.getElementById('sendSpeed').textContent = formatSpeed(speed);
+            document.getElementById('sendData').textContent = 
+                `${formatBytes(transferState.sentBytes)} / ${formatBytes(transferState.fileSize)}`;
+        }
+
+        function updateReceiveProgress() {
+            const percent = ((transferState.receivedBytes / transferState.fileSize) * 100).toFixed(1);
+            const speed = calculateSpeed(transferState.receivedBytes, transferState.startTime);
+
+            document.getElementById('receiveProgressFill').style.width = percent + '%';
+            document.getElementById('receiveProgressFill').textContent = percent + '%';
+            document.getElementById('receiveSpeed').textContent = formatSpeed(speed);
+            document.getElementById('receiveData').textContent = 
+                `${formatBytes(transferState.receivedBytes)} / ${formatBytes(transferState.fileSize)}`;
         }
 
         // State Persistence
         function saveTransferState() {
             const stateToSave = {
                 ...transferState,
-                chunks: [], // Don't save chunk data
-                receivedChunks: Array.from(transferState.receivedChunks.keys()), // Only save indices
-                selectedFile: transferState.selectedFile ? {
-                    name: transferState.selectedFile.name,
-                    size: transferState.selectedFile.size,
-                    type: transferState.selectedFile.type
-                } : null
+                receivedChunks: Array.from(transferState.receivedChunks.keys()),
+                fileData: null // Don't save file object
             };
 
             localStorage.setItem('p2p_transfer_state', JSON.stringify(stateToSave));
@@ -1723,15 +979,18 @@
             try {
                 const parsed = JSON.parse(saved);
                 
-                // Only load if there was an active transfer
                 if (parsed.isTransferring) {
                     transferState = {
                         ...parsed,
-                        chunks: [],
                         receivedChunks: new Map(parsed.receivedChunks ? parsed.receivedChunks.map(i => [i, null]) : []),
-                        isPaused: true, // Always start paused
-                        selectedFile: null // Will need to re-select file
+                        isPaused: true,
+                        fileData: null
                     };
+                    
+                    // If sending, need to re-select file
+                    if (transferState.direction === 'send' && !transferState.fileData) {
+                        console.log('Need to re-select file for sending');
+                    }
                 }
             } catch (error) {
                 console.error('Failed to load transfer state:', error);
@@ -1742,218 +1001,22 @@
             localStorage.removeItem('p2p_transfer_state');
         }
 
-        function checkForInterruptedTransfer() {
-            if (transferState.isTransferring && transferState.isPaused) {
-                // Wait a moment for connection to establish
-                setTimeout(() => {
-                    if (state.isConnected) {
-                        showResumeDialog();
-                    }
-                }, 2000);
-            }
-        }
-
-        function showResumeDialog() {
-            const modal = document.getElementById('resumeModal');
-            const message = document.getElementById('resumeModalMessage');
-            const progress = document.getElementById('resumeModalProgress');
-
-            const percent = transferState.direction === 'send' 
-                ? ((transferState.sentBytes / transferState.fileSize) * 100).toFixed(1)
-                : ((transferState.receivedBytes / transferState.fileSize) * 100).toFixed(1);
-
-            message.textContent = `Your previous ${transferState.direction === 'send' ? 'upload' : 'download'} of "${transferState.fileName}" was interrupted. Would you like to resume from where it left off?`;
-            progress.textContent = percent + '%';
-
-            modal.classList.add('show');
-        }
-
-        // Progress Updates
-        function updateSendProgress() {
-            const percent = ((transferState.sentBytes / transferState.fileSize) * 100).toFixed(1);
-            const speed = calculateSpeed(transferState.sentBytes, transferState.startTime);
-            const remaining = calculateTimeRemaining(transferState.sentBytes, transferState.fileSize, speed);
-
-            document.getElementById('sendPercentage').textContent = percent + '%';
-            document.getElementById('sendProgressFill').style.width = percent + '%';
-            document.getElementById('sendSpeed').textContent = formatSpeed(speed);
-            document.getElementById('sendData').textContent = `${formatBytes(transferState.sentBytes)} / ${formatBytes(transferState.fileSize)}`;
-            document.getElementById('sendTimeLeft').textContent = remaining;
-        }
-
-        function updateReceiveProgress() {
-            const percent = ((transferState.receivedBytes / transferState.fileSize) * 100).toFixed(1);
-            const speed = calculateSpeed(transferState.receivedBytes, transferState.startTime);
-            const remaining = calculateTimeRemaining(transferState.receivedBytes, transferState.fileSize, speed);
-
-            document.getElementById('receivePercentage').textContent = percent + '%';
-            document.getElementById('receiveProgressFill').style.width = percent + '%';
-            document.getElementById('receiveSpeed').textContent = formatSpeed(speed);
-            document.getElementById('receiveData').textContent = `${formatBytes(transferState.receivedBytes)} / ${formatBytes(transferState.fileSize)}`;
-            document.getElementById('receiveTimeLeft').textContent = remaining;
-        }
-
-        function calculateSpeed(bytes, startTime) {
-            const duration = (Date.now() - startTime) / 1000; // seconds
-            return bytes / duration;
-        }
-
-        function calculateTimeRemaining(current, total, speed) {
-            if (speed === 0) return '--:--';
-            
-            const remaining = (total - current) / speed; // seconds
-            const minutes = Math.floor(remaining / 60);
-            const seconds = Math.floor(remaining % 60);
-            
-            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        // Transfer History
-        function addToHistory(transfer) {
-            state.transferHistory.unshift(transfer);
-            
-            // Keep only last 10 transfers
-            if (state.transferHistory.length > 10) {
-                state.transferHistory.pop();
-            }
-
-            updateHistoryUI();
-            saveHistory();
-        }
-
-        function updateHistoryUI() {
-            const container = document.getElementById('transferHistory');
-            
-            if (state.transferHistory.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📂</div>
-                        <div>No transfer history</div>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = state.transferHistory.map(t => `
-                <div class="transfer-item">
-                    <div class="transfer-item-header">
-                        <div class="transfer-item-name">${t.fileName}</div>
-                        <div class="transfer-item-status ${t.status}">${t.status}</div>
-                    </div>
-                    <div class="transfer-item-progress">
-                        <div class="transfer-item-progress-fill" style="width: 100%"></div>
-                    </div>
-                    <div style="margin-top: 8px; font-size: 12px; color: #64748b;">
-                        ${t.direction === 'send' ? '📤 Sent' : '📥 Received'} • ${formatBytes(t.fileSize)} • ${new Date(t.timestamp).toLocaleTimeString()}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function saveHistory() {
-            localStorage.setItem('p2p_transfer_history', JSON.stringify(state.transferHistory));
-        }
-
-        function loadHistory() {
-            const saved = localStorage.getItem('p2p_transfer_history');
-            if (saved) {
-                try {
-                    state.transferHistory = JSON.parse(saved);
-                    updateHistoryUI();
-                } catch (error) {
-                    console.error('Failed to load history:', error);
-                }
-            }
-        }
-
-        // UI Updates
-        function updateConnectionStatus(status) {
-            const indicator = document.getElementById('statusIndicator');
-            const text = document.getElementById('statusText');
-            const quality = document.getElementById('connectionQuality');
-
-            indicator.className = 'status-indicator ' + status;
-            
-            switch (status) {
-                case 'connected':
-                    text.textContent = 'Connected';
-                    quality.style.display = 'flex';
-                    break;
-                case 'connecting':
-                    text.textContent = 'Connecting...';
-                    quality.style.display = 'none';
-                    break;
-                case 'disconnected':
-                    text.textContent = 'Disconnected';
-                    quality.style.display = 'none';
-                    break;
-            }
-        }
-
-        function updateConnectionQuality(level) {
-            const bars = document.querySelectorAll('.quality-bar');
-            bars.forEach((bar, index) => {
-                if (index < level) {
-                    bar.classList.add('active');
-                } else {
-                    bar.classList.remove('active');
-                }
-            });
-        }
-
-        function showNotification(title, message, type = 'success') {
-            const notification = document.getElementById('notification');
-            const icon = document.getElementById('notificationIcon');
-            const titleEl = document.getElementById('notificationTitle');
-            const messageEl = document.getElementById('notificationMessage');
-
-            notification.className = 'notification ' + type;
-            
-            switch (type) {
-                case 'success':
-                    icon.textContent = '✓';
-                    break;
-                case 'error':
-                    icon.textContent = '✕';
-                    break;
-                case 'warning':
-                    icon.textContent = '⚠';
-                    break;
-            }
-
-            titleEl.textContent = title;
-            messageEl.textContent = message;
-
-            notification.classList.add('show');
-
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 5000);
-        }
-
         // Utility Functions
-        function sendMessage(message) {
-            if (!state.dataChannel || state.dataChannel.readyState !== 'open') {
-                console.error('Data channel not ready');
-                return;
-            }
+        function calculateSpeed(bytes, startTime) {
+            const duration = (Date.now() - startTime) / 1000;
+            return duration > 0 ? bytes / duration : 0;
+        }
 
-            try {
-                if (message.type === 'chunk') {
-                    // Send chunk data as is
-                    state.dataChannel.send(JSON.stringify({
-                        type: message.type,
-                        fileId: message.fileId,
-                        chunkIndex: message.chunkIndex,
-                        totalChunks: message.totalChunks
-                    }));
-                    state.dataChannel.send(message.data);
-                } else {
-                    state.dataChannel.send(JSON.stringify(message));
-                }
-            } catch (error) {
-                console.error('Failed to send message:', error);
-            }
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+        }
+
+        function formatSpeed(bytesPerSecond) {
+            return formatBytes(bytesPerSecond) + '/s';
         }
 
         function downloadFile(blob, filename) {
@@ -1967,28 +1030,47 @@
             URL.revokeObjectURL(url);
         }
 
-        function formatBytes(bytes) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
-        }
-
-        function formatSpeed(bytesPerSecond) {
-            return formatBytes(bytesPerSecond) + '/s';
-        }
-
         function generateFileId() {
             return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
         }
 
-        function generatePeerId() {
-            return 'peer-' + Math.random().toString(36).substr(2, 9);
+        function arrayBufferToBase64(buffer) {
+            let binary = '';
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
         }
 
-        // Load history on startup
-        loadHistory();
+        function base64ToArrayBuffer(base64) {
+            const binary = window.atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            const messageEl = document.getElementById('notificationMessage');
+
+            notification.className = 'notification ' + type;
+            messageEl.textContent = message;
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            initSocket();
+            initPeer();
+            loadTransferState();
+        });
     </script>
 </body>
 </html>
