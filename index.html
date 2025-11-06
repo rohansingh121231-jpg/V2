@@ -113,41 +113,7 @@
             transition: all 0.3s ease;
         }
 
-        .watermark {
-            position: fixed;
-            bottom: 15px;
-            right: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            opacity: 0.4;
-            z-index: 1000;
-            transition: opacity 0.3s ease;
-        }
-
-        .watermark:hover {
-            opacity: 0.8;
-        }
-
-        .e2e-icon {
-            width: 28px;
-            height: 28px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.4; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.1); }
-        }
-
-        .watermark-text {
-            font-size: 9px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-        }
+        /* WATERMARK REMOVED */
 
         /* --- NEW LAYOUT --- */
         .container {
@@ -1032,12 +998,7 @@
         </svg>
     </div>
 
-    <div class="watermark">
-        <svg class="e2e-icon" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-        </svg>
-        <span class="watermark-text">Anonymous</span>
-    </div>
+    <!-- WATERMARK REMOVED -->
 
     <div class="connection-overlay" id="connection-overlay">
         <div class="lock-animation">
@@ -1374,7 +1335,7 @@
             el.id = `transfer-${fileId}`;
 
             const label = isSender ? `Sending: ${fileName}` : `Receiving: ${fileName}`;
-            const cancelButtonHTML = isSender ? `<button class="cancel-button" data-file-id="${fileId}">❌</button>` : '';
+            const cancelButtonHTML = `<button class="cancel-button" data-file-id="${fileId}">❌</button>`; // Always add
 
             el.innerHTML = `
                 <div class="progress-top-row">
@@ -1397,12 +1358,14 @@
 
             container.appendChild(el);
             
-            // Add click listener to cancel button if it exists
-            if (isSender) {
-                el.querySelector('.cancel-button').addEventListener('click', () => {
+            // Add click listener
+            el.querySelector('.cancel-button').addEventListener('click', () => {
+                if (isSender) {
                     cancelTransfer(fileId);
-                });
-            }
+                } else {
+                    cancelReceive(fileId); // New function
+                }
+            });
         }
 
         /**
@@ -2148,11 +2111,26 @@
                         }
                     } else if (data.type === 'cancel') {
                         const fileId = data.fileId;
-                        document.getElementById(`transfer-${fileId}`)?.remove();
-                        receivingFiles.delete(fileId);
+                        console.log(`Received cancel for: ${fileId}`);
 
-                        if (receivingFiles.size === 0 && !isSending) {
-                            transferStatusEl.textContent = '❌ Cancelled by sender';
+                        // 1. Is it our active send?
+                        if (activeSend && activeSend.id === fileId) {
+                            activeSend.status = 'cancelled'; // This will be caught by reader.onload/readSlice
+                            document.getElementById(`transfer-${fileId}`)?.remove();
+                            // The reader loop will handle stopping and starting the next one
+                        }
+                        // 2. Is it in our pending send queue?
+                        else if (fileQueue.some(job => job.id === fileId)) {
+                            fileQueue = fileQueue.filter(job => job.id !== fileId);
+                            document.getElementById(`transfer-${fileId}`)?.remove();
+                        }
+                        // 3. Is it our active receive?
+                        else if (receivingFiles.has(fileId)) {
+                            receivingFiles.delete(fileId);
+                            document.getElementById(`transfer-${fileId}`)?.remove();
+                            if (receivingFiles.size === 0 && !isSending) {
+                                transferStatusEl.textContent = '❌ Cancelled by peer';
+                            }
                         }
                     } else {
                         // This is a file chunk (ArrayBuffer)
@@ -2385,7 +2363,8 @@
             function cancelTransfer(fileId) {
                 // Is it the active transfer?
                 if (activeSend && activeSend.id === fileId) {
-                    activeSend.status = 'cancelled'; // Flag for reader.onload
+                    console.log(`Cancelling active transfer: ${fileId}`);
+                    activeSend.status = 'cancelled'; // Flag for reader.onload/readSlice
                     
                     // Remove UI
                     document.getElementById(`transfer-${fileId}`)?.remove();
@@ -2396,11 +2375,20 @@
                             currentConnection.send({ type: 'cancel', fileId: fileId });
                         } catch (err) {}
                     }
-                    // `sendNextFileFromQueue` will be called by the reader.onload check
+                    
+                    // --- NEW ---
+                    // Immediately stop sending and start the next file
+                    isSending = false;
+                    activeSend = null;
+                    sendNextFileFromQueue(); // Start next file
+                    // --- END NEW ---
+
                 } else {
                     // It's in the queue, just remove it
+                    console.log(`Cancelling pending transfer: ${fileId}`);
                     fileQueue = fileQueue.filter(job => job.id !== fileId);
                     document.getElementById(`transfer-${fileId}`)?.remove();
+                    // No need to send 'cancel' message, it never started
                 }
                 
                 if (!isSending && fileQueue.length === 0) {
@@ -2429,6 +2417,28 @@
                     sizeText: sizeText,
                     etaText: etaText
                 });
+            }
+
+            // --- NEW: Cancel Receive Function ---
+            function cancelReceive(fileId) {
+                console.log(`Cancelling receive: ${fileId}`);
+                // 1. Remove from map
+                receivingFiles.delete(fileId);
+                
+                // 2. Remove UI
+                document.getElementById(`transfer-${fileId}`)?.remove();
+                
+                // 3. Send cancellation to sender
+                if (currentConnection && currentConnection.open) {
+                    try {
+                        currentConnection.send({ type: 'cancel', fileId: fileId });
+                    } catch (err) {}
+                }
+                
+                // 4. Update status if no more files
+                if (receivingFiles.size === 0 && !isSending) {
+                    transferStatusEl.textContent = '❌ Receive cancelled';
+                }
             }
 
             function formatBytes(bytes, decimals = 2) {
