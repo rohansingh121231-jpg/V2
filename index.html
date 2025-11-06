@@ -32,6 +32,10 @@
             --shadow: rgba(0, 0, 0, 0.1);
             --success: #34a853;
             --error: #ea4335;
+            
+            /* New sender bubble colors for tick visibility */
+            --bg-sender: #dcf8c6;
+            --text-sender: #1a1a1a;
         }
 
         body.dark-mode {
@@ -42,6 +46,10 @@
             --text-secondary: #b0b0b0;
             --border: #333333;
             --shadow: rgba(255, 255, 255, 0.05);
+
+            /* New sender bubble colors for tick visibility */
+            --bg-sender: #224838;
+            --text-sender: #e8e8e8;
         }
 
         body {
@@ -52,7 +60,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 15px;
+            padding: 0; /* Changed for full-screen mobile */
             transition: all 0.3s ease;
             position: relative;
             overflow-x: hidden;
@@ -143,30 +151,60 @@
             text-transform: uppercase;
         }
 
+        /* --- NEW LAYOUT --- */
         .container {
             position: relative;
-            max-width: 450px;
+            max-width: 100%; /* Changed */
             width: 100%;
             background: var(--bg-card);
-            border-radius: 20px;
-            box-shadow: 
-                0 10px 40px var(--shadow),
-                0 0 0 1px var(--border);
             overflow: hidden;
-            transform-style: preserve-3d;
-            perspective: 1000px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1;
-            max-height: 95vh;
-            overflow-y: auto;
+            
+            /* Full-screen mobile layout */
+            height: 100vh;
+            max-height: 100vh;
+            border-radius: 0;
+            box-shadow: none;
+            
+            display: flex;
+            flex-direction: column; /* Mobile-first: stacked layout */
+        }
+        
+        .sidebar {
+            flex-shrink: 0;
+            /* On mobile, this is just a stack of content */
         }
 
-        .container:hover {
-            transform: translateY(-5px);
-            box-shadow: 
-                0 20px 60px var(--shadow),
-                0 0 0 1px var(--border);
+        .chat-main {
+            flex-grow: 1; /* Takes remaining height */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* CRITICAL for scrolling */
+            background: var(--bg-secondary);
         }
+
+        .chat-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 20px;
+        }
+        .chat-placeholder svg {
+            width: 80px;
+            height: 80px;
+            fill: var(--text-secondary);
+            opacity: 0.5;
+            margin-bottom: 15px;
+        }
+        .chat-placeholder p {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        /* --- END NEW LAYOUT --- */
 
         .container::-webkit-scrollbar {
             width: 6px;
@@ -187,6 +225,7 @@
             text-align: center;
             position: relative;
             overflow: hidden;
+            flex-shrink: 0; /* Header should not shrink */
         }
 
         header::before {
@@ -287,6 +326,7 @@
 
         main {
             padding: 20px;
+            flex-shrink: 0;
         }
 
         #qr-code-container {
@@ -576,6 +616,7 @@
             padding: 20px;
             background: var(--bg-secondary);
             border-top: 1px solid var(--border);
+            flex-shrink: 0;
         }
 
         .transfer-area h3 {
@@ -611,7 +652,7 @@
             text-align: center;
         }
 
-        /* --- NEW COMPACT PROGRESS BAR STYLES --- */
+        /* --- COMPACT PROGRESS BAR STYLES --- */
         .progress-container {
             margin-top: 15px;
             padding: 10px;
@@ -619,8 +660,6 @@
             border-radius: 10px;
             box-shadow: 0 2px 8px var(--shadow);
             display: none;
-            /* New flex layout */
-            display: flex;
             flex-direction: column;
             gap: 8px;
         }
@@ -636,27 +675,27 @@
             font-size: 13px;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 0; /* Removed */
+            margin-bottom: 0;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            flex-shrink: 1; /* Allow label to shrink */
+            flex-shrink: 1;
         }
 
         .progress-bar-wrapper {
-            flex-grow: 1; /* Take remaining space */
+            flex-grow: 1;
             display: flex;
             flex-direction: column;
-            min-width: 0; /* Allow shrinking */
+            min-width: 0;
         }
 
         .progress-bar-background {
             position: relative;
             width: 100%;
-            height: 12px; /* Made smaller */
+            height: 12px;
             background: var(--bg-secondary);
             border-radius: 6px;
-            overflow: hidden; /* Changed */
+            overflow: hidden;
             box-shadow: inset 0 1px 2px var(--shadow);
         }
 
@@ -669,26 +708,40 @@
         }
 
         .delivery-boy {
-            display: none; /* Removed for compact UI */
+            display: none;
         }
 
         .progress-stats {
             display: flex;
             justify-content: space-between;
-            margin-top: 4px; /* Reduced */
-            font-size: 10px; /* Smaller */
+            margin-top: 4px;
+            font-size: 10px;
             color: var(--text-secondary);
         }
 
         #cancel-button {
-            margin-top: 0; /* Removed */
-            width: auto; /* Auto width */
-            padding: 6px 12px; /* Smaller padding */
-            font-size: 12px; /* Smaller font */
-            flex-shrink: 0; /* Don't shrink cancel button */
+            margin-top: 0;
+            width: auto;
+            padding: 6px 12px;
+            font-size: 12px;
+            flex-shrink: 0;
+            
+            /* Copied from original */
+            background: var(--error);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
         
-        /* Apply to both containers */
+        #cancel-button:hover {
+             background: #d33828;
+             transform: translateY(-2px);
+             box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
+        }
+        
         #progress-container,
         #receive-progress-container {
             display: none; /* Start hidden */
@@ -732,6 +785,12 @@
         .chat-container {
             padding: 20px;
             border-top: 1px solid var(--border);
+            
+            /* New layout properties */
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            flex-grow: 1; /* Fill the .chat-main area */
+            overflow: hidden; /* Ensure it doesn't overflow */
         }
 
         .chat-container h3 {
@@ -739,10 +798,10 @@
             font-weight: 600;
             margin-bottom: 12px;
             color: var(--text-primary);
+            flex-shrink: 0;
         }
 
         .chat-messages {
-            height: 200px;
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             border-radius: 10px;
@@ -752,6 +811,10 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            
+            /* New layout */
+            flex-grow: 1; /* Fill all available space */
+            height: auto; /* Remove fixed height */
         }
 
         .chat-message {
@@ -761,12 +824,12 @@
             word-wrap: break-word;
             font-size: 14px;
             display: flex;
-            flex-direction: column; /* To stack message and status */
+            flex-direction: column;
         }
 
         .chat-message.sender {
-            background: var(--accent);
-            color: white;
+            background: var(--bg-sender); /* Changed */
+            color: var(--text-sender); /* Changed */
             align-self: flex-end;
             border-bottom-right-radius: 3px;
         }
@@ -784,7 +847,7 @@
             max-height: 200px;
             border-radius: 8px;
             display: block;
-            cursor: pointer; /* Add cursor for download */
+            cursor: pointer;
         }
         
         .message-content {
@@ -796,7 +859,7 @@
             margin-top: 2px;
             text-align: right;
             opacity: 0.8;
-            display: flex; /* Use flex for alignment */
+            display: flex;
             justify-content: flex-end;
             align-items: center;
             gap: 4px;
@@ -805,26 +868,27 @@
         .msg-status {
             font-weight: 600;
             transition: color 0.3s ease;
+            color: var(--text-secondary); /* Changed: Default tick color */
         }
 
         .msg-status.seen {
-            color: var(--accent-hover); /* Blue tick color */
-            color: #34b7f1; /* WhatsApp-like blue */
+            color: var(--accent); /* Changed: Blue tick for seen */
         }
 
         .download-status {
             font-style: italic;
             font-size: 9px;
-            display: none; /* Hide by default */
+            display: none;
         }
         
         .chat-message.receiver .message-status-bar {
-             display: none; /* No status for received messages */
+             display: none;
         }
 
         .chat-input-area {
             display: flex;
             gap: 8px;
+            flex-shrink: 0;
         }
 
         #chat-input {
@@ -884,6 +948,7 @@
             margin-top: 8px;
             opacity: 0;
             transition: opacity 0.3s ease;
+            flex-shrink: 0;
         }
 
         .chat-limits-info {
@@ -891,67 +956,72 @@
             color: var(--text-secondary);
             text-align: center;
             margin-top: 8px;
+            flex-shrink: 0;
         }
         /* --- END CHAT STYLES --- */
 
-        @media (max-width: 600px) {
+        /* --- DESKTOP LAYOUT (WHATSAPP-STYLE) --- */
+        @media (min-width: 768px) {
             body {
-                padding: 10px;
+                padding: 15px; /* Add padding back for desktop */
             }
 
             .container {
-                border-radius: 16px;
-                max-height: 98vh;
+                flex-direction: row; /* Side-by-side layout */
+                max-width: 1100px; /* Wider */
+                max-height: 95vh;
+                border-radius: 20px;
+                box-shadow: 0 10px 40px var(--shadow), 0 0 0 1px var(--border);
+            }
+            
+            .container:hover {
+                transform: translateY(-5px);
+                box-shadow: 
+                    0 20px 60px var(--shadow),
+                    0 0 0 1px var(--border);
             }
 
-            h1 {
-                font-size: 20px;
+            .sidebar {
+                width: 350px;
+                flex-shrink: 0;
+                border-right: 1px solid var(--border);
+                overflow-y: auto; /* Make sidebar scrollable */
             }
 
-            #status {
-                font-size: 12px;
+            .chat-main {
+                width: 100%; /* Takes rest of space */
+                border-left: 1px solid var(--border);
             }
 
+            .chat-container {
+                padding: 20px; /* Restore padding */
+            }
+        }
+        /* --- END DESKTOP LAYOUT --- */
+
+        @media (max-width: 600px) {
             .theme-toggle {
                 width: 40px;
                 height: 40px;
                 top: 10px;
                 right: 10px;
             }
-
             .scan-indicator {
                 width: 85%;
                 height: 85%;
             }
-
             .scan-instruction {
                 bottom: 80px;
                 font-size: 14px;
                 padding: 12px 20px;
             }
-
-            .chat-messages {
-                height: 150px;
-            }
+            
+            /* Adjust padding for mobile full-screen */
+            main { padding: 15px; }
+            .transfer-area { padding: 15px; }
+            .chat-container { padding: 15px; }
         }
 
-        @media (min-width: 601px) and (max-width: 1024px) {
-            .container {
-                max-width: 420px;
-            }
-
-            #qrcode canvas,
-            #qrcode img {
-                max-width: 220px !important;
-            }
-        }
-
-        @media (min-width: 1025px) {
-            #qrcode canvas,
-            #qrcode img {
-                max-width: 200px !important;
-            }
-        }
     </style>
 </head>
 <body>
@@ -1019,99 +1089,113 @@
         </div>
     </div>
 
+    <!-- NEW LAYOUT STRUCTURE -->
     <div class="container">
-        <header>
-            <h1>QR Send Pro</h1>
-            <div id="status">Starting...</div>
-        </header>
         
-        <main>
-            <div id="qr-code-container">
-                <div id="qrcode"></div>
-                <p>Scan QR code to connect securely</p>
-                
-                <div id="share-buttons-container">
-                    <button id="native-share-button" class="share-button primary-share" style="display: none;">📤 Share</button>
-                    <button id="copy-link-button" class="share-button">📋 Copy</button>
-                    <button id="download-qr-button" class="share-button">💾 Save</button>
-                    <button id="scan-qr-button" class="share-button scanner-button" onclick="openScanner()">📷 Scan</button>
-                </div>
-            </div>
-
-            <div id="scan-instructions" style="display:none;">
-                <p>✅ Connected Securely!</p>
-            </div>
-        </main>
-
-        <div class="transfer-area">
-            <h3>📁 Send Files</h3>
-            <input type="file" id="file-input" disabled multiple>
-            <div id="transfer-status">Waiting...</div>
-
-            <!-- COMPACT SENDER PROGRESS BAR -->
-            <div id="progress-container" class="progress-container">
-                <div class="progress-top-row">
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-label">
-                            <span>Sending...</span>
-                            <span id="progress-percentage">0%</span>
-                        </div>
-                        <div class="progress-bar-background">
-                            <div id="progress-bar" class="progress-bar"></div>
-                        </div>
-                    </div>
-                    <button id="cancel-button">❌ Cancel</button>
-                </div>
-                <div class="progress-stats">
-                    <span id="progress-size">0 MB / 0 MB</span>
-                    <span id="progress-eta">ETA: --:--</span>
-                </div>
-            </div>
+        <!-- SIDEBAR (Controls) -->
+        <div class="sidebar">
+            <header>
+                <h1>QR Send Pro</h1>
+                <div id="status">Starting...</div>
+            </header>
             
-            <!-- COMPACT RECEIVER PROGRESS BAR -->
-            <div id="receive-progress-container" class="progress-container">
-                <div class="progress-top-row">
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-label">
-                            <span>Receiving...</span>
-                            <span id="receive-progress-percentage">0%</span>
-                        </div>
-                        <div class="progress-bar-background">
-                            <div id="receive-progress-bar" class="progress-bar"></div>
-                        </div>
+            <main>
+                <div id="qr-code-container">
+                    <div id="qrcode"></div>
+                    <p>Scan QR code to connect securely</p>
+                    
+                    <div id="share-buttons-container">
+                        <button id="native-share-button" class="share-button primary-share" style="display: none;">📤 Share</button>
+                        <button id="copy-link-button" class="share-button">📋 Copy</button>
+                        <button id="download-qr-button" class="share-button">💾 Save</button>
+                        <button id="scan-qr-button" class="share-button scanner-button" onclick="openScanner()">📷 Scan</button>
                     </div>
                 </div>
-                 <div class="progress-stats">
-                    <span id="receive-progress-size">0 MB / 0 MB</span>
-                    <span>🔐 Encrypted</span>
+
+                <div id="scan-instructions" style="display:none;">
+                    <p>✅ Connected Securely!</p>
+                </div>
+            </main>
+
+            <div class="transfer-area">
+                <h3>📁 Send Files</h3>
+                <input type="file" id="file-input" disabled multiple>
+                <div id="transfer-status">Waiting...</div>
+
+                <!-- COMPACT SENDER PROGRESS BAR -->
+                <div id="progress-container" class="progress-container">
+                    <div class="progress-top-row">
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-label">
+                                <span>Sending...</span>
+                                <span id="progress-percentage">0%</span>
+                            </div>
+                            <div class="progress-bar-background">
+                                <div id="progress-bar" class="progress-bar"></div>
+                            </div>
+                        </div>
+                        <button id="cancel-button">❌ Cancel</button>
+                    </div>
+                    <div class="progress-stats">
+                        <span id="progress-size">0 MB / 0 MB</span>
+                        <span id="progress-eta">ETA: --:--</span>
+                    </div>
+                </div>
+                
+                <!-- COMPACT RECEIVER PROGRESS BAR -->
+                <div id="receive-progress-container" class="progress-container">
+                    <div class="progress-top-row">
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-label">
+                                <span>Receiving...</span>
+                                <span id="receive-progress-percentage">0%</span>
+                            </div>
+                            <div class="progress-bar-background">
+                                <div id="receive-progress-bar" class="progress-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="progress-stats">
+                        <span id="receive-progress-size">0 MB / 0 MB</span>
+                        <span>🔐 Encrypted</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- --- CHAT UI --- -->
-        <div class="chat-container" id="chat-container" style="display: none;">
-            <h3>💬 E2E Chat</h3>
-            <div class="chat-messages" id="chat-messages">
-                <!-- Messages will go here -->
+        <!-- MAIN CHAT AREA -->
+        <div class="chat-main">
+            <!-- CHAT UI -->
+            <div class="chat-container" id="chat-container">
+                <h3>💬 E2E Chat</h3>
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will go here -->
+                </div>
+                <div class="chat-status" id="chat-status"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Type a message...">
+                    <button id="chat-attach-button" title="Attach Image">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"></path></svg>
+                    </button>
+                    <button id="chat-send-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                    <input type="file" id="chat-image-input" accept="image/*" style="display: none;">
+                </div>
+                <div class="chat-limits-info" id="chat-limits-info">
+                    Words: 0/1000 | Images: 0/6 (0/10 MB)
+                </div>
             </div>
-            <div class="chat-status" id="chat-status"></div>
-            <div class="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Type a message...">
-                <button id="chat-attach-button" title="Attach Image">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"></path></svg>
-                </button>
-                <button id="chat-send-button">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
-                <input type="file" id="chat-image-input" accept="image/*" style="display: none;">
-            </div>
-            <div class="chat-limits-info" id="chat-limits-info">
-                Words: 0/1000 | Images: 0/6 (0/10 MB)
+
+            <!-- CHAT PLACEHOLDER -->
+            <div class="chat-placeholder" id="chat-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                <p>Scan a QR code or share your link<br>to start a secure session.</p>
             </div>
         </div>
-        <!-- --- END CHAT UI --- -->
 
     </div>
+    <!-- END NEW LAYOUT STRUCTURE -->
 
     <script>
         function toggleTheme() {
@@ -1611,6 +1695,7 @@
 
             // --- CHAT ELEMENTS ---
             const chatContainer = document.getElementById('chat-container');
+            const chatPlaceholder = document.getElementById('chat-placeholder');
             const chatMessages = document.getElementById('chat-messages');
             const chatInput = document.getElementById('chat-input');
             const chatSendButton = document.getElementById('chat-send-button');
@@ -1897,7 +1982,8 @@
                 scanInstructions.style.display = 'block';
 
                 // --- SHOW CHAT ---
-                chatContainer.style.display = 'block';
+                chatPlaceholder.style.display = 'none';
+                chatContainer.style.display = 'flex'; // Changed to flex
                 updateChatLimitsUI();
                 
                 const switchBtn = document.getElementById('switch-mode-btn');
@@ -2070,6 +2156,7 @@
                 
                 // --- HIDE CHAT ---
                 chatContainer.style.display = 'none';
+                chatPlaceholder.style.display = 'flex';
 
                 // Set a flag to prevent multiple reloads
                 if (IS_RELOADING) return;
