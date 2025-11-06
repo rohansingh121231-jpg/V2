@@ -1,9 +1,11 @@
- <!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>QR Send - E2E Encrypted</title>
+    
+    <!-- ERUDA CONSOLE -->
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -19,64 +21,66 @@
         :root {
             --bg-primary: #ffffff;
             --bg-secondary: #f8f9fa;
-            --bg-tertiary: #f1f1f1;
             --bg-card: #ffffff;
-            --bg-chat-input: #f0f2f5;
-            --bg-chat-main: #e5ddd5;
-            --bg-chat-bubble-sender: #dcf8c6;
-            --bg-chat-bubble-receiver: #ffffff;
-            --bg-chat-bubble-sender-dark: #056162;
-            --bg-chat-bubble-receiver-dark: #2a2a2a;
             --text-primary: #1a1a1a;
             --text-secondary: #666666;
-            --text-tertiary: #a0a0a0;
-            --text-chat-bubble: #303030;
-            --text-chat-bubble-dark: #e8e8e8;
             --accent: #4285f4;
             --accent-hover: #3367d6;
-            --accent-green-light: #075e54;
-            --accent-green-dark: #128c7e;
             --border: #e0e0e0;
-            --border-dark: #333333;
             --shadow: rgba(0, 0, 0, 0.1);
-            --shadow-dark: rgba(255, 255, 255, 0.05);
             --success: #34a853;
             --error: #ea4335;
-            --read-receipt: #4fc3f7;
-            --progress-bar-bg: rgba(0, 0, 0, 0.1);
-            --progress-bar-bg-dark: rgba(255, 255, 255, 0.1);
+            
+            /* New sender bubble colors for tick visibility */
+            --bg-sender: #dcf8c6;
+            --text-sender: #1a1a1a;
         }
 
         body.dark-mode {
             --bg-primary: #0f0f0f;
             --bg-secondary: #1a1a1a;
-            --bg-tertiary: #131313;
             --bg-card: #1e1e1e;
-            --bg-chat-input: #2a2a2a;
-            --bg-chat-main: #0b141a;
-            --bg-chat-bubble-sender: var(--bg-chat-bubble-sender-dark);
-            --bg-chat-bubble-receiver: var(--bg-chat-bubble-receiver-dark);
             --text-primary: #e8e8e8;
             --text-secondary: #b0b0b0;
-            --text-tertiary: #6a6a6a;
-            --text-chat-bubble: var(--text-chat-bubble-dark);
-            --border: var(--border-dark);
-            --shadow: var(--shadow-dark);
-            --progress-bar-bg: var(--progress-bar-bg-dark);
+            --border: #333333;
+            --shadow: rgba(255, 255, 255, 0.05);
+
+            /* New sender bubble colors for tick visibility */
+            --bg-sender: #224838;
+            --text-sender: #e8e8e8;
         }
 
         body {
             font-family: 'Google Sans', 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
             color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 0; /* Changed for full-screen mobile */
             transition: all 0.3s ease;
             position: relative;
             overflow-x: hidden;
-            overflow-y: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, var(--accent) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.03;
+            animation: bgMove 20s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes bgMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
         }
 
         .theme-toggle {
@@ -109,29 +113,74 @@
             transition: all 0.3s ease;
         }
 
+        /* WATERMARK REMOVED */
+
+        /* --- NEW LAYOUT --- */
         .container {
             position: relative;
+            max-width: 100%; /* Changed */
             width: 100%;
-            height: 100vh;
-            background: var(--bg-secondary);
+            background: var(--bg-card);
             overflow: hidden;
-            display: flex;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1;
-        }
-
-        .sidebar {
-            width: 100%;
-            height: 100%;
+            
+            /* Full-screen mobile layout */
+            height: 100vh;
+            max-height: 100vh;
+            border-radius: 0;
+            box-shadow: none;
+            
             display: flex;
-            flex-direction: column;
-            background: var(--bg-primary);
-            transition: transform 0.3s ease;
-            z-index: 10;
+            flex-direction: column; /* Mobile-first: stacked layout */
+        }
+        
+        .sidebar {
+            flex-shrink: 0;
+            /* On mobile, this is just a stack of content */
         }
 
         .chat-main {
-            display: none; /* Hidden on mobile by default */
+            flex-grow: 1; /* Takes remaining height */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* CRITICAL for scrolling */
+            background: var(--bg-secondary);
+        }
+
+        .chat-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 20px;
+        }
+        .chat-placeholder svg {
+            width: 80px;
+            height: 80px;
+            fill: var(--text-secondary);
+            opacity: 0.5;
+            margin-bottom: 15px;
+        }
+        .chat-placeholder p {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        /* --- END NEW LAYOUT --- */
+
+        .container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .container::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        .container::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 3px;
         }
 
         header {
@@ -140,7 +189,7 @@
             text-align: center;
             position: relative;
             overflow: hidden;
-            flex-shrink: 0;
+            flex-shrink: 0; /* Header should not shrink */
         }
 
         header::before {
@@ -241,14 +290,7 @@
 
         main {
             padding: 20px;
-            overflow-y: auto;
-            flex-grow: 1;
-        }
-        
-        /* Hide scrollbar for main in mobile */
-        main::-webkit-scrollbar {
-            width: 0;
-            height: 0;
+            flex-shrink: 0;
         }
 
         #qr-code-container {
@@ -536,7 +578,7 @@
 
         .transfer-area {
             padding: 20px;
-            background: var(--bg-tertiary);
+            background: var(--bg-secondary);
             border-top: 1px solid var(--border);
             flex-shrink: 0;
         }
@@ -574,48 +616,60 @@
             text-align: center;
         }
 
-        /* --- NEW TRANSFER LIST --- */
+        /* --- NEW: Transfer List Container --- */
         #transfer-list-container {
             margin-top: 15px;
-            max-height: 110px; /* 2.5 * (bar + margin) */
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 190px; /* Approx 3 bars */
             overflow-y: auto;
             overflow-x: hidden;
-            padding-right: 5px; /* for scrollbar */
-        }
-        
-        #transfer-list-container::-webkit-scrollbar {
-            width: 6px;
+            scroll-behavior: smooth;
         }
 
-        #transfer-list-container::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-            border-radius: 3px;
-        }
-
-        #transfer-list-container::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 3px;
-        }
-
+        /* --- COMPACT DYNAMIC PROGRESS BAR STYLES --- */
         .progress-container {
-            width: 100%;
+            padding: 8px; /* More compact */
             background: var(--bg-card);
             border-radius: 10px;
             box-shadow: 0 2px 8px var(--shadow);
             display: flex;
+            flex-direction: column;
+            gap: 4px; /* More compact */
+        }
+        
+        .progress-top-row {
+            display: flex;
             align-items: center;
-            padding: 8px;
-            margin-bottom: 8px;
-            gap: 8px;
-            animation: fadeIn 0.3s ease;
+            gap: 8px; /* More compact */
+            width: 100%;
+        }
+
+        .progress-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 1;
+        }
+
+        .progress-bar-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
         }
 
         .progress-bar-background {
             position: relative;
-            flex-grow: 1;
-            height: 10px;
-            background: var(--progress-bar-bg);
-            border-radius: 5px;
+            width: 100%;
+            height: 8px; /* More compact */
+            background: var(--bg-secondary);
+            border-radius: 4px; /* More compact */
             overflow: hidden;
             box-shadow: inset 0 1px 2px var(--shadow);
         }
@@ -623,62 +677,52 @@
         .progress-bar {
             height: 100%;
             background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
-            border-radius: 5px;
+            border-radius: 4px; /* More compact */
             transition: width 0.3s ease;
+            position: relative;
         }
-        
+
         .progress-bar.pending {
-            background: var(--text-tertiary);
+            background: var(--border);
+            width: 100% !important;
         }
 
-        .progress-info {
-            flex-shrink: 0;
-            font-size: 11px;
-            color: var(--text-secondary);
-            text-align: left;
-            width: 100%;
+        .delivery-boy {
+            display: none;
         }
 
-        .file-name {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-primary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 90%; /* prevent overflow */
-            display: block;
-            margin-bottom: 2px;
-        }
-        
         .progress-stats {
             display: flex;
             justify-content: space-between;
+            margin-top: 4px;
             font-size: 10px;
             color: var(--text-secondary);
         }
 
-        .cancel-transfer-btn {
+        .cancel-button { /* Changed to class */
+            margin-top: 0;
+            width: auto;
+            padding: 4px 8px; /* More compact */
+            font-size: 11px; /* More compact */
             flex-shrink: 0;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border: none;
+            
             background: var(--error);
             color: white;
-            font-weight: bold;
-            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
+        
+        .cancel-button:hover {
+             background: #d33828;
+             transform: translateY(-2px);
+             box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
+        }
+        
+        /* --- END COMPACT PROGRESS BAR STYLES --- */
 
-        .cancel-transfer-btn:hover {
-            background: #d33828;
-            transform: scale(1.1);
-        }
 
         .switch-mode-button {
             margin-top: 12px;
@@ -699,388 +743,246 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
         }
-        
+
         /* --- CHAT STYLES --- */
-        .chat-main {
-            flex-grow: 1;
-            height: 100%;
-            background: var(--bg-chat-main);
-            display: flex;
+        .chat-container {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            
+            /* New layout properties */
+            display: none; /* Hidden by default */
             flex-direction: column;
-            overflow: hidden;
+            flex-grow: 1; /* Fill the .chat-main area */
+            overflow: hidden; /* Ensure it doesn't overflow */
         }
-        
-        .chat-header {
-            padding: 15px 20px;
-            background: var(--bg-tertiary);
-            border-left: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-shrink: 0;
-        }
-        
-        .peer-info h3 {
+
+        .chat-container h3 {
             font-size: 16px;
             font-weight: 600;
+            margin-bottom: 12px;
             color: var(--text-primary);
-        }
-        
-        .peer-info #peer-status {
-            font-size: 12px;
-            color: var(--success);
-            font-weight: 500;
+            flex-shrink: 0;
         }
 
         .chat-messages {
-            flex-grow: 1;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
             overflow-y: auto;
-            padding: 20px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            
+            /* New layout */
+            flex-grow: 1; /* Fill all available space */
+            height: auto; /* Remove fixed height */
+        }
+
+        .chat-message {
+            padding: 8px 12px;
+            border-radius: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+            font-size: 14px;
             display: flex;
             flex-direction: column;
         }
-        
-        .chat-messages::-webkit-scrollbar {
-            width: 8px;
-        }
 
-        .chat-messages::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: rgba(0,0,0,0.2);
-            border-radius: 4px;
-        }
-        
-        body.dark-mode .chat-messages::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.2);
-        }
-
-        .message-bubble {
-            max-width: 75%;
-            padding: 10px 15px;
-            border-radius: 18px;
-            margin-bottom: 12px;
-            font-size: 14px;
-            line-height: 1.4;
-            color: var(--text-chat-bubble);
-            position: relative;
-            word-wrap: break-word;
-            animation: slideUp 0.3s ease;
-        }
-        
-        .message-bubble.sender {
-            background: var(--bg-chat-bubble-sender);
+        .chat-message.sender {
+            background: var(--bg-sender); /* Changed */
+            color: var(--text-sender); /* Changed */
             align-self: flex-end;
-            border-radius: 18px 18px 5px 18px;
+            border-bottom-right-radius: 3px;
         }
-        
-        .message-bubble.receiver {
-            background: var(--bg-chat-bubble-receiver);
+
+        .chat-message.receiver {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
             align-self: flex-start;
-            border-radius: 18px 18px 18px 5px;
+            border-bottom-left-radius: 3px;
+        }
+
+        .chat-message img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            display: block;
+            cursor: pointer;
         }
         
-        body.dark-mode .message-bubble {
-            color: var(--text-chat-bubble-dark);
+        .message-content {
+            /* This will hold the text or image */
         }
-        
-        /* Message metadata (timestamp, ticks) */
-        .message-meta {
+
+        .message-status-bar {
             font-size: 10px;
-            color: var(--text-tertiary);
-            margin-top: 5px;
+            margin-top: 2px;
+            text-align: right;
+            opacity: 0.8;
             display: flex;
             justify-content: flex-end;
             align-items: center;
-            gap: 3px;
-        }
-        
-        .message-bubble.sender .message-meta {
-            color: var(--text-tertiary);
-        }
-        
-        .message-bubble.receiver .message-meta {
-            color: var(--text-tertiary);
-        }
-        
-        .read-receipt {
-            font-weight: bold;
-            font-size: 14px;
-        }
-        
-        .read-receipt.sent {
-            color: var(--text-tertiary);
-        }
-        
-        .read-receipt.read {
-            color: var(--read-receipt);
+            gap: 4px;
         }
 
-        /* Image messages */
-        .message-image {
-            max-width: 250px;
-            max-height: 250px;
-            width: 100%;
-            height: auto;
-            border-radius: 15px;
-            cursor: pointer;
-            display: block;
+        .msg-status {
+            font-weight: 600;
+            transition: color 0.3s ease;
+            color: var(--text-secondary); /* Changed: Default tick color */
         }
-        
-        .image-download-status {
-            font-size: 10px;
+
+        .msg-status.seen {
+            color: var(--accent); /* Changed: Blue tick for seen */
+        }
+
+        .download-status {
             font-style: italic;
-            color: var(--text-tertiary);
-            margin-top: 4px;
-            text-align: right;
+            font-size: 9px;
+            display: none;
         }
         
-        /* Chat Input Area */
+        .chat-message.receiver .message-status-bar {
+             display: none;
+        }
+
         .chat-input-area {
-            padding: 15px 20px;
-            background: var(--bg-tertiary);
-            border-top: 1px solid var(--border);
             display: flex;
-            align-items: center;
-            gap: 15px;
+            gap: 8px;
             flex-shrink: 0;
         }
 
-        #chat-message-input {
+        #chat-input {
             flex-grow: 1;
-            padding: 12px 18px;
-            border: none;
-            border-radius: 25px;
-            background: var(--bg-chat-input);
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            background: var(--bg-card);
             color: var(--text-primary);
-            font-size: 14px;
             font-family: inherit;
-            outline: none;
-        }
-        
-        body.dark-mode #chat-message-input {
-            background: var(--bg-chat-input);
+            font-size: 14px;
+            transition: border-color 0.3s ease;
         }
 
-        .chat-send-button {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            border: none;
+        #chat-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        #chat-send-button,
+        #chat-attach-button {
+            padding: 0 15px;
+            height: 44px;
             background: var(--accent);
             color: white;
-            font-size: 20px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
-        .chat-send-button:hover {
+        #chat-attach-button {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+            font-size: 18px;
+            padding: 0 14px;
+        }
+        
+        #chat-send-button:hover {
             background: var(--accent-hover);
-            transform: scale(1.1);
-        }
-        
-        .chat-send-button.image-upload {
-            background: var(--success);
-        }
-        
-        .chat-send-button.image-upload:hover {
-            background: #2d8e47;
-        }
-        
-        #image-upload-input {
-            display: none;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
         }
 
-        #chat-placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            flex-direction: column;
+        #chat-attach-button:hover {
+            background: var(--border);
+        }
+
+        .chat-status {
+            font-size: 12px;
+            color: var(--success);
+            text-align: center;
+            height: 18px;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .chat-limits-info {
+            font-size: 11px;
             color: var(--text-secondary);
             text-align: center;
-            padding: 20px;
+            margin-top: 8px;
+            flex-shrink: 0;
         }
-        
-        #chat-placeholder svg {
-            width: 100px;
-            height: 100px;
-            opacity: 0.1;
-            margin-bottom: 20px;
-        }
-        
-        #chat-placeholder h2 {
-            font-size: 22px;
-            font-weight: 300;
-        }
-        
-        #chat-placeholder p {
-            font-size: 14px;
-            margin-top: 10px;
-        }
+        /* --- END CHAT STYLES --- */
 
-
-        /* --- DESKTOP LAYOUT --- */
+        /* --- DESKTOP LAYOUT (WHATSAPP-STYLE) --- */
         @media (min-width: 768px) {
             body {
-                padding: 20px;
-                background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-            }
-            
-            body::before {
-                content: '';
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: radial-gradient(circle, var(--accent) 1px, transparent 1px);
-                background-size: 50px 50px;
-                opacity: 0.03;
-                animation: bgMove 20s linear infinite;
-                z-index: 0;
-            }
-
-            @keyframes bgMove {
-                0% { transform: translate(0, 0); }
-                100% { transform: translate(50px, 50px); }
-            }
-            
-            .theme-toggle {
-                top: 20px;
-                right: 20px;
+                padding: 15px; /* Add padding back for desktop */
             }
 
             .container {
-                max-width: 1200px;
-                width: 100%;
-                height: 95vh;
-                max-height: 1000px;
+                flex-direction: row; /* Side-by-side layout */
+                max-width: 1100px; /* Wider */
+                max-height: 95vh;
                 border-radius: 20px;
+                box-shadow: 0 10px 40px var(--shadow), 0 0 0 1px var(--border);
+            }
+            
+            .container:hover {
+                transform: translateY(-5px);
                 box-shadow: 
-                    0 10px 40px var(--shadow),
+                    0 20px 60px var(--shadow),
                     0 0 0 1px var(--border);
-                overflow: hidden;
             }
 
             .sidebar {
-                width: 30%;
-                min-width: 320px;
-                max-width: 400px;
+                width: 350px;
+                flex-shrink: 0;
                 border-right: 1px solid var(--border);
+                overflow-y: auto; /* Make sidebar scrollable */
             }
 
             .chat-main {
-                width: 70%;
-                display: flex; /* Visible on desktop */
-            }
-            
-            main {
-                padding: 25px;
-                overflow-y: auto;
-            }
-            
-            main::-webkit-scrollbar {
-                width: 6px;
+                width: 100%; /* Takes rest of space */
+                border-left: 1px solid var(--border);
             }
 
-            main::-webkit-scrollbar-track {
-                background: var(--bg-secondary);
-            }
-
-            main::-webkit-scrollbar-thumb {
-                background: var(--accent);
-                border-radius: 3px;
-            }
-
-            #qr-code-container {
-                margin-top: 20px;
-            }
-
-            #qrcode canvas,
-            #qrcode img {
-                max-width: 200px !important;
-            }
-
-            .transfer-area {
-                padding: 25px;
-            }
-            
-            /* --- MOBILE UI FIX --- */
-            /* Default mobile state */
-            body:not(.connected-desktop) .sidebar {
-                display: flex;
-            }
-            body:not(.connected-desktop) .chat-main {
-                display: none;
-            }
-            
-            /* Mobile connected state */
-            body.connected-mobile .sidebar {
-                display: none;
-            }
-            body.connected-mobile .chat-main {
-                display: flex;
-                width: 100%;
-                height: 100%;
-            }
-            
-            /* Desktop "connected" state */
-            body.connected-desktop .sidebar {
-                display: flex; /* Stays visible */
-            }
-            
-            body.connected-desktop .chat-main {
-                display: flex;
-                width: 70%;
-            }
-            /* --- END MOBILE UI FIX --- */
-            
-            .chat-header {
-                padding: 15px 30px;
-            }
-            
-            .chat-messages {
-                padding: 30px;
-            }
-            
-            .chat-input-area {
-                padding: 20px 30px;
+            .chat-container {
+                padding: 20px; /* Restore padding */
             }
         }
-        
-        @media (max-width: 767px) {
+        /* --- END DESKTOP LAYOUT --- */
+
+        @media (max-width: 600px) {
             .theme-toggle {
-                display: none; /* Hide on mobile to save space */
+                width: 40px;
+                height: 40px;
+                top: 10px;
+                right: 10px;
+            }
+            .scan-indicator {
+                width: 85%;
+                height: 85%;
+            }
+            .scan-instruction {
+                bottom: 80px;
+                font-size: 14px;
+                padding: 12px 20px;
             }
             
-            /* Hide chat placeholder on mobile */
-            #chat-placeholder {
-                display: none;
-            }
-            
-            /* Back button for mobile */
-            .back-to-sidebar {
-                display: block;
-                background: none;
-                border: none;
-                color: var(--text-primary);
-                font-size: 24px;
-                cursor: pointer;
-                margin-right: 15px;
-            }
-            
-            @media (min-width: 768px) {
-                .back-to-sidebar {
-                    display: none;
-                }
-            }
+            /* Adjust padding for mobile full-screen */
+            main { padding: 15px; }
+            .transfer-area { padding: 15px; }
+            .chat-container { padding: 15px; }
         }
 
     </style>
@@ -1095,6 +997,8 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
         </svg>
     </div>
+
+    <!-- WATERMARK REMOVED -->
 
     <div class="connection-overlay" id="connection-overlay">
         <div class="lock-animation">
@@ -1143,8 +1047,11 @@
         </div>
     </div>
 
-    <div class="container" id="container">
-        <div class="sidebar" id="sidebar">
+    <!-- NEW LAYOUT STRUCTURE -->
+    <div class="container">
+        
+        <!-- SIDEBAR (Controls) -->
+        <div class="sidebar">
             <header>
                 <h1>QR Send Pro</h1>
                 <div id="status">Starting...</div>
@@ -1172,98 +1079,55 @@
                 <h3>📁 Send Files</h3>
                 <input type="file" id="file-input" disabled multiple>
                 <div id="transfer-status">Waiting...</div>
-                
+
+                <!-- NEW: Transfer List Container -->
                 <div id="transfer-list-container">
-                    <!-- Progress bars will be injected here -->
+                    <!-- Dynamic progress bars will be injected here -->
                 </div>
+                
             </div>
         </div>
-        
-        <div class="chat-main" id="chat-main">
-            <!-- Chat shown on connection -->
+
+        <!-- MAIN CHAT AREA -->
+        <div class="chat-main">
+            <!-- CHAT UI -->
+            <div class="chat-container" id="chat-container">
+                <h3>💬 E2E Chat</h3>
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will go here -->
+                </div>
+                <div class="chat-status" id="chat-status"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Type a message...">
+                    <button id="chat-attach-button" title="Attach Image">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"></path></svg>
+                    </button>
+                    <button id="chat-send-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                    <input type="file" id="chat-image-input" accept="image/*" style="display: none;">
+                </div>
+                <div class="chat-limits-info" id="chat-limits-info">
+                    Words: 0/1000 | Images: 0/6 (0/10 MB)
+                </div>
+            </div>
+
+            <!-- CHAT PLACEHOLDER -->
+            <div class="chat-placeholder" id="chat-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                <p>Scan a QR code or share your link<br>to start a secure session.</p>
+            </div>
         </div>
-        
-        <!-- Chat Area Template -->
-        <template id="chat-template">
-            <div class="chat-header">
-                <button class="back-to-sidebar" onclick="showSidebar()">←</button>
-                <div class="peer-info">
-                    <h3>Peer Connected</h3>
-                    <div id="peer-status">Online</div>
-                </div>
-                <div class="theme-toggle" onclick="toggleTheme()">
-                    <svg id="theme-icon-light-chat" viewBox="0 0 24 24" style="display: none;">
-                        <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
-                    </svg>
-                    <svg id="theme-icon-dark-chat" viewBox="0 0 24 24">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="chat-messages" id="chat-messages">
-                <!-- Chat messages will be injected here -->
-            </div>
-            <div class="chat-input-area">
-                <input type="file" id="image-upload-input" accept="image/*">
-                <button class="chat-send-button image-upload" id="image-upload-button" title="Send Image">
-                    📎
-                </button>
-                <input type="text" id="chat-message-input" placeholder="Type a message...">
-                <button class="chat-send-button" id="chat-send-button">
-                    ➤
-                </button>
-            </div>
-        </template>
-        
-        <!-- Chat Placeholder Template -->
-        <template id="chat-placeholder-template">
-             <div id="chat-placeholder">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM5.2 16.1C5 15.9 5 15.6 5.2 15.4l4.3-4.3c.2-.2.5-.2.7 0l2.1 2.1 4.3-4.3c.2-.2.5-.2.7 0l2.8 2.8c.2.2.2.5 0 .7l-6.1 6.1c-.2.2-.5.2-.7 0l-4-4-3.9 3.9c-.2.2-.5.2-.7 0z"/>
-                </svg>
-                <h2>QR Send Pro</h2>
-                <p>Scan a QR code or share yours to start sending files and E2E encrypted messages.</p>
-            </div>
-        </template>
-        
-        <!-- Progress Bar Template -->
-        <template id="progress-bar-template">
-            <div class="progress-container">
-                <div style="flex-grow: 1;">
-                    <div class="progress-info">
-                        <span class="file-name">file.name</span>
-                    </div>
-                    <div class="progress-bar-background">
-                        <div class="progress-bar"></div>
-                    </div>
-                    <div class="progress-stats">
-                        <span class="progress-size">0 MB / 0 MB</span>
-                        <span class="progress-eta">ETA: --:--</span>
-                    </div>
-                </div>
-                <button class="cancel-transfer-btn">×</button>
-            </div>
-        </template>
-        
+
     </div>
+    <!-- END NEW LAYOUT STRUCTURE -->
 
     <script>
         function toggleTheme() {
             document.body.classList.toggle('dark-mode');
             const isDark = document.body.classList.contains('dark-mode');
-            
-            // Main toggle
             document.getElementById('theme-icon-light').style.display = isDark ? 'block' : 'none';
             document.getElementById('theme-icon-dark').style.display = isDark ? 'none' : 'block';
-            
-            // Chat toggle (if it exists)
-            const lightChat = document.getElementById('theme-icon-light-chat');
-            const darkChat = document.getElementById('theme-icon-dark-chat');
-            if(lightChat && darkChat) {
-                lightChat.style.display = isDark ? 'block' : 'none';
-                darkChat.style.display = isDark ? 'none' : 'block';
-            }
-            
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
 
@@ -1377,7 +1241,8 @@
                 isScanning = false;
                 // Allow peer init to recover if camera fails
                 ALLOW_PEER_INIT = true; 
-                alert('Camera error: ' + err.name);
+                // Don't use alert, use a status message
+                showChatStatus('❌ Camera error: ' + err.name, true);
                 closeScanner();
             });
         }
@@ -1407,7 +1272,7 @@
                 
                 if (!scannedPeerId || scannedPeerId.trim() === '') {
                     console.error('❌ Empty peer ID!');
-                    alert('QR code has no peer ID');
+                    showChatStatus('QR code has no peer ID', true);
                     hasScanned = false; // Allow re-scan
                     ALLOW_PEER_INIT = true; // Allow peer init to recover
                     return;
@@ -1425,7 +1290,7 @@
             } catch (e) {
                 console.error('❌❌❌ QR parse FAILED:', e);
                 console.error('Error:', e.message);
-                alert('Invalid QR code: ' + e.message);
+                showChatStatus('Invalid QR code: ' + e.message, true);
                 hasScanned = false; // Allow re-scan
                 ALLOW_PEER_INIT = true; // Allow peer init to recover
                 IS_RELOADING = false; // RESET FLAG on error
@@ -1455,14 +1320,360 @@
                 overlay.classList.remove('active');
             }, 2000);
         }
-        
-        function showSidebar() {
-            document.body.classList.remove('connected-mobile');
+
+        // --- NEW: Helper to create HTML for a progress bar ---
+        /**
+         * Creates and appends a progress bar UI to the transfer list.
+         * @param {string} fileId - The unique ID for this transfer.
+         * @param {string} fileName - The name of the file.
+         * @param {boolean} isSender - True if this is a sending bar, false for receiving.
+         */
+        function createTransferUI(fileId, fileName, isSender) {
+            const container = document.getElementById('transfer-list-container');
+            const el = document.createElement('div');
+            el.className = 'progress-container';
+            el.id = `transfer-${fileId}`;
+
+            const label = isSender ? `Sending: ${fileName}` : `Receiving: ${fileName}`;
+            const cancelButtonHTML = `<button class="cancel-button" data-file-id="${fileId}">❌</button>`; // Always add
+
+            el.innerHTML = `
+                <div class="progress-top-row">
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-label">
+                            <span class="progress-label-text">${label}</span>
+                            <span class="progress-percentage">0%</span>
+                        </div>
+                        <div class="progress-bar-background">
+                            <div class="progress-bar"></div>
+                        </div>
+                    </div>
+                    ${cancelButtonHTML}
+                </div>
+                <div class="progress-stats">
+                    <span class="progress-size">-- MB / -- MB</span>
+                    <span class="progress-eta">ETA: --:--</span>
+                </div>
+            `;
+
+            container.appendChild(el);
+            
+            // Add click listener
+            el.querySelector('.cancel-button').addEventListener('click', () => {
+                if (isSender) {
+                    cancelTransfer(fileId);
+                } else {
+                    cancelReceive(fileId); // New function
+                }
+            });
         }
+
+        /**
+         * Updates a specific progress bar in the UI.
+         * @param {string} fileId - The ID of the transfer to update.
+         * @param {object} options - The values to update.
+         * @param {number} options.percent - The percentage (0-100).
+         * @param {string} options.sizeText - The formatted size string (e.g., "1.2 MB / 5 MB").
+         * @param {string} options.etaText - The formatted ETA string (e.g., "ETA: 0:05").
+         * @param {string} [options.status] - Optional status like "Pending".
+         */
+        function updateTransferUI(fileId, options) {
+            const el = document.getElementById(`transfer-${fileId}`);
+            if (!el) return;
+
+            const bar = el.querySelector('.progress-bar');
+            const percentage = el.querySelector('.progress-percentage');
+            const size = el.querySelector('.progress-size');
+            const eta = el.querySelector('.progress-eta');
+            const label = el.querySelector('.progress-label-text');
+
+            if (options.percent != null) {
+                bar.style.width = `${options.percent}%`;
+                percentage.textContent = `${options.percent}%`;
+            }
+            if (options.sizeText) size.textContent = options.sizeText;
+            if (options.etaText) eta.textContent = options.etaText;
+            
+            if (options.status === 'pending') {
+                bar.classList.add('pending');
+                label.style.opacity = 0.7;
+                percentage.textContent = 'Pending';
+                size.textContent = options.sizeText; // Show file size for pending
+                eta.textContent = '';
+            } else {
+                 bar.classList.remove('pending');
+                 label.style.opacity = 1;
+            }
+        }
+
 
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🚀 App initialized');
             
+            // --- CHAT HELPER CONSTANTS ---
+            const MAX_WORDS = 1000;
+            const MAX_IMAGES = 6;
+            const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
+
+            // --- CHAT STATE VARIABLES ---
+            let typingTimer;
+            let isTypingSent = false;
+            let peerTypingTimer;
+
+
+            // --- CHAT HELPER FUNCTIONS ---
+            
+            /**
+             * Converts a File object to a Base64 Data URL.
+             * @param {File} file - The file to convert.
+             * @returns {Promise<string>} A promise that resolves with the Base64 string.
+             */
+            function fileToBase64(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                });
+            }
+
+            /**
+             * Scans the DOM and returns the current counts for words, images, and image size.
+             * @returns {{wordCount: number, imageCount: number, imageSize: number}}
+             */
+            function getChatLimits() {
+                const textMessages = chatMessages.querySelectorAll('.chat-message[data-type="text"]');
+                const imageMessages = chatMessages.querySelectorAll('.chat-message[data-type="image"]');
+
+                let totalWords = 0;
+                textMessages.forEach(msg => {
+                    totalWords += parseInt(msg.dataset.words || 0, 10);
+                });
+
+                let totalImageSize = 0;
+                imageMessages.forEach(img => {
+                    totalImageSize += parseInt(img.dataset.size || 0, 10);
+                });
+
+                return {
+                    wordCount: totalWords,
+                    imageCount: imageMessages.length,
+                    imageSize: totalImageSize
+                };
+            }
+
+            /**
+             * Prunes the chat DOM to enforce limits. Removes oldest messages first.
+             */
+            function pruneChat() {
+                // Prune text
+                const textMessages = Array.from(chatMessages.querySelectorAll('.chat-message[data-type="text"]'));
+                let { wordCount } = getChatLimits(); // Get current word count
+
+                while (wordCount > MAX_WORDS && textMessages.length > 0) {
+                    const oldMsg = textMessages.shift(); // Get oldest message
+                    const wordsToRemove = parseInt(oldMsg.dataset.words || 0, 10);
+                    wordCount -= wordsToRemove;
+                    oldMsg.remove();
+                }
+
+                // Prune images
+                const imageMessages = Array.from(chatMessages.querySelectorAll('.chat-message[data-type="image"]'));
+                let { imageCount, imageSize } = getChatLimits(); // Get current image stats
+
+                while ((imageCount > MAX_IMAGES || imageSize > MAX_IMAGE_SIZE) && imageMessages.length > 0) {
+                    const oldImg = imageMessages.shift(); // Get oldest image
+                    const sizeToRemove = parseInt(oldImg.dataset.size || 0, 10);
+                    imageSize -= sizeToRemove;
+                    imageCount--;
+                    oldImg.remove();
+                }
+            }
+
+            /**
+             * Updates the chat limits UI with current stats.
+             */
+            function updateChatLimitsUI() {
+                if (!chatLimitsInfo) return;
+                const { wordCount, imageCount, imageSize } = getChatLimits();
+                chatLimitsInfo.textContent = `Words: ${wordCount}/${MAX_WORDS} | Images: ${imageCount}/${MAX_IMAGES} (${formatBytes(imageSize)}/10 MB)`;
+            }
+
+            /**
+             * Adds a new message to the chat window.
+             * @param {string} type - 'text' or 'image'
+             * @param {string} content - The text message or Base64 image data
+             * @param {string} sender - 'sender' or 'receiver'
+             * @param {object} metadata - { words: number } or { size: number, name: string }
+             * @param {string} msgId - The unique message ID
+             */
+            function addMessageToDOM(type, content, sender, metadata, msgId) {
+                const msgEl = document.createElement('div');
+                msgEl.className = `chat-message ${sender}`;
+                msgEl.dataset.type = type;
+                msgEl.dataset.msgId = msgId;
+
+                const contentEl = document.createElement('div');
+                contentEl.className = 'message-content';
+
+                if (type === 'text') {
+                    contentEl.textContent = content;
+                    msgEl.dataset.words = metadata.words;
+                } else if (type === 'image') {
+                    const img = document.createElement('img');
+                    img.src = content; // 'content' is Base64 data
+                    img.dataset.filename = metadata.name; // Store filename for download
+                    
+                    // Add download click listener
+                    img.onclick = () => {
+                        try {
+                            const a = document.createElement('a');
+                            a.href = img.src;
+                            a.download = img.dataset.filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            
+                            // Send download notification
+                            if (currentConnection && currentConnection.open) {
+                                currentConnection.send({ type: 'chat-img-download', msgId: msgId });
+                            }
+                        } catch (e) {
+                            console.error("Download error:", e);
+                            showChatStatus('Image download failed', true);
+                        }
+                    };
+                    
+                    img.onload = () => {
+                        chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll on image load
+                    };
+                    contentEl.appendChild(img);
+                    msgEl.dataset.size = metadata.size;
+                }
+                
+                msgEl.appendChild(contentEl);
+
+                // Add status bar (for sender only)
+                if (sender === 'sender') {
+                    const statusBar = document.createElement('div');
+                    statusBar.className = 'message-status-bar';
+                    
+                    if (type === 'image') {
+                         const downloadStatus = document.createElement('span');
+                         downloadStatus.className = 'download-status';
+                         downloadStatus.textContent = 'Downloaded by peer';
+                         statusBar.appendChild(downloadStatus);
+                    }
+                    
+                    const msgStatus = document.createElement('span');
+                    msgStatus.className = 'msg-status';
+                    msgStatus.innerHTML = '✓'; // One tick
+                    statusBar.appendChild(msgStatus);
+                    
+                    msgEl.appendChild(statusBar);
+                }
+
+                chatMessages.appendChild(msgEl);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            /**
+             * Sends the text message from the input field.
+             */
+            function sendTextMessage() {
+                const message = chatInput.value.trim();
+                if (message === '' || !currentConnection || !currentConnection.open) return;
+
+                const wordCount = message.split(/\s+/).length;
+                const msgId = crypto.randomUUID();
+                
+                try {
+                    currentConnection.send({ type: 'chat-text', message: message, msgId: msgId });
+                    addMessageToDOM('text', message, 'sender', { words: wordCount }, msgId);
+                    pruneChat();
+                    updateChatLimitsUI();
+                    chatInput.value = '';
+                    
+                    // Stop typing indicator after send
+                    clearTimeout(typingTimer);
+                    isTypingSent = false;
+                    currentConnection.send({ type: 'chat-stop-typing' });
+
+                } catch (e) {
+                    console.error("Chat send error:", e);
+                    showChatStatus('Message send error', true);
+                }
+            }
+
+            /**
+             * Handles the file selection from the image input.
+             */
+            function handleImageUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                if (file.size > MAX_IMAGE_SIZE) {
+                    showChatStatus('❌ Image is too large (Max 10MB)', true);
+                    return;
+                }
+                
+                const { imageCount, imageSize } = getChatLimits();
+                if (imageCount >= MAX_IMAGES || imageSize + file.size > MAX_IMAGE_SIZE) {
+                     showChatStatus('Image quota full. Old images will be removed.', true);
+                     // We still allow sending, pruneChat() will handle removal.
+                }
+
+                fileToBase64(file).then(base64data => {
+                    if (!currentConnection || !currentConnection.open) return;
+                    
+                    const msgId = crypto.randomUUID();
+                    const metadata = { size: file.size, name: file.name };
+
+                    try {
+                        currentConnection.send({
+                            type: 'chat-image',
+                            name: file.name,
+                            fileType: file.type,
+                            size: file.size,
+                            data: base64data,
+                            msgId: msgId
+                        });
+                        addMessageToDOM('image', base64data, 'sender', metadata, msgId);
+                        pruneChat();
+                        updateChatLimitsUI();
+                    } catch (e) {
+                        console.error("Image send error:", e);
+                        showChatStatus('Image send error', true);
+                    }
+                }).catch(err => {
+                    console.error("Base64 conversion error:", err);
+                    showChatStatus('Could not read image', true);
+                });
+                
+                event.target.value = null; // Clear input
+            }
+
+            /**
+             * Shows a temporary status message in the chat UI.
+             */
+            function showChatStatus(message, isError = false) {
+                if (!chatStatus) return;
+                chatStatus.textContent = message;
+                chatStatus.style.color = isError ? 'var(--error)' : 'var(--success)';
+                chatStatus.style.opacity = 1;
+                
+                // Clear any existing timer
+                clearTimeout(peerTypingTimer); 
+                
+                // Hide after 3 seconds
+                peerTypingTimer = setTimeout(() => {
+                    chatStatus.style.opacity = 0;
+                }, 3000);
+            }
+            
+            // --- END CHAT HELPER FUNCTIONS ---
+
+
             const statusEl = document.getElementById('status');
             const qrCodeContainer = document.getElementById('qr-code-container');
             const qrEl = document.getElementById('qrcode');
@@ -1475,18 +1686,61 @@
             const copyLinkButton = document.getElementById('copy-link-button');
             const downloadQrButton = document.getElementById('download-qr-button');
             
+            // --- NEW: Transfer List Container ---
             const transferListContainer = document.getElementById('transfer-list-container');
-            const progressBarTemplate = document.getElementById('progress-bar-template');
 
-            const chatMain = document.getElementById('chat-main');
-            const chatTemplate = document.getElementById('chat-template');
-            const chatPlaceholderTemplate = document.getElementById('chat-placeholder-template');
+
+            // --- CHAT ELEMENTS ---
+            const chatContainer = document.getElementById('chat-container');
+            const chatPlaceholder = document.getElementById('chat-placeholder');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatInput = document.getElementById('chat-input');
+            const chatSendButton = document.getElementById('chat-send-button');
+            const chatAttachButton = document.getElementById('chat-attach-button');
+            const chatImageInput = document.getElementById('chat-image-input');
+            const chatLimitsInfo = document.getElementById('chat-limits-info');
+            const chatStatus = document.getElementById('chat-status');
+
+            // --- CHAT LISTENERS ---
+            chatSendButton.addEventListener('click', sendTextMessage);
+            
+            chatInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    sendTextMessage();
+                }
+            });
+            
+            // Typing Indicator Logic
+            chatInput.addEventListener('input', () => {
+                if (!currentConnection || !currentConnection.open) return;
+                
+                if (!isTypingSent) {
+                    currentConnection.send({ type: 'chat-typing' });
+                    isTypingSent = true;
+                    // Cooldown to prevent spam
+                    setTimeout(() => { isTypingSent = false; }, 2000); 
+                }
+                
+                // Clear previous "stop" timer
+                clearTimeout(typingTimer);
+                
+                // Set a new timer to send "stop" if user pauses
+                typingTimer = setTimeout(() => {
+                    currentConnection.send({ type: 'chat-stop-typing' });
+                }, 3000);
+            });
+            
+            chatInput.addEventListener('blur', () => {
+                 if (currentConnection && currentConnection.open) {
+                    currentConnection.send({ type: 'chat-stop-typing' });
+                 }
+            });
+
+            chatAttachButton.addEventListener('click', () => chatImageInput.click());
+            chatImageInput.addEventListener('change', handleImageUpload);
+
 
             const CHUNK_SIZE = 64 * 1024;
-            const CHAT_CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunks for chat images
-            const MAX_CHAT_MESSAGES = 1000; // Total messages to keep
-            const MAX_CHAT_IMAGES = 6;
-            const MAX_IMAGE_SIZE_TOTAL = 10 * 1024 * 1024; // 10MB
 
             let peer = null;
             let currentConnection = null;
@@ -1496,34 +1750,19 @@
             let connectionRetryCount = 0;
             const MAX_RETRY = 3;
             
-            let fileQueue = []; // Queue for sending files
+            let fileQueue = []; // NEW: Will store { file, id, status }
             let isSending = false;
-            let activeSend = null; // Will store the active fileJob
-            let activeReader = null; // Store reference to the active file reader
+            let activeSend = null; // NEW: Will store the active fileJob
             
-            let receivingFiles = new Map(); // Map to store receiving file metadata
-            
-            let hasActiveTransfer = false;
+            // NEW: Map to store receiving file metadata
+            let receivingFiles = new Map(); 
+
+            let hasActiveTransfer = false; // Will be true if isSending or receivingFiles.size > 0
             let heartbeatInterval = null;
             
-            // --- CHAT STATE ---
-            let chatMessages = [];
-            let chatImages = [];
-            let isTyping = false;
-            let typingTimeout = null;
-            let peerIsTyping = false;
-            
-            // --- READ RECEIPT STATE ---
-            let unreadMessages = new Set();
-            let sentMessages = new Map(); // { id: { element: <DOM>, status: 'sent' } }
-            
-            // --- CHAT IMAGE CHUNKING STATE ---
-            let chatImagesReceiving = new Map();
-            let activeChatImageSend = null;
-            let activeChatImageReader = null;
-
             window.addEventListener('beforeunload', (event) => {
-                if (isSending || receivingFiles.size > 0) {
+                hasActiveTransfer = isSending || receivingFiles.size > 0;
+                if (hasActiveTransfer) {
                     const warningText = 'Transfer active!';
                     event.preventDefault();
                     event.returnValue = warningText;
@@ -1550,12 +1789,6 @@
                 console.log('🔧 Initializing peer...');
                 
                 statusEl.textContent = 'Initializing...';
-                
-                // Show placeholder in desktop
-                if (window.innerWidth >= 768) {
-                    chatMain.innerHTML = '';
-                    chatMain.appendChild(chatPlaceholderTemplate.content.cloneNode(true));
-                }
                 
                 try {
                     peer = new Peer({
@@ -1733,76 +1966,6 @@
                     handleFailure('Failed');
                 }
             }
-            
-            function setupChatUI() {
-                // Load chat template
-                chatMain.innerHTML = '';
-                chatMain.appendChild(chatTemplate.content.cloneNode(true));
-                
-                // Re-bind chat UI elements
-                const chatMessagesEl = document.getElementById('chat-messages');
-                const chatInput = document.getElementById('chat-message-input');
-                const sendButton = document.getElementById('chat-send-button');
-                const imageButton = document.getElementById('image-upload-button');
-                const imageInput = document.getElementById('image-upload-input');
-                
-                // Re-apply theme to new chat UI
-                if(localStorage.getItem('theme') === 'dark') {
-                    const lightChat = document.getElementById('theme-icon-light-chat');
-                    const darkChat = document.getElementById('theme-icon-dark-chat');
-                    if(lightChat && darkChat) {
-                        lightChat.style.display = 'block';
-                        darkChat.style.display = 'none';
-                    }
-                }
-
-                // Send message on Enter or Button click
-                const sendMessage = () => {
-                    const message = chatInput.value.trim();
-                    if (message) {
-                        sendChatMessage({ type: 'text', content: message });
-                        chatInput.value = '';
-                        stopTyping();
-                    }
-                };
-                
-                chatInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        sendMessage();
-                    } else {
-                        startTyping();
-                    }
-                });
-                
-                sendButton.addEventListener('click', sendMessage);
-                
-                // Image upload
-                imageButton.addEventListener('click', () => imageInput.click());
-                imageInput.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                        sendChatImage(file);
-                    }
-                    e.target.value = null; // Reset input
-                });
-                
-                // Add intersection observer for read receipts
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const messageId = entry.target.dataset.messageId;
-                            if (unreadMessages.has(messageId)) {
-                                console.log('Message seen:', messageId);
-                                sendData({ type: 'chat', subtype: 'read', id: messageId });
-                                unreadMessages.delete(messageId);
-                                observer.unobserve(entry.target);
-                            }
-                        }
-                    });
-                }, { threshold: 0.8 });
-                
-                chatMessagesEl.observer = observer;
-            }
 
             function setupConnection(conn) {
                 console.log('✓ Setup connection');
@@ -1814,27 +1977,21 @@
                 fileInput.disabled = false;
                 transferStatusEl.textContent = '✅ Ready';
                 
-                // --- NEW UI LOGIC ---
-                // 1. Setup Chat UI
-                setupChatUI();
-                
-                // 2. Add "connected" class to body
-                if (window.innerWidth < 768) {
-                    document.body.classList.add('connected-mobile');
-                } else {
-                    document.body.classList.add('connected-desktop');
-                }
-                
                 // Hide QR container and show "Connected" status
                 qrCodeContainer.style.display = 'none';
                 shareButtonsContainer.style.display = 'none';
                 scanInstructions.style.display = 'block';
+
+                // --- SHOW CHAT ---
+                chatPlaceholder.style.display = 'none';
+                chatContainer.style.display = 'flex'; // Changed to flex
+                updateChatLimitsUI();
                 
                 const switchBtn = document.getElementById('switch-mode-btn');
                 if (switchBtn) switchBtn.remove();
                 
                 if (isHost) startHeartbeat();
-                
+
                 // Send a 'ready' signal to the other peer
                 setTimeout(() => {
                     if (currentConnection && currentConnection.open) {
@@ -1847,119 +2004,171 @@
                 }, 100);
 
                 conn.on('data', (data) => {
-                    // --- GENERIC DATA HANDLING ---
+                    
+                    // --- HEARTBEAT & READY ---
                     if (data.type === 'ready') {
                         statusEl.textContent = '✅ Ready!';
                         return;
                     }
-                    
                     if (data.type === 'heartbeat-ping') {
                         conn.send({ type: 'heartbeat-pong' });
                         return;
                     }
-                    
                     if (data.type === 'heartbeat-pong') return;
-                    
-                    // --- CHAT DATA ---
-                    if (data.type === 'chat') {
-                        handleChatData(data);
+
+                    // --- CHAT LOGIC ---
+                    if (data.type === 'chat-text') {
+                        addMessageToDOM('text', data.message, 'receiver', { words: data.message.split(/\s+/).length }, data.msgId);
+                        conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
+                        pruneChat();
+                        updateChatLimitsUI();
                         return;
                     }
+                    if (data.type === 'chat-image') {
+                        addMessageToDOM('image', data.data, 'receiver', { size: data.size, name: data.name }, data.msgId);
+                        conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
+                        pruneChat();
+                        updateChatLimitsUI();
+                        return;
+                    }
+                    if (data.type === 'chat-typing') {
+                        chatStatus.textContent = 'Typing...';
+                        chatStatus.style.opacity = 1;
+                        clearTimeout(peerTypingTimer);
+                        peerTypingTimer = setTimeout(() => { chatStatus.style.opacity = 0; }, 3500); // Auto-hide
+                        return;
+                    }
+                    if (data.type === 'chat-stop-typing') {
+                        clearTimeout(peerTypingTimer);
+                        chatStatus.style.opacity = 0;
+                        return;
+                    }
+                    if (data.type === 'chat-read') {
+                        const msgEl = document.querySelector(`.chat-message[data-msg-id="${data.msgId}"]`);
+                        if (msgEl) {
+                            const statusEl = msgEl.querySelector('.msg-status');
+                            if (statusEl) {
+                                statusEl.innerHTML = '✓✓';
+                                statusEl.classList.add('seen');
+                            }
+                        }
+                        return;
+                    }
+                    if (data.type === 'chat-img-download') {
+                        const msgEl = document.querySelector(`.chat-message[data-msg-id="${data.msgId}"]`);
+                        if (msgEl) {
+                            const statusEl = msgEl.querySelector('.download-status');
+                            if (statusEl) {
+                                statusEl.style.display = 'inline';
+                            }
+                        }
+                        return;
+                    }
+
 
                     // --- FILE TRANSFER LOGIC ---
                     if (data.type === 'metadata') {
                         const fileId = data.fileId;
                         receivingFiles.set(fileId, {
                             id: fileId,
-                            ...data,
-                            chunks: [],
+                            name: data.name,
+                            size: data.size,
+                            type: data.fileType,
+                            data: [],
                             receivedBytes: 0,
-                            startTime: Date.now()
+                            startTime: Date.now() // Start ETA timer
                         });
                         
-                        const fileData = receivingFiles.get(fileId);
+                        createTransferUI(fileId, data.name, false);
+                        updateTransferUI(fileId, {
+                            percent: 0,
+                            sizeText: `0 / ${formatBytes(data.size)}`,
+                            etaText: 'ETA: --:--'
+                        });
                         
-                        const progressEl = createProgressBar(fileId, fileData.name, fileData.size, 'receive');
-                        transferListContainer.appendChild(progressEl);
-                        
-                        // Add cancel listener
-                        progressEl.querySelector('.cancel-transfer-btn').onclick = () => {
-                            cancelTransfer(fileId);
-                        };
-
+                        transferStatusEl.textContent = `Receiving...`;
                     } else if (data.type === 'end') {
                         const fileId = data.fileId;
                         const fileData = receivingFiles.get(fileId);
+                        
+                        if (!fileData) return; // Already cancelled or finished
 
-                        if (fileData) {
-                            const fileBlob = new Blob(fileData.chunks, { type: fileData.fileType });
-                            const downloadUrl = URL.createObjectURL(fileBlob);
-                            const a = document.createElement('a');
-                            a.href = downloadUrl;
-                            a.download = fileData.name;
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
-                            
-                            document.getElementById(`transfer-${fileId}`)?.remove();
-                            receivingFiles.delete(fileId);
+                        const fileBlob = new Blob(fileData.data, { type: fileData.type });
+                        const downloadUrl = URL.createObjectURL(fileBlob);
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        a.download = fileData.name;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
+                        
+                        document.getElementById(`transfer-${fileId}`)?.remove();
+                        receivingFiles.delete(fileId);
+                        
+                        if (receivingFiles.size === 0 && !isSending) {
+                            transferStatusEl.textContent = `✅ Received`;
                         }
-
                     } else if (data.type === 'cancel') {
                         const fileId = data.fileId;
                         console.log(`Received cancel for: ${fileId}`);
 
                         // 1. Is it our active send?
                         if (activeSend && activeSend.id === fileId) {
-                            console.log('Cancelling active send (peer request)');
-                            activeSend.status = 'cancelled';
-                            if (activeReader) {
-                                activeReader.abort();
-                            }
+                            activeSend.status = 'cancelled'; // This will be caught by reader.onload/readSlice
+                            document.getElementById(`transfer-${fileId}`)?.remove();
+                            
+                            // --- FIX ---
+                            // We must manually stop and start the next file,
+                            // just like in cancelTransfer()
+                            isSending = false;
+                            activeSend = null;
+                            sendNextFileFromQueue();
+                            // --- END FIX ---
+
                         }
                         // 2. Is it in our pending send queue?
                         else if (fileQueue.some(job => job.id === fileId)) {
-                            console.log('Cancelling pending send (peer request)');
                             fileQueue = fileQueue.filter(job => job.id !== fileId);
                             document.getElementById(`transfer-${fileId}`)?.remove();
-                            updateTransferStatus();
                         }
-                        // 3. Are we receiving it?
+                        // 3. Is it our active receive?
                         else if (receivingFiles.has(fileId)) {
-                            console.log('Cancelling active receive (peer request)');
-                            document.getElementById(`transfer-${fileId}`)?.remove();
                             receivingFiles.delete(fileId);
-                        }
-                        // 4. Is it a chat image we are sending?
-                        else if (activeChatImageSend && activeChatImageSend.id === fileId) {
-                            console.log('Cancelling active chat image send (peer request)');
-                            activeChatImageSend.status = 'cancelled';
-                            if (activeChatImageReader) {
-                                activeChatImageReader.abort();
+                            document.getElementById(`transfer-${fileId}`)?.remove();
+                            if (receivingFiles.size === 0 && !isSending) {
+                                transferStatusEl.textContent = '❌ Cancelled by peer';
                             }
                         }
-                        // 5. Is it a chat image we are receiving?
-                        else if (chatImagesReceiving.has(fileId)) {
-                            console.log('Cancelling active chat image receive (peer request)');
-                            const imgData = chatImagesReceiving.get(fileId);
-                            if (imgData && imgData.bubble) {
-                                imgData.bubble.innerHTML = '<i>Message cancelled by peer.</i>';
-                            }
-                            chatImagesReceiving.delete(fileId);
-                        }
-
-                    } else { // This is a file chunk (ArrayBuffer)
-                        const fileId = data.fileId;
-                        const fileData = receivingFiles.get(fileId);
+                    } else {
+                        // This is a file chunk (ArrayBuffer)
+                        // It must have a fileId attached
+                        const fileId = data.fileId; 
+                        const chunk = data.chunk;
                         
-                        if (fileData) {
-                            fileData.chunks.push(data.chunk);
-                            fileData.receivedBytes += data.chunk.byteLength;
-                            
-                            const percent = Math.round((fileData.receivedBytes / fileData.size) * 100);
-                            updateProgressBar(fileId, percent, fileData.receivedBytes, fileData.size, fileData.startTime);
+                        const fileData = receivingFiles.get(fileId);
+                        if (!fileData) return; // No metadata for this chunk, ignore
+
+                        fileData.data.push(chunk);
+                        fileData.receivedBytes += chunk.byteLength;
+                        
+                        const percent = Math.round((fileData.receivedBytes / fileData.size) * 100);
+                        
+                        // Calculate Receiver ETA
+                        const elapsedTime = (Date.now() - fileData.startTime) / 1000;
+                        let etaText = 'ETA: --:--';
+                        if (elapsedTime > 0.5) {
+                            const speed = fileData.receivedBytes / elapsedTime;
+                            const remainingBytes = fileData.size - fileData.receivedBytes;
+                            const remainingTime = remainingBytes / speed;
+                            etaText = `ETA: ${formatTime(remainingTime)}`;
                         }
+                        
+                        updateTransferUI(fileId, {
+                            percent: percent,
+                            sizeText: `${formatBytes(fileData.receivedBytes)} / ${formatBytes(fileData.size)}`,
+                            etaText: etaText
+                        });
                     }
                 });
 
@@ -1969,308 +2178,9 @@
                     handleDisconnect('Error');
                 });
                 
-                if (fileQueue.length > 0 && !isSending) {
-                    setTimeout(() => sendNextFileFromQueue(), 500);
-                }
+                // Start sending if queue has items
+                sendNextFileFromQueue();
             }
-            
-            // --- CHAT LOGIC ---
-            
-            function handleChatData(data) {
-                const chatMessagesEl = document.getElementById('chat-messages');
-                const peerStatusEl = document.getElementById('peer-status');
-
-                switch(data.subtype) {
-                    case 'text':
-                        displayChatMessage(data, 'receiver');
-                        break;
-                    
-                    // --- NEW CHAT IMAGE CHUNKING ---
-                    case 'image_start':
-                        // Store placeholder for incoming chunks
-                        const bubble = displayChatMessage(data, 'receiver'); // Display placeholder
-                        chatImagesReceiving.set(data.id, {
-                            bubble: bubble,
-                            chunks: [],
-                            fileType: data.fileType,
-                            name: data.name
-                        });
-                        break;
-                    case 'image_chunk':
-                        const imgData = chatImagesReceiving.get(data.id);
-                        if (imgData) {
-                            imgData.chunks.push(data.chunk);
-                        }
-                        break;
-                    case 'image_end':
-                        const finishedImgData = chatImagesReceiving.get(data.id);
-                        if (finishedImgData) {
-                            const imgBlob = new Blob(finishedImgData.chunks, { type: finishedImgData.fileType });
-                            const dataUrl = URL.createObjectURL(imgBlob);
-                            
-                            const imgEl = finishedImgData.bubble.querySelector('img');
-                            if (imgEl) {
-                                imgEl.src = dataUrl;
-                                // No revoke needed for blob URLs
-                            }
-                            chatImagesReceiving.delete(data.id);
-                        }
-                        break;
-                    // --- END CHAT IMAGE CHUNKING ---
-
-                    case 'image_download':
-                        const el = document.querySelector(`.message-bubble[data-message-id="${data.id}"]`);
-                        if(el) {
-                            let statusEl = el.querySelector('.image-download-status');
-                            if (!statusEl) {
-                                statusEl = document.createElement('div');
-                                statusEl.className = 'image-download-status';
-                                el.appendChild(statusEl);
-                            }
-                            statusEl.textContent = 'Downloaded by peer';
-                        }
-                        break;
-                    case 'typing_start':
-                        if (peerStatusEl) peerStatusEl.textContent = 'Typing...';
-                        peerIsTyping = true;
-                        break;
-                    case 'typing_stop':
-                        if (peerStatusEl && peerIsTyping) peerStatusEl.textContent = 'Online';
-                        peerIsTyping = false;
-                        break;
-                    case 'read':
-                        const msg = sentMessages.get(data.id);
-                        if (msg && msg.status === 'sent') {
-                            msg.status = 'read';
-                            const tick = msg.element.querySelector('.read-receipt');
-                            if (tick) {
-                                tick.textContent = '✓✓';
-                                tick.classList.remove('sent');
-                                tick.classList.add('read');
-                            }
-                        }
-                        break;
-                }
-            }
-            
-            function sendData(data) {
-                if (currentConnection && currentConnection.open) {
-                    try {
-                        currentConnection.send(data);
-                    } catch (e) {
-                        console.error('Failed to send data', e);
-                        handleDisconnect('Send error');
-                    }
-                }
-            }
-            
-            function sendChatMessage(data) {
-                const id = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                data.id = id;
-                data.timestamp = Date.now();
-                displayChatMessage(data, 'sender');
-                sendData({ type: 'chat', ...data });
-            }
-            
-            // --- Image Sending Logic (with Chunks) ---
-            function sendChatImage(file) {
-                if (chatImages.length >= MAX_CHAT_IMAGES) {
-                    alert('You can only send 6 images. Old images will be removed.');
-                    return;
-                }
-                
-                const totalSize = chatImages.reduce((acc, img) => acc + img.size, 0) + file.size;
-                if (totalSize > MAX_IMAGE_SIZE_TOTAL) {
-                    alert(`Total image size exceeds 10MB limit.`);
-                    return;
-                }
-                
-                if (activeChatImageSend) {
-                    alert('Please wait for the previous image to finish sending.');
-                    return;
-                }
-                
-                const id = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                const job = {
-                    id: id,
-                    file: file,
-                    status: 'sending'
-                };
-                activeChatImageSend = job;
-                
-                const localUrl = URL.createObjectURL(file);
-                
-                // 1. Display locally
-                const imgData = { 
-                    id, 
-                    timestamp: Date.now(), 
-                    type: 'image_start', 
-                    name: file.name, 
-                    fileType: file.type,
-                    content: localUrl // Local blob URL
-                };
-                displayChatMessage(imgData, 'sender');
-                
-                // 2. Send metadata
-                sendData({ type: 'chat', subtype: 'image_start', id: id, timestamp: imgData.timestamp, name: file.name, fileType: file.type });
-
-                // 3. Send image chunks
-                let offset = 0;
-                const reader = new FileReader();
-                activeChatImageReader = reader;
-                
-                reader.onload = (e) => {
-                    if (activeChatImageSend !== job) return; // Cancelled
-                    
-                    try {
-                        sendData({ type: 'chat', subtype: 'image_chunk', id: id, chunk: e.target.result });
-                        offset += e.target.result.byteLength;
-                        
-                        if (offset < file.size) {
-                            readSlice(offset);
-                        } else {
-                            sendData({ type: 'chat', subtype: 'image_end', id: id });
-                            activeChatImageSend = null;
-                            activeChatImageReader = null;
-                        }
-                    } catch (err) {
-                        console.error("Chat image send error:", err);
-                        activeChatImageSend = null;
-                        activeChatImageReader = null;
-                    }
-                };
-                
-                reader.onerror = (e) => {
-                    if (e.name === 'AbortError') {
-                        console.log(`Chat image send aborted: ${id}`);
-                    } else {
-                        console.error(`Chat image read error: ${id}`, e);
-                    }
-                    activeChatImageSend = null;
-                    activeChatImageReader = null;
-                };
-
-                function readSlice(o) {
-                    if (activeChatImageSend !== job) return; // Cancelled
-                    const slice = file.slice(o, o + CHAT_CHUNK_SIZE);
-                    reader.readAsArrayBuffer(slice);
-                }
-                
-                readSlice(0);
-            }
-            
-            function displayChatMessage(data, senderType) {
-                const chatMessagesEl = document.getElementById('chat-messages');
-                if (!chatMessagesEl) return;
-                
-                const wasAtBottom = chatMessagesEl.scrollTop + chatMessagesEl.clientHeight + 50 >= chatMessagesEl.scrollHeight;
-
-                const bubble = document.createElement('div');
-                bubble.className = `message-bubble ${senderType}`;
-                bubble.dataset.messageId = data.id;
-                
-                let messageContent = '';
-                
-                if (data.type === 'text' || data.subtype === 'text') {
-                    messageContent = data.content.replace(/\n/g, '<br>');
-                    bubble.innerHTML = `<div class="message-text">${messageContent}</div>`;
-                }
-                else if (data.type === 'image_start' || data.subtype === 'image_start') {
-                    // This is the metadata for an image
-                    const imgSrc = data.content ? data.content : 'https://placehold.co/250x250/eee/aaa?text=Loading...';
-                    bubble.innerHTML = `
-                        <img src="${imgSrc}" class="message-image" alt="image" data-id="${data.id}" onclick="downloadImage(this, '${data.name}')">
-                    `;
-                    chatImages.push({ id: data.id, size: data.size || 0 });
-                }
-                
-                // Add Meta (Timestamp + Ticks)
-                const meta = document.createElement('div');
-                meta.className = 'message-meta';
-                
-                const timestamp = document.createElement('span');
-                timestamp.textContent = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                meta.appendChild(timestamp);
-
-                if (senderType === 'sender') {
-                    const tick = document.createElement('span');
-                    tick.className = 'read-receipt sent';
-                    tick.textContent = '✓';
-                    meta.appendChild(tick);
-                    
-                    sentMessages.set(data.id, { element: bubble, status: 'sent' });
-                } else {
-                    // This is a received message, add to unread set
-                    unreadMessages.add(data.id);
-                    chatMessagesEl.observer.observe(bubble);
-                }
-                
-                bubble.appendChild(meta);
-                chatMessagesEl.appendChild(bubble);
-
-                // Auto-scroll
-                if (wasAtBottom) {
-                    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
-                }
-
-                // Enforce limits
-                chatMessages.push(bubble);
-                if (chatMessages.length > MAX_CHAT_MESSAGES) {
-                    const oldMsg = chatMessages.shift();
-                    chatMessagesEl.observer.unobserve(oldMsg);
-                    oldMsg.remove();
-                }
-                
-                if (chatImages.length > MAX_CHAT_IMAGES) {
-                    const oldImgData = chatImages.shift();
-                    const oldImgEl = chatMessagesEl.querySelector(`[data-message-id="${oldImgData.id}"]`);
-                    if (oldImgEl) {
-                        chatMessagesEl.observer.unobserve(oldImgEl);
-                        oldImgEl.remove();
-                        // Also remove from main chatMessages array
-                        chatMessages = chatMessages.filter(msg => msg !== oldImgEl);
-                    }
-                }
-                
-                return bubble; // Return the created bubble
-            }
-            
-            // Function to download image and notify sender
-            window.downloadImage = (imgElement, fileName) => {
-                const messageId = imgElement.dataset.id;
-                
-                // 1. Create a link to download
-                const a = document.createElement('a');
-                a.href = imgElement.src;
-                a.download = fileName || 'image.png';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                
-                // 2. Notify sender
-                sendData({ type: 'chat', subtype: 'image_download', id: messageId });
-            }
-
-            // --- Typing Indicators ---
-            function startTyping() {
-                if (!isTyping) {
-                    isTyping = true;
-                    sendData({ type: 'chat', subtype: 'typing_start' });
-                }
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(stopTyping, 2000);
-            }
-            
-            function stopTyping() {
-                if (isTyping) {
-                    isTyping = false;
-                    sendData({ type: 'chat', subtype: 'typing_stop' });
-                }
-                clearTimeout(typingTimeout);
-            }
-            
-            
-            // --- HEARTBEAT & DISCONNECT ---
             
             function startHeartbeat() {
                 stopHeartbeat();
@@ -2297,6 +2207,10 @@
                 console.log('⚠ Disconnect:', message);
                 stopHeartbeat();
                 
+                // --- HIDE CHAT ---
+                chatContainer.style.display = 'none';
+                chatPlaceholder.style.display = 'flex';
+
                 // Set a flag to prevent multiple reloads
                 if (IS_RELOADING) return;
                 IS_RELOADING = true;
@@ -2320,73 +2234,59 @@
                 window.location.reload();
                 // --- END NEW LOGIC ---
             }
-            
-            // --- FILE SENDING LOGIC (QUEUE) ---
 
             fileInput.addEventListener('change', (event) => {
                 for (const file of event.target.files) {
-                    const fileId = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    const fileId = crypto.randomUUID();
                     const fileJob = {
-                        id: fileId,
                         file: file,
-                        status: 'pending' // 'pending', 'sending', 'cancelled'
+                        id: fileId,
+                        status: 'pending'
                     };
                     fileQueue.push(fileJob);
                     
-                    // Create UI
-                    const progressEl = createProgressBar(fileId, file.name, file.size, 'send');
-                    transferListContainer.appendChild(progressEl);
-                    
-                    // Add cancel listener
-                    progressEl.querySelector('.cancel-transfer-btn').onclick = () => {
-                        cancelTransfer(fileId);
-                    };
+                    // Add to UI as "Pending"
+                    createTransferUI(fileId, file.name, true);
+                    updateTransferUI(fileId, {
+                        status: 'pending',
+                        sizeText: formatBytes(file.size)
+                    });
                 }
                 event.target.value = null; // Clear input
-                updateTransferStatus();
+                transferStatusEl.textContent = `📁 ${fileQueue.length} files queued`;
                 
                 if (currentConnection && currentConnection.open && !isSending) {
                     sendNextFileFromQueue();
                 }
             });
-            
-            function updateTransferStatus() {
-                if (fileQueue.length > 0) {
-                    transferStatusEl.textContent = `📁 ${fileQueue.length} queued`;
-                } else if (!isSending) {
-                    transferStatusEl.textContent = '✅ Ready';
-                }
-            }
 
             function sendNextFileFromQueue() {
-                if (isSending) return; // Already sending
-                
-                const fileJob = fileQueue.find(job => job.status === 'pending');
-                if (!fileJob) {
+                if (fileQueue.length === 0) {
                     isSending = false;
-                    hasActiveTransfer = false;
-                    updateTransferStatus();
+                    activeSend = null;
+                    if (receivingFiles.size === 0) {
+                        transferStatusEl.textContent = '✅ All sent!';
+                    }
                     return;
                 }
                 
-                if (!currentConnection || !currentConnection.open) return;
+                if (!currentConnection || !currentConnection.open || isSending) return;
                 
                 isSending = true;
-                hasActiveTransfer = true;
-                fileJob.status = 'sending';
-                activeSend = fileJob; // Set as active
+                const fileJob = fileQueue.shift();
+                activeSend = fileJob; // Mark this job as active
                 
+                fileJob.status = 'sending';
                 const file = fileJob.file;
                 
-                transferStatusEl.textContent = `📤 ${file.name}`;
-                updateProgressBar(fileJob.id, 0, 0, file.size, Date.now(), 'sending');
-
+                transferStatusEl.textContent = `📤 Sending...`;
+                
                 const startTime = Date.now();
 
                 try {
                     currentConnection.send({
                         type: 'metadata',
-                        fileId: fileJob.id,
+                        fileId: fileJob.id, // Send the unique ID
                         name: file.name,
                         size: file.size,
                         fileType: file.type
@@ -2398,46 +2298,53 @@
 
                 let offset = 0;
                 const reader = new FileReader();
-                activeReader = reader; // Store reference
 
                 reader.onload = (e) => {
-                    // --- CANCEL FIX ---
+                    // --- FIX ---
+                    // If this job is no longer the active job (i.e., it was cancelled by sender),
+                    // do nothing. The cancellation function handled cleanup.
                     if (activeSend !== fileJob) {
                         console.log('reader.onload fired for a cancelled/stale job. Ignoring.');
                         return;
                     }
-                    // --- END CANCEL FIX ---
+                    // --- END FIX ---
+
+                    if (fileJob.status === 'cancelled') {
+                        // This should now only be hit if cancelled by RECEIVER
+                        isSending = false;
+                        activeSend = null;
+                        sendNextFileFromQueue(); // Try next file
+                        return;
+                    }
                     
                     if(!currentConnection || !currentConnection.open) {
                         isSending = false;
                         activeSend = null;
-                        activeReader = null;
-                        hasActiveTransfer = false;
-                        fileJob.status = 'pending'; // Re-queue
+                        // Put job back in queue
+                        fileQueue.unshift(fileJob);
                         console.error("Connection lost during sending");
                         return;
                     }
                 
                     try {
-                        currentConnection.send({ 
-                            type: 'chunk', 
+                        // Send chunk with fileId
+                        currentConnection.send({
+                            type: 'chunk',
                             fileId: fileJob.id,
-                            chunk: e.target.result 
-                        }); // Send ArrayBuffer
+                            chunk: e.target.result
+                        });
+                        
                         offset += e.target.result.byteLength;
-                        updateProgressBar(fileJob.id, Math.round((offset / file.size) * 100), offset, file.size, startTime, 'sending');
+                        
+                        updateProgress(fileJob.id, offset, file.size, startTime);
 
                         if (offset < file.size) {
                             readSlice(offset);
                         } else {
                             currentConnection.send({ type: 'end', fileId: fileJob.id });
                             document.getElementById(`transfer-${fileJob.id}`)?.remove();
-                            // Remove from queue
-                            fileQueue = fileQueue.filter(job => job.id !== fileJob.id);
-                            
                             isSending = false;
                             activeSend = null;
-                            activeReader = null; // Clear reader
                             sendNextFileFromQueue(); // Send next file
                         }
                     } catch (err) {
@@ -2446,38 +2353,30 @@
                 };
                 
                 reader.onerror = (e) => {
-                    // --- CANCEL FIX ---
-                    // This is now the main path for cancellation cleanup
-                    const wasAborted = e.target.error && e.target.error.name === 'AbortError';
-                    if (wasAborted) {
-                        console.log(`File read aborted for ${fileJob.id}.`);
-                    } else {
-                        console.error(`File read error for ${fileJob.id}:`, e.target.error);
-                        transferStatusEl.textContent = '❌ File Read error';
-                        document.getElementById(`transfer-${fileJob.id}`)?.remove();
-                    }
-                    
-                    // General cleanup for any error/abort
                     isSending = false;
                     activeSend = null;
-                    activeReader = null; // Clear reader
-                    
-                    // Remove from queue
-                    fileQueue = fileQueue.filter(job => job.id !== fileJob.id);
-                    
-                    // Send next file
-                    sendNextFileFromQueue(); 
-                    // --- END CANCEL FIX ---
+                    transferStatusEl.textContent = '❌ File Read error';
+                    document.getElementById(`transfer-${fileJob.id}`)?.remove();
                 };
 
                 function readSlice(o) {
-                    // --- CANCEL FIX ---
+                    // --- FIX ---
+                    // If this job is no longer the active job (i.t. it was cancelled by sender),
+                    // do nothing.
                     if (activeSend !== fileJob) {
                          console.log('readSlice called for a cancelled/stale job. Ignoring.');
                         return;
                     }
-                    // --- END CANCEL FIX ---
+                    // --- END FIX ---
 
+                    // Check for cancellation before reading
+                    if (fileJob.status === 'cancelled') {
+                        // This should now only be hit if cancelled by RECEIVER
+                        isSending = false;
+                        activeSend = null;
+                        sendNextFileFromQueue();
+                        return;
+                    }
                     const slice = file.slice(o, o + CHUNK_SIZE);
                     reader.readAsArrayBuffer(slice);
                 }
@@ -2485,92 +2384,87 @@
                 readSlice(0);
             }
             
+            /**
+             * @param {string} fileId
+             */
             function cancelTransfer(fileId) {
                 // Is it the active transfer?
                 if (activeSend && activeSend.id === fileId) {
                     console.log(`Cancelling active transfer: ${fileId}`);
                     activeSend.status = 'cancelled'; // Flag for reader.onload/readSlice
                     
-                    // --- NEW: Abort the reader ---
-                    // This will trigger reader.onerror, which now handles cleanup.
-                    if (activeReader) {
-                        console.log('Aborting active file reader...');
-                        activeReader.abort();
-                    }
-                    // --- END NEW ---
-                    
                     // Remove UI
                     document.getElementById(`transfer-${fileId}`)?.remove();
                     
-                    // Notify peer
-                    sendData({ type: 'cancel', fileId: fileId });
-                }
-                // Is it in the pending queue?
-                else if (fileQueue.some(job => job.id === fileId)) {
+                    // Send cancellation to peer
+                    if (currentConnection && currentConnection.open) {
+                        try {
+                            currentConnection.send({ type: 'cancel', fileId: fileId });
+                        } catch (err) {}
+                    }
+                    
+                    // --- NEW ---
+                    // Immediately stop sending and start the next file
+                    isSending = false;
+                    activeSend = null;
+                    sendNextFileFromQueue(); // Start next file
+                    // --- END NEW ---
+
+                } else {
+                    // It's in the queue, just remove it
                     console.log(`Cancelling pending transfer: ${fileId}`);
                     fileQueue = fileQueue.filter(job => job.id !== fileId);
                     document.getElementById(`transfer-${fileId}`)?.remove();
-                    updateTransferStatus();
+                    // No need to send 'cancel' message, it never started
                 }
-                // Are we receiving it?
-                else if (receivingFiles.has(fileId)) {
-                    console.log(`Cancelling active receive: ${fileId}`);
-                    document.getElementById(`transfer-${fileId}`)?.remove();
-                    receivingFiles.delete(fileId);
-                    // Notify peer
-                    sendData({ type: 'cancel', fileId: fileId });
+                
+                if (!isSending && fileQueue.length === 0) {
+                     transferStatusEl.textContent = '❌ Cancelled';
                 }
             }
-            
-            // --- UI HELPERS (Progress Bar) ---
-            
-            function createProgressBar(id, name, size, type) {
-                const template = progressBarTemplate.content.cloneNode(true);
-                const container = template.querySelector('.progress-container');
-                container.id = `transfer-${id}`;
-                
-                container.querySelector('.file-name').textContent = name;
-                
-                const sizeEl = container.querySelector('.progress-size');
-                sizeEl.textContent = `0 / ${formatBytes(size)}`;
-                
-                const etaEl = container.querySelector('.progress-eta');
-                etaEl.textContent = type === 'send' ? 'ETA: --:--' : 'Receiving...';
-                
-                if (type === 'send') {
-                    container.querySelector('.progress-bar').classList.add('pending');
-                }
-                
-                return container;
-            }
-            
-            function updateProgressBar(id, percent, sentBytes, totalBytes, startTime, status = 'sending') {
-                const el = document.getElementById(`transfer-${id}`);
-                if (!el) return;
-                
-                const bar = el.querySelector('.progress-bar');
-                
-                if (status === 'pending') {
-                    bar.classList.add('pending');
-                    bar.style.width = '100%';
-                    el.querySelector('.progress-eta').textContent = 'Pending...';
-                    return;
-                }
-                
-                bar.classList.remove('pending');
-                bar.style.width = `${percent}%`;
-                el.querySelector('.progress-size').textContent = `${formatBytes(sentBytes)} / ${formatBytes(totalBytes)}`;
 
+            /**
+             * @param {string} fileId
+             */
+            function updateProgress(fileId, sentBytes, totalBytes, startTime) {
+                const percent = Math.round((sentBytes / totalBytes) * 100);
+                const sizeText = `${formatBytes(sentBytes)} / ${formatBytes(totalBytes)}`;
+                
                 const elapsedTime = (Date.now() - startTime) / 1000;
+                let etaText = 'ETA: --:--';
                 if (elapsedTime > 0.5) {
                     const speed = sentBytes / elapsedTime;
                     const remainingBytes = totalBytes - sentBytes;
                     const remainingTime = remainingBytes / speed;
-                    if (isFinite(remainingTime)) {
-                        el.querySelector('.progress-eta').textContent = `ETA: ${formatTime(remainingTime)}`;
-                    } else {
-                        el.querySelector('.progress-eta').textContent = `ETA: --:--`;
-                    }
+                    etaText = `ETA: ${formatTime(remainingTime)}`;
+                }
+                
+                updateTransferUI(fileId, {
+                    percent: percent,
+                    sizeText: sizeText,
+                    etaText: etaText
+                });
+            }
+
+            // --- NEW: Cancel Receive Function ---
+            function cancelReceive(fileId) {
+                console.log(`Cancelling receive: ${fileId}`);
+                // 1. Remove from map
+                receivingFiles.delete(fileId);
+                
+                // 2. Remove UI
+                document.getElementById(`transfer-${fileId}`)?.remove();
+                
+                // 3. Send cancellation to sender
+                if (currentConnection && currentConnection.open) {
+                    try {
+                        currentConnection.send({ type: 'cancel', fileId: fileId });
+                    } catch (err) {}
+                }
+                
+                // 4. Update status if no more files
+                if (receivingFiles.size === 0 && !isSending) {
+                    transferStatusEl.textContent = '❌ Receive cancelled';
                 }
             }
 
@@ -2589,8 +2483,6 @@
                 const sec = Math.floor(seconds % 60);
                 return `${min}:${sec < 10 ? '0' : ''}${sec}`;
             }
-
-            // --- SHARE/COPY/DOWNLOAD BUTTONS ---
 
             function setupShareButton() {
                 const canvas = qrEl.querySelector('canvas');
