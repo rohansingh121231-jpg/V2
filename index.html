@@ -1,14 +1,16 @@
- <!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>QR Send - E2E Encrypted</title>
-
+    
+    <!-- ERUDA CONSOLE -->
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
+    
     <style>
         * {
             margin: 0;
@@ -28,6 +30,8 @@
             --shadow: rgba(0, 0, 0, 0.1);
             --success: #34a853;
             --error: #ea4335;
+            
+            /* New sender bubble colors for tick visibility */
             --bg-sender: #dcf8c6;
             --text-sender: #1a1a1a;
         }
@@ -40,6 +44,8 @@
             --text-secondary: #b0b0b0;
             --border: #333333;
             --shadow: rgba(255, 255, 255, 0.05);
+
+            /* New sender bubble colors for tick visibility */
             --bg-sender: #224838;
             --text-sender: #e8e8e8;
         }
@@ -52,7 +58,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0;
+            padding: 0; /* Changed for full-screen mobile */
             transition: all 0.3s ease;
             position: relative;
             overflow-x: hidden;
@@ -107,30 +113,37 @@
             transition: all 0.3s ease;
         }
 
+        /* WATERMARK REMOVED */
+
+        /* --- NEW LAYOUT --- */
         .container {
             position: relative;
-            max-width: 100%;
+            max-width: 100%; /* Changed */
             width: 100%;
             background: var(--bg-card);
             overflow: hidden;
             z-index: 1;
+            
+            /* Full-screen mobile layout */
             height: 100vh;
             max-height: 100vh;
             border-radius: 0;
             box-shadow: none;
+            
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /* Mobile-first: stacked layout */
         }
-
+        
         .sidebar {
             flex-shrink: 0;
+            /* On mobile, this is just a stack of content */
         }
 
         .chat-main {
-            flex-grow: 1;
+            flex-grow: 1; /* Takes remaining height */
             display: flex;
             flex-direction: column;
-            overflow: hidden;
+            overflow: hidden; /* CRITICAL for scrolling */
             background: var(--bg-secondary);
         }
 
@@ -155,6 +168,7 @@
             font-size: 16px;
             font-weight: 500;
         }
+        /* --- END NEW LAYOUT --- */
 
         .container::-webkit-scrollbar {
             width: 6px;
@@ -175,7 +189,7 @@
             text-align: center;
             position: relative;
             overflow: hidden;
-            flex-shrink: 0;
+            flex-shrink: 0; /* Header should not shrink */
         }
 
         header::before {
@@ -602,31 +616,33 @@
             text-align: center;
         }
 
+        /* --- NEW: Transfer List Container --- */
         #transfer-list-container {
             margin-top: 15px;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            max-height: 190px;
+            max-height: 190px; /* Approx 3 bars */
             overflow-y: auto;
             overflow-x: hidden;
             scroll-behavior: smooth;
         }
 
+        /* --- COMPACT DYNAMIC PROGRESS BAR STYLES --- */
         .progress-container {
-            padding: 8px;
+            padding: 8px; /* More compact */
             background: var(--bg-card);
             border-radius: 10px;
             box-shadow: 0 2px 8px var(--shadow);
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 4px; /* More compact */
         }
-
+        
         .progress-top-row {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 8px; /* More compact */
             width: 100%;
         }
 
@@ -651,9 +667,9 @@
         .progress-bar-background {
             position: relative;
             width: 100%;
-            height: 8px;
+            height: 8px; /* More compact */
             background: var(--bg-secondary);
-            border-radius: 4px;
+            border-radius: 4px; /* More compact */
             overflow: hidden;
             box-shadow: inset 0 1px 2px var(--shadow);
         }
@@ -661,7 +677,7 @@
         .progress-bar {
             height: 100%;
             background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
-            border-radius: 4px;
+            border-radius: 4px; /* More compact */
             transition: width 0.3s ease;
             position: relative;
         }
@@ -669,6 +685,10 @@
         .progress-bar.pending {
             background: var(--border);
             width: 100% !important;
+        }
+
+        .delivery-boy {
+            display: none;
         }
 
         .progress-stats {
@@ -679,12 +699,13 @@
             color: var(--text-secondary);
         }
 
-        .cancel-button {
+        .cancel-button { /* Changed to class */
             margin-top: 0;
             width: auto;
-            padding: 4px 8px;
-            font-size: 11px;
+            padding: 4px 8px; /* More compact */
+            font-size: 11px; /* More compact */
             flex-shrink: 0;
+            
             background: var(--error);
             color: white;
             border: none;
@@ -693,12 +714,15 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
+        
         .cancel-button:hover {
              background: #d33828;
              transform: translateY(-2px);
              box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
         }
+        
+        /* --- END COMPACT PROGRESS BAR STYLES --- */
+
 
         .switch-mode-button {
             margin-top: 12px;
@@ -720,13 +744,16 @@
             box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
         }
 
+        /* --- CHAT STYLES --- */
         .chat-container {
             padding: 20px;
             border-top: 1px solid var(--border);
-            display: none;
+            
+            /* New layout properties */
+            display: none; /* Hidden by default */
             flex-direction: column;
-            flex-grow: 1;
-            overflow: hidden;
+            flex-grow: 1; /* Fill the .chat-main area */
+            overflow: hidden; /* Ensure it doesn't overflow */
         }
 
         .chat-container h3 {
@@ -747,8 +774,10 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            flex-grow: 1;
-            height: auto;
+            
+            /* New layout */
+            flex-grow: 1; /* Fill all available space */
+            height: auto; /* Remove fixed height */
         }
 
         .chat-message {
@@ -762,8 +791,8 @@
         }
 
         .chat-message.sender {
-            background: var(--bg-sender);
-            color: var(--text-sender);
+            background: var(--bg-sender); /* Changed */
+            color: var(--text-sender); /* Changed */
             align-self: flex-end;
             border-bottom-right-radius: 3px;
         }
@@ -783,8 +812,9 @@
             display: block;
             cursor: pointer;
         }
-
+        
         .message-content {
+            /* This will hold the text or image */
         }
 
         .message-status-bar {
@@ -801,11 +831,11 @@
         .msg-status {
             font-weight: 600;
             transition: color 0.3s ease;
-            color: var(--text-secondary);
+            color: var(--text-secondary); /* Changed: Default tick color */
         }
 
         .msg-status.seen {
-            color: var(--accent);
+            color: var(--accent); /* Changed: Blue tick for seen */
         }
 
         .download-status {
@@ -813,7 +843,7 @@
             font-size: 9px;
             display: none;
         }
-
+        
         .chat-message.receiver .message-status-bar {
              display: none;
         }
@@ -862,7 +892,7 @@
             font-size: 18px;
             padding: 0 14px;
         }
-
+        
         #chat-send-button:hover {
             background: var(--accent-hover);
             transform: translateY(-2px);
@@ -891,20 +921,22 @@
             margin-top: 8px;
             flex-shrink: 0;
         }
+        /* --- END CHAT STYLES --- */
 
+        /* --- DESKTOP LAYOUT (WHATSAPP-STYLE) --- */
         @media (min-width: 768px) {
             body {
-                padding: 15px;
+                padding: 15px; /* Add padding back for desktop */
             }
 
             .container {
-                flex-direction: row;
-                max-width: 1100px;
+                flex-direction: row; /* Side-by-side layout */
+                max-width: 1100px; /* Wider */
                 max-height: 95vh;
                 border-radius: 20px;
                 box-shadow: 0 10px 40px var(--shadow), 0 0 0 1px var(--border);
             }
-
+            
             .container:hover {
                 transform: translateY(-5px);
                 box-shadow: 
@@ -916,18 +948,19 @@
                 width: 350px;
                 flex-shrink: 0;
                 border-right: 1px solid var(--border);
-                overflow-y: auto;
+                overflow-y: auto; /* Make sidebar scrollable */
             }
 
             .chat-main {
-                width: 100%;
+                width: 100%; /* Takes rest of space */
                 border-left: 1px solid var(--border);
             }
 
             .chat-container {
-                padding: 20px;
+                padding: 20px; /* Restore padding */
             }
         }
+        /* --- END DESKTOP LAYOUT --- */
 
         @media (max-width: 600px) {
             .theme-toggle {
@@ -945,7 +978,8 @@
                 font-size: 14px;
                 padding: 12px 20px;
             }
-
+            
+            /* Adjust padding for mobile full-screen */
             main { padding: 15px; }
             .transfer-area { padding: 15px; }
             .chat-container { padding: 15px; }
@@ -963,6 +997,8 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
         </svg>
     </div>
+
+    <!-- WATERMARK REMOVED -->
 
     <div class="connection-overlay" id="connection-overlay">
         <div class="lock-animation">
@@ -995,7 +1031,7 @@
             <button class="close-scanner" onclick="closeScanner()">✕</button>
         </div>
         <div id="qr-reader"></div>
-
+        
         <div class="scan-indicator">
             <div class="scan-line"></div>
             <div class="scan-corners">
@@ -1005,25 +1041,27 @@
                 <div class="corner bottom-right"></div>
             </div>
         </div>
-
+        
         <div class="scan-instruction">
             📱 Point camera at QR code
         </div>
     </div>
 
+    <!-- NEW LAYOUT STRUCTURE -->
     <div class="container">
-
+        
+        <!-- SIDEBAR (Controls) -->
         <div class="sidebar">
             <header>
                 <h1>QR Send Pro</h1>
                 <div id="status">Starting...</div>
             </header>
-
+            
             <main>
                 <div id="qr-code-container">
                     <div id="qrcode"></div>
                     <p>Scan QR code to connect securely</p>
-
+                    
                     <div id="share-buttons-container">
                         <button id="native-share-button" class="share-button primary-share" style="display: none;">📤 Share</button>
                         <button id="copy-link-button" class="share-button">📋 Copy</button>
@@ -1042,16 +1080,21 @@
                 <input type="file" id="file-input" disabled multiple>
                 <div id="transfer-status">Waiting...</div>
 
+                <!-- NEW: Transfer List Container -->
                 <div id="transfer-list-container">
+                    <!-- Dynamic progress bars will be injected here -->
                 </div>
-
+                
             </div>
         </div>
 
+        <!-- MAIN CHAT AREA -->
         <div class="chat-main">
+            <!-- CHAT UI -->
             <div class="chat-container" id="chat-container">
                 <h3>💬 E2E Chat</h3>
                 <div class="chat-messages" id="chat-messages">
+                    <!-- Messages will go here -->
                 </div>
                 <div class="chat-status" id="chat-status"></div>
                 <div class="chat-input-area">
@@ -1069,6 +1112,7 @@
                 </div>
             </div>
 
+            <!-- CHAT PLACEHOLDER -->
             <div class="chat-placeholder" id="chat-placeholder">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
                 <p>Scan a QR code or share your link<br>to start a secure session.</p>
@@ -1076,6 +1120,7 @@
         </div>
 
     </div>
+    <!-- END NEW LAYOUT STRUCTURE -->
 
     <script>
         function toggleTheme() {
@@ -1093,19 +1138,23 @@
         let html5QrCode = null;
         let isScanning = false;
         let hasScanned = false;
+        // This flag blocks peer init *while scanning* to prevent race conditions
         let ALLOW_PEER_INIT = true;
+        // This flag prevents reload loops on disconnect
         let IS_RELOADING = false; 
 
         window.APP_PEER = null;
         window.APP_CONNECTION = null;
 
         function openScanner() {
+            // ADDED GUARD: If scanner modal is already active or we are scanning, do nothing.
             if (isScanning || document.getElementById('scanner-modal').classList.contains('active')) {
                 console.log('⚠ openScanner called but scanner is already active. Ignoring.');
                 return;
             }
             console.log('📷 Opening scanner...');
             hasScanned = false;
+            // Block peer auto-init *before* starting scanner
             ALLOW_PEER_INIT = false; 
             console.log('🚫 BLOCKED peer auto-init');
             document.getElementById('scanner-modal').classList.add('active');
@@ -1114,6 +1163,7 @@
         }
 
         function closeScanner() {
+            // ADDED GUARD: Don't do anything if already closing
             if (!document.getElementById('scanner-modal').classList.contains('active')) {
                 console.log('⚠ closeScanner called but modal is already closed.');
                 return;
@@ -1121,7 +1171,8 @@
             console.log('❌ Closing scanner...');
             document.getElementById('scanner-modal').classList.remove('active');
             document.body.style.overflow = '';
-            stopScanner();
+            stopScanner(); // This is now the only place that calls stopScanner after a scan
+            // Re-allow peer init *only if* no scan was successful (and we are not reloading)
             if (!hasScanned && !IS_RELOADING) {
                 ALLOW_PEER_INIT = true;
                 console.log('✅ RE-ENABLED peer auto-init');
@@ -1137,7 +1188,7 @@
             console.log('🎥 Starting camera...');
 
             html5QrCode = new Html5Qrcode("qr-reader");
-
+            
             const config = {
                 fps: 30,
                 qrbox: function(viewfinderWidth, viewfinderHeight) {
@@ -1148,7 +1199,7 @@
                 aspectRatio: 1.0,
                 disableFlip: false
             };
-
+            
             html5QrCode.start(
                 { facingMode: "environment" },
                 config,
@@ -1158,22 +1209,29 @@
                         return;
                     }
                     hasScanned = true;
-
+                    // ALLOW_PEER_INIT remains false, which is correct
+                    
                     console.log('✓✓✓ QR SCANNED:', decodedText);
                     console.log('🔍 Type:', typeof decodedText);
                     console.log('🔍 Length:', decodedText.length);
-
+                    
                     if (navigator.vibrate) {
                         navigator.vibrate(200);
                     }
-
+                    
+                    // --- MODIFIED LOGIC ---
+                    // Use setTimeout to break out of the scanner's execution context
+                    // and prevent any race conditions.
                     setTimeout(() => {
+                        // 1. Process the QR code first. This will set the IS_RELOADING flag.
                         console.log('→ Calling processQRCode NOW (from timeout)...');
                         processQRCode(decodedText);
 
+                        // 2. Then, close the scanner modal. closeScanner() will handle stopping the camera.
                         console.log('→ Calling closeScanner NOW (from timeout)...');
                         closeScanner();
-                    }, 0);
+                    }, 0); // 0ms timeout executes after current stack.
+                    // --- END MODIFIED LOGIC ---
                 },
                 (errorMessage) => {
                     // Silent
@@ -1181,41 +1239,50 @@
             ).catch((err) => {
                 console.error('❌ Scanner error:', err);
                 isScanning = false;
+                // Allow peer init to recover if camera fails
                 ALLOW_PEER_INIT = true; 
+                // Don't use alert, use a status message
                 showChatStatus('❌ Camera error: ' + err.name, true);
                 closeScanner();
             });
         }
 
+        /**
+         * UPDATED: This function now sets the URL hash and reloads the page.
+         */
         function processQRCode(decodedText) {
+            // ADDED GUARD: Prevent multiple reloads
             if (IS_RELOADING) {
                 console.log('⚠ Already processing QR and reloading. Ignoring.');
                 return;
             }
-            IS_RELOADING = true;
+            IS_RELOADING = true; // Set flag immediately
 
             console.log('=== PROCESSING QR CODE ===');
             console.log('URL:', decodedText);
-
+            
             try {
                 const url = new URL(decodedText);
                 console.log('✓ Valid URL');
                 console.log('Hash:', url.hash);
-
+                
                 const scannedPeerId = url.hash.substring(1);
                 console.log('🎯 Extracted Peer ID:', scannedPeerId);
                 console.log('🎯 Length:', scannedPeerId.length);
-
+                
                 if (!scannedPeerId || scannedPeerId.trim() === '') {
                     console.error('❌ Empty peer ID!');
                     showChatStatus('QR code has no peer ID', true);
-                    hasScanned = false;
-                    ALLOW_PEER_INIT = true;
+                    hasScanned = false; // Allow re-scan
+                    ALLOW_PEER_INIT = true; // Allow peer init to recover
                     return;
                 }
-
+                
                 console.log('✓ Peer ID is valid');
-
+                
+                // --- NEW LOGIC ---
+                // Set the hash to the scanned ID and reload.
+                // The app will re-initialize in client mode.
                 console.log('🔄 Setting hash and reloading to switch to CLIENT mode...');
                 window.location.hash = scannedPeerId;
                 window.location.reload();
@@ -1224,9 +1291,9 @@
                 console.error('❌❌❌ QR parse FAILED:', e);
                 console.error('Error:', e.message);
                 showChatStatus('Invalid QR code: ' + e.message, true);
-                hasScanned = false;
-                ALLOW_PEER_INIT = true;
-                IS_RELOADING = false;
+                hasScanned = false; // Allow re-scan
+                ALLOW_PEER_INIT = true; // Allow peer init to recover
+                IS_RELOADING = false; // RESET FLAG on error
             }
         }
 
@@ -1254,6 +1321,13 @@
             }, 2000);
         }
 
+        // --- NEW: Helper to create HTML for a progress bar ---
+        /**
+         * Creates and appends a progress bar UI to the transfer list.
+         * @param {string} fileId - The unique ID for this transfer.
+         * @param {string} fileName - The name of the file.
+         * @param {boolean} isSender - True if this is a sending bar, false for receiving.
+         */
         function createTransferUI(fileId, fileName, isSender) {
             const container = document.getElementById('transfer-list-container');
             const el = document.createElement('div');
@@ -1261,7 +1335,7 @@
             el.id = `transfer-${fileId}`;
 
             const label = isSender ? `Sending: ${fileName}` : `Receiving: ${fileName}`;
-            const cancelButtonHTML = `<button class="cancel-button" data-file-id="${fileId}">❌</button>`;
+            const cancelButtonHTML = `<button class="cancel-button" data-file-id="${fileId}">❌</button>`; // Always add
 
             el.innerHTML = `
                 <div class="progress-top-row">
@@ -1283,16 +1357,26 @@
             `;
 
             container.appendChild(el);
-
+            
+            // Add click listener
             el.querySelector('.cancel-button').addEventListener('click', () => {
                 if (isSender) {
                     cancelTransfer(fileId);
                 } else {
-                    cancelReceive(fileId);
+                    cancelReceive(fileId); // New function
                 }
             });
         }
 
+        /**
+         * Updates a specific progress bar in the UI.
+         * @param {string} fileId - The ID of the transfer to update.
+         * @param {object} options - The values to update.
+         * @param {number} options.percent - The percentage (0-100).
+         * @param {string} options.sizeText - The formatted size string (e.g., "1.2 MB / 5 MB").
+         * @param {string} options.etaText - The formatted ETA string (e.g., "ETA: 0:05").
+         * @param {string} [options.status] - Optional status like "Pending".
+         */
         function updateTransferUI(fileId, options) {
             const el = document.getElementById(`transfer-${fileId}`);
             if (!el) return;
@@ -1309,12 +1393,12 @@
             }
             if (options.sizeText) size.textContent = options.sizeText;
             if (options.etaText) eta.textContent = options.etaText;
-
+            
             if (options.status === 'pending') {
                 bar.classList.add('pending');
                 label.style.opacity = 0.7;
                 percentage.textContent = 'Pending';
-                size.textContent = options.sizeText;
+                size.textContent = options.sizeText; // Show file size for pending
                 eta.textContent = '';
             } else {
                  bar.classList.remove('pending');
@@ -1325,15 +1409,25 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🚀 App initialized');
-
+            
+            // --- CHAT HELPER CONSTANTS ---
             const MAX_WORDS = 1000;
             const MAX_IMAGES = 6;
-            const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+            const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
 
+            // --- CHAT STATE VARIABLES ---
             let typingTimer;
             let isTypingSent = false;
             let peerTypingTimer;
 
+
+            // --- CHAT HELPER FUNCTIONS ---
+            
+            /**
+             * Converts a File object to a Base64 Data URL.
+             * @param {File} file - The file to convert.
+             * @returns {Promise<string>} A promise that resolves with the Base64 string.
+             */
             function fileToBase64(file) {
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
@@ -1343,6 +1437,10 @@
                 });
             }
 
+            /**
+             * Scans the DOM and returns the current counts for words, images, and image size.
+             * @returns {{wordCount: number, imageCount: number, imageSize: number}}
+             */
             function getChatLimits() {
                 const textMessages = chatMessages.querySelectorAll('.chat-message[data-type="text"]');
                 const imageMessages = chatMessages.querySelectorAll('.chat-message[data-type="image"]');
@@ -1364,22 +1462,27 @@
                 };
             }
 
+            /**
+             * Prunes the chat DOM to enforce limits. Removes oldest messages first.
+             */
             function pruneChat() {
+                // Prune text
                 const textMessages = Array.from(chatMessages.querySelectorAll('.chat-message[data-type="text"]'));
-                let { wordCount } = getChatLimits();
+                let { wordCount } = getChatLimits(); // Get current word count
 
                 while (wordCount > MAX_WORDS && textMessages.length > 0) {
-                    const oldMsg = textMessages.shift();
+                    const oldMsg = textMessages.shift(); // Get oldest message
                     const wordsToRemove = parseInt(oldMsg.dataset.words || 0, 10);
                     wordCount -= wordsToRemove;
                     oldMsg.remove();
                 }
 
+                // Prune images
                 const imageMessages = Array.from(chatMessages.querySelectorAll('.chat-message[data-type="image"]'));
-                let { imageCount, imageSize } = getChatLimits();
+                let { imageCount, imageSize } = getChatLimits(); // Get current image stats
 
                 while ((imageCount > MAX_IMAGES || imageSize > MAX_IMAGE_SIZE) && imageMessages.length > 0) {
-                    const oldImg = imageMessages.shift();
+                    const oldImg = imageMessages.shift(); // Get oldest image
                     const sizeToRemove = parseInt(oldImg.dataset.size || 0, 10);
                     imageSize -= sizeToRemove;
                     imageCount--;
@@ -1387,12 +1490,23 @@
                 }
             }
 
+            /**
+             * Updates the chat limits UI with current stats.
+             */
             function updateChatLimitsUI() {
                 if (!chatLimitsInfo) return;
                 const { wordCount, imageCount, imageSize } = getChatLimits();
                 chatLimitsInfo.textContent = `Words: ${wordCount}/${MAX_WORDS} | Images: ${imageCount}/${MAX_IMAGES} (${formatBytes(imageSize)}/10 MB)`;
             }
 
+            /**
+             * Adds a new message to the chat window.
+             * @param {string} type - 'text' or 'image'
+             * @param {string} content - The text message or Base64 image data
+             * @param {string} sender - 'sender' or 'receiver'
+             * @param {object} metadata - { words: number } or { size: number, name: string }
+             * @param {string} msgId - The unique message ID
+             */
             function addMessageToDOM(type, content, sender, metadata, msgId) {
                 const msgEl = document.createElement('div');
                 msgEl.className = `chat-message ${sender}`;
@@ -1407,9 +1521,10 @@
                     msgEl.dataset.words = metadata.words;
                 } else if (type === 'image') {
                     const img = document.createElement('img');
-                    img.src = content;
-                    img.dataset.filename = metadata.name;
-
+                    img.src = content; // 'content' is Base64 data
+                    img.dataset.filename = metadata.name; // Store filename for download
+                    
+                    // Add download click listener
                     img.onclick = () => {
                         try {
                             const a = document.createElement('a');
@@ -1418,7 +1533,8 @@
                             document.body.appendChild(a);
                             a.click();
                             a.remove();
-
+                            
+                            // Send download notification
                             if (currentConnection && currentConnection.open) {
                                 currentConnection.send({ type: 'chat-img-download', msgId: msgId });
                             }
@@ -1427,32 +1543,33 @@
                             showChatStatus('Image download failed', true);
                         }
                     };
-
+                    
                     img.onload = () => {
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll on image load
                     };
                     contentEl.appendChild(img);
                     msgEl.dataset.size = metadata.size;
                 }
-
+                
                 msgEl.appendChild(contentEl);
 
+                // Add status bar (for sender only)
                 if (sender === 'sender') {
                     const statusBar = document.createElement('div');
                     statusBar.className = 'message-status-bar';
-
+                    
                     if (type === 'image') {
                          const downloadStatus = document.createElement('span');
                          downloadStatus.className = 'download-status';
                          downloadStatus.textContent = 'Downloaded by peer';
                          statusBar.appendChild(downloadStatus);
                     }
-
+                    
                     const msgStatus = document.createElement('span');
                     msgStatus.className = 'msg-status';
-                    msgStatus.innerHTML = '✓';
+                    msgStatus.innerHTML = '✓'; // One tick
                     statusBar.appendChild(msgStatus);
-
+                    
                     msgEl.appendChild(statusBar);
                 }
 
@@ -1460,20 +1577,24 @@
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
 
+            /**
+             * Sends the text message from the input field.
+             */
             function sendTextMessage() {
                 const message = chatInput.value.trim();
                 if (message === '' || !currentConnection || !currentConnection.open) return;
 
                 const wordCount = message.split(/\s+/).length;
                 const msgId = crypto.randomUUID();
-
+                
                 try {
                     currentConnection.send({ type: 'chat-text', message: message, msgId: msgId });
                     addMessageToDOM('text', message, 'sender', { words: wordCount }, msgId);
                     pruneChat();
                     updateChatLimitsUI();
                     chatInput.value = '';
-
+                    
+                    // Stop typing indicator after send
                     clearTimeout(typingTimer);
                     isTypingSent = false;
                     currentConnection.send({ type: 'chat-stop-typing' });
@@ -1484,6 +1605,9 @@
                 }
             }
 
+            /**
+             * Handles the file selection from the image input.
+             */
             function handleImageUpload(event) {
                 const file = event.target.files[0];
                 if (!file) return;
@@ -1492,15 +1616,16 @@
                     showChatStatus('❌ Image is too large (Max 10MB)', true);
                     return;
                 }
-
+                
                 const { imageCount, imageSize } = getChatLimits();
                 if (imageCount >= MAX_IMAGES || imageSize + file.size > MAX_IMAGE_SIZE) {
                      showChatStatus('Image quota full. Old images will be removed.', true);
+                     // We still allow sending, pruneChat() will handle removal.
                 }
 
                 fileToBase64(file).then(base64data => {
                     if (!currentConnection || !currentConnection.open) return;
-
+                    
                     const msgId = crypto.randomUUID();
                     const metadata = { size: file.size, name: file.name };
 
@@ -1524,22 +1649,29 @@
                     console.error("Base64 conversion error:", err);
                     showChatStatus('Could not read image', true);
                 });
-
-                event.target.value = null;
+                
+                event.target.value = null; // Clear input
             }
 
+            /**
+             * Shows a temporary status message in the chat UI.
+             */
             function showChatStatus(message, isError = false) {
                 if (!chatStatus) return;
                 chatStatus.textContent = message;
                 chatStatus.style.color = isError ? 'var(--error)' : 'var(--success)';
                 chatStatus.style.opacity = 1;
-
+                
+                // Clear any existing timer
                 clearTimeout(peerTypingTimer); 
-
+                
+                // Hide after 3 seconds
                 peerTypingTimer = setTimeout(() => {
                     chatStatus.style.opacity = 0;
                 }, 3000);
             }
+            
+            // --- END CHAT HELPER FUNCTIONS ---
 
 
             const statusEl = document.getElementById('status');
@@ -1553,9 +1685,12 @@
             const nativeShareButton = document.getElementById('native-share-button');
             const copyLinkButton = document.getElementById('copy-link-button');
             const downloadQrButton = document.getElementById('download-qr-button');
-
+            
+            // --- NEW: Transfer List Container ---
             const transferListContainer = document.getElementById('transfer-list-container');
 
+
+            // --- CHAT ELEMENTS ---
             const chatContainer = document.getElementById('chat-container');
             const chatPlaceholder = document.getElementById('chat-placeholder');
             const chatMessages = document.getElementById('chat-messages');
@@ -1566,30 +1701,35 @@
             const chatLimitsInfo = document.getElementById('chat-limits-info');
             const chatStatus = document.getElementById('chat-status');
 
+            // --- CHAT LISTENERS ---
             chatSendButton.addEventListener('click', sendTextMessage);
-
+            
             chatInput.addEventListener('keyup', (e) => {
                 if (e.key === 'Enter') {
                     sendTextMessage();
                 }
             });
-
+            
+            // Typing Indicator Logic
             chatInput.addEventListener('input', () => {
                 if (!currentConnection || !currentConnection.open) return;
-
+                
                 if (!isTypingSent) {
                     currentConnection.send({ type: 'chat-typing' });
                     isTypingSent = true;
+                    // Cooldown to prevent spam
                     setTimeout(() => { isTypingSent = false; }, 2000); 
                 }
-
+                
+                // Clear previous "stop" timer
                 clearTimeout(typingTimer);
-
+                
+                // Set a new timer to send "stop" if user pauses
                 typingTimer = setTimeout(() => {
                     currentConnection.send({ type: 'chat-stop-typing' });
                 }, 3000);
             });
-
+            
             chatInput.addEventListener('blur', () => {
                  if (currentConnection && currentConnection.open) {
                     currentConnection.send({ type: 'chat-stop-typing' });
@@ -1606,19 +1746,20 @@
             let currentConnection = null;
             let myId = '';
             let connectUrl = '';
-            let isHost = false;
+            let isHost = false; // This will be set by initializePeer
             let connectionRetryCount = 0;
             const MAX_RETRY = 3;
-
-            let fileQueue = [];
+            
+            let fileQueue = []; // NEW: Will store { file, id, status }
             let isSending = false;
-            let activeSend = null;
-
+            let activeSend = null; // NEW: Will store the active fileJob
+            
+            // NEW: Map to store receiving file metadata
             let receivingFiles = new Map(); 
 
-            let hasActiveTransfer = false;
+            let hasActiveTransfer = false; // Will be true if isSending or receivingFiles.size > 0
             let heartbeatInterval = null;
-
+            
             window.addEventListener('beforeunload', (event) => {
                 hasActiveTransfer = isSending || receivingFiles.size > 0;
                 if (hasActiveTransfer) {
@@ -1629,6 +1770,8 @@
                 }
             });
 
+            // This function is no longer needed, but we keep it in case
+            // any other part of the code relies on it.
             function clearHashFromUrl() {
                 const uri = window.location.toString();
                 if (uri.indexOf("#") > 0) {
@@ -1642,11 +1785,11 @@
                     console.log('🚫 Peer init BLOCKED (scanner active)');
                     return;
                 }
-
+                
                 console.log('🔧 Initializing peer...');
-
+                
                 statusEl.textContent = 'Initializing...';
-
+                
                 try {
                     peer = new Peer({
                         config: {
@@ -1662,9 +1805,9 @@
                         },
                         debug: 1
                     });
-
+                    
                     window.APP_PEER = peer;
-
+                    
                 } catch (e) {
                     console.error('❌ Init error:', e);
                     statusEl.textContent = '❌ Error';
@@ -1677,24 +1820,26 @@
                     const targetId = window.location.hash.substring(1);
 
                     if (targetId) {
+                        // --- CLIENT MODE ---
                         console.log('→ CLIENT MODE');
                         isHost = false;
                         statusEl.textContent = '🔗 Connecting...';
-                        qrCodeContainer.style.display = 'none';
-                        shareButtonsContainer.style.display = 'none';
+                        qrCodeContainer.style.display = 'none'; // Hide QR
+                        shareButtonsContainer.style.display = 'none'; // Hide buttons
                         scanInstructions.style.display = 'none';
                         attemptConnection(targetId);
                     } else {
+                        // --- HOST MODE ---
                         console.log('→ HOST MODE');
                         isHost = true;
                         qrCodeContainer.style.display = 'block';
                         scanInstructions.style.display = 'none';
-
+                        
                         statusEl.textContent = 'Generating QR...';
-
+                        
                         connectUrl = `${window.location.origin}${window.location.pathname}#${myId}`;
                         qrEl.innerHTML = '';
-
+                        
                         new QRCode(qrEl, {
                             text: connectUrl,
                             width: 256,
@@ -1703,7 +1848,7 @@
                             colorLight: "#ffffff",
                             correctLevel: QRCode.CorrectLevel.H
                         });
-
+                        
                         shareButtonsContainer.style.display = 'flex';
                         setTimeout(setupShareButton, 100);
                         statusEl.textContent = '✅ Ready';
@@ -1717,9 +1862,9 @@
                         conn.close();
                         return;
                     }
-
+                    
                     statusEl.textContent = '📡 Incoming...';
-
+                    
                     if (conn.open) {
                         setupConnection(conn);
                     } else {
@@ -1739,26 +1884,32 @@
                             }, 2000);
                         } else if (!isHost) {
                             statusEl.textContent = '❌ Peer not found';
-                            showSwitchButton();
+                            showSwitchButton(); // Show button to go back to host mode
                         }
                     } else if (err.type === 'network') {
                         statusEl.textContent = '❌ Network Error. Retrying...';
-                        setTimeout(initializePeer, 3000);
+                        setTimeout(initializePeer, 3000); // Retry init
                     }
                 });
             }
 
+            /**
+             * UPDATED: This button now just reloads the page with no hash.
+             */
             function showSwitchButton() {
                 if (document.getElementById('switch-mode-btn')) return;
-
+                
                 const btn = document.createElement('button');
                 btn.id = 'switch-mode-btn';
                 btn.textContent = '🔄 Go to Host Mode';
                 btn.className = 'switch-mode-button';
                 btn.onclick = () => {
                     btn.remove();
+                    // --- NEW LOGIC ---
+                    // Just clear hash and reload
                     window.location.hash = '';
                     window.location.reload();
+                    // --- END NEW LOGIC ---
                 };
                 document.querySelector('.transfer-area').appendChild(btn);
             }
@@ -1767,29 +1918,29 @@
                 console.log('→ Attempting connection to:', targetId);
                 let connectionFailed = false;
                 let connectionTimer = null;
-
+                
                 const handleFailure = (message) => {
                     if (connectionFailed) return;
                     connectionFailed = true;
                     if (connectionTimer) clearTimeout(connectionTimer);
                     console.error('❌ Connection failed:', message);
-
+                    
                     if (connectionRetryCount < MAX_RETRY) {
                         connectionRetryCount++;
                         statusEl.textContent = `🔄 Retry ${connectionRetryCount}`;
                         setTimeout(() => attemptConnection(targetId), 2000);
                     } else {
                         statusEl.textContent = '❌ Failed to connect';
-                        showSwitchButton();
+                        showSwitchButton(); // Show button to go back
                     }
                 };
 
                 try {
                     connectionTimer = setTimeout(() => handleFailure('Timeout'), 20000);
-
+                    
                     const conn = peer.connect(targetId, { 
                         reliable: true,
-                        serialization: 'json'
+                        serialization: 'binary'
                     });
 
                     conn.on('open', () => {
@@ -1805,7 +1956,7 @@
                         console.error('❌ Connection error:', err);
                         handleFailure('Error');
                     });
-
+                    
                     conn.on('close', () => {
                         console.log('⚠ Connection closed early');
                         if (!currentConnection) handleFailure('Closed');
@@ -1821,24 +1972,27 @@
                 currentConnection = conn;
                 window.APP_CONNECTION = conn;
                 showConnectionAnimation();
-
+                
                 statusEl.textContent = '🔐 Connected!';
                 fileInput.disabled = false;
                 transferStatusEl.textContent = '✅ Ready';
-
+                
+                // Hide QR container and show "Connected" status
                 qrCodeContainer.style.display = 'none';
                 shareButtonsContainer.style.display = 'none';
                 scanInstructions.style.display = 'block';
 
+                // --- SHOW CHAT ---
                 chatPlaceholder.style.display = 'none';
-                chatContainer.style.display = 'flex';
+                chatContainer.style.display = 'flex'; // Changed to flex
                 updateChatLimitsUI();
-
+                
                 const switchBtn = document.getElementById('switch-mode-btn');
                 if (switchBtn) switchBtn.remove();
-
+                
                 if (isHost) startHeartbeat();
 
+                // Send a 'ready' signal to the other peer
                 setTimeout(() => {
                     if (currentConnection && currentConnection.open) {
                         try {
@@ -1850,7 +2004,8 @@
                 }, 100);
 
                 conn.on('data', (data) => {
-
+                    
+                    // --- HEARTBEAT & READY ---
                     if (data.type === 'ready') {
                         statusEl.textContent = '✅ Ready!';
                         return;
@@ -1861,16 +2016,17 @@
                     }
                     if (data.type === 'heartbeat-pong') return;
 
+                    // --- CHAT LOGIC ---
                     if (data.type === 'chat-text') {
                         addMessageToDOM('text', data.message, 'receiver', { words: data.message.split(/\s+/).length }, data.msgId);
-                        conn.send({ type: 'chat-read', msgId: data.msgId });
+                        conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
                         pruneChat();
                         updateChatLimitsUI();
                         return;
                     }
                     if (data.type === 'chat-image') {
                         addMessageToDOM('image', data.data, 'receiver', { size: data.size, name: data.name }, data.msgId);
-                        conn.send({ type: 'chat-read', msgId: data.msgId });
+                        conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
                         pruneChat();
                         updateChatLimitsUI();
                         return;
@@ -1879,7 +2035,7 @@
                         chatStatus.textContent = 'Typing...';
                         chatStatus.style.opacity = 1;
                         clearTimeout(peerTypingTimer);
-                        peerTypingTimer = setTimeout(() => { chatStatus.style.opacity = 0; }, 3500);
+                        peerTypingTimer = setTimeout(() => { chatStatus.style.opacity = 0; }, 3500); // Auto-hide
                         return;
                     }
                     if (data.type === 'chat-stop-typing') {
@@ -1909,6 +2065,8 @@
                         return;
                     }
 
+
+                    // --- FILE TRANSFER LOGIC ---
                     if (data.type === 'metadata') {
                         const fileId = data.fileId;
                         receivingFiles.set(fileId, {
@@ -1918,22 +2076,22 @@
                             type: data.fileType,
                             data: [],
                             receivedBytes: 0,
-                            startTime: Date.now()
+                            startTime: Date.now() // Start ETA timer
                         });
-
+                        
                         createTransferUI(fileId, data.name, false);
                         updateTransferUI(fileId, {
                             percent: 0,
                             sizeText: `0 / ${formatBytes(data.size)}`,
                             etaText: 'ETA: --:--'
                         });
-
+                        
                         transferStatusEl.textContent = `Receiving...`;
                     } else if (data.type === 'end') {
                         const fileId = data.fileId;
                         const fileData = receivingFiles.get(fileId);
-
-                        if (!fileData) return;
+                        
+                        if (!fileData) return; // Already cancelled or finished
 
                         const fileBlob = new Blob(fileData.data, { type: fileData.type });
                         const downloadUrl = URL.createObjectURL(fileBlob);
@@ -1944,10 +2102,10 @@
                         a.click();
                         a.remove();
                         setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
-
+                        
                         document.getElementById(`transfer-${fileId}`)?.remove();
                         receivingFiles.delete(fileId);
-
+                        
                         if (receivingFiles.size === 0 && !isSending) {
                             transferStatusEl.textContent = `✅ Received`;
                         }
@@ -1955,18 +2113,26 @@
                         const fileId = data.fileId;
                         console.log(`Received cancel for: ${fileId}`);
 
+                        // 1. Is it our active send?
                         if (activeSend && activeSend.id === fileId) {
-                            activeSend.status = 'cancelled';
+                            activeSend.status = 'cancelled'; // This will be caught by reader.onload/readSlice
                             document.getElementById(`transfer-${fileId}`)?.remove();
-
+                            
+                            // --- FIX ---
+                            // We must manually stop and start the next file,
+                            // just like in cancelTransfer()
                             isSending = false;
                             activeSend = null;
                             sendNextFileFromQueue();
+                            // --- END FIX ---
+
                         }
+                        // 2. Is it in our pending send queue?
                         else if (fileQueue.some(job => job.id === fileId)) {
                             fileQueue = fileQueue.filter(job => job.id !== fileId);
                             document.getElementById(`transfer-${fileId}`)?.remove();
                         }
+                        // 3. Is it our active receive?
                         else if (receivingFiles.has(fileId)) {
                             receivingFiles.delete(fileId);
                             document.getElementById(`transfer-${fileId}`)?.remove();
@@ -1975,17 +2141,20 @@
                             }
                         }
                     } else {
+                        // This is a file chunk (ArrayBuffer)
+                        // It must have a fileId attached
                         const fileId = data.fileId; 
                         const chunk = data.chunk;
-
+                        
                         const fileData = receivingFiles.get(fileId);
-                        if (!fileData) return;
+                        if (!fileData) return; // No metadata for this chunk, ignore
 
                         fileData.data.push(chunk);
                         fileData.receivedBytes += chunk.byteLength;
-
+                        
                         const percent = Math.round((fileData.receivedBytes / fileData.size) * 100);
-
+                        
+                        // Calculate Receiver ETA
                         const elapsedTime = (Date.now() - fileData.startTime) / 1000;
                         let etaText = 'ETA: --:--';
                         if (elapsedTime > 0.5) {
@@ -1994,7 +2163,7 @@
                             const remainingTime = remainingBytes / speed;
                             etaText = `ETA: ${formatTime(remainingTime)}`;
                         }
-
+                        
                         updateTransferUI(fileId, {
                             percent: percent,
                             sizeText: `${formatBytes(fileData.receivedBytes)} / ${formatBytes(fileData.size)}`,
@@ -2008,10 +2177,11 @@
                     console.error("Connection error:", err);
                     handleDisconnect('Error');
                 });
-
+                
+                // Start sending if queue has items
                 sendNextFileFromQueue();
             }
-
+            
             function startHeartbeat() {
                 stopHeartbeat();
                 heartbeatInterval = setInterval(() => {
@@ -2029,19 +2199,24 @@
                     heartbeatInterval = null;
                 }
             }
-
+            
+            /**
+             * UPDATED: This function now clears the hash and reloads the page.
+             */
             function handleDisconnect(message) {
                 console.log('⚠ Disconnect:', message);
                 stopHeartbeat();
-
+                
+                // --- HIDE CHAT ---
                 chatContainer.style.display = 'none';
                 chatPlaceholder.style.display = 'flex';
 
+                // Set a flag to prevent multiple reloads
                 if (IS_RELOADING) return;
                 IS_RELOADING = true;
 
                 statusEl.textContent = '⚠️ Disconnected... Reloading...';
-
+                
                 if (currentConnection) {
                     try { currentConnection.close(); } catch (e) {}
                     currentConnection = null;
@@ -2050,10 +2225,14 @@
                     try { peer.destroy(); } catch (e) {}
                     peer = null;
                 }
-
+                
+                // --- NEW LOGIC ---
+                // Disconnected. Clear the hash and reload.
+                // The app will re-initialize in HOST mode.
                 console.log('🔄 Reverting to host mode by reloading...');
                 window.location.hash = '';
                 window.location.reload();
+                // --- END NEW LOGIC ---
             }
 
             fileInput.addEventListener('change', (event) => {
@@ -2065,16 +2244,17 @@
                         status: 'pending'
                     };
                     fileQueue.push(fileJob);
-
+                    
+                    // Add to UI as "Pending"
                     createTransferUI(fileId, file.name, true);
                     updateTransferUI(fileId, {
                         status: 'pending',
                         sizeText: formatBytes(file.size)
                     });
                 }
-                event.target.value = null;
+                event.target.value = null; // Clear input
                 transferStatusEl.textContent = `📁 ${fileQueue.length} files queued`;
-
+                
                 if (currentConnection && currentConnection.open && !isSending) {
                     sendNextFileFromQueue();
                 }
@@ -2089,24 +2269,24 @@
                     }
                     return;
                 }
-
+                
                 if (!currentConnection || !currentConnection.open || isSending) return;
-
+                
                 isSending = true;
                 const fileJob = fileQueue.shift();
-                activeSend = fileJob;
-
+                activeSend = fileJob; // Mark this job as active
+                
                 fileJob.status = 'sending';
                 const file = fileJob.file;
-
+                
                 transferStatusEl.textContent = `📤 Sending...`;
-
+                
                 const startTime = Date.now();
 
                 try {
                     currentConnection.send({
                         type: 'metadata',
-                        fileId: fileJob.id,
+                        fileId: fileJob.id, // Send the unique ID
                         name: file.name,
                         size: file.size,
                         fileType: file.type
@@ -2120,35 +2300,42 @@
                 const reader = new FileReader();
 
                 reader.onload = (e) => {
+                    // --- FIX ---
+                    // If this job is no longer the active job (i.e., it was cancelled by sender),
+                    // do nothing. The cancellation function handled cleanup.
                     if (activeSend !== fileJob) {
                         console.log('reader.onload fired for a cancelled/stale job. Ignoring.');
                         return;
                     }
+                    // --- END FIX ---
 
                     if (fileJob.status === 'cancelled') {
+                        // This should now only be hit if cancelled by RECEIVER
                         isSending = false;
                         activeSend = null;
-                        sendNextFileFromQueue();
+                        sendNextFileFromQueue(); // Try next file
                         return;
                     }
-
+                    
                     if(!currentConnection || !currentConnection.open) {
                         isSending = false;
                         activeSend = null;
+                        // Put job back in queue
                         fileQueue.unshift(fileJob);
                         console.error("Connection lost during sending");
                         return;
                     }
-
+                
                     try {
+                        // Send chunk with fileId
                         currentConnection.send({
                             type: 'chunk',
                             fileId: fileJob.id,
                             chunk: e.target.result
                         });
-
+                        
                         offset += e.target.result.byteLength;
-
+                        
                         updateProgress(fileJob.id, offset, file.size, startTime);
 
                         if (offset < file.size) {
@@ -2158,13 +2345,13 @@
                             document.getElementById(`transfer-${fileJob.id}`)?.remove();
                             isSending = false;
                             activeSend = null;
-                            sendNextFileFromQueue();
+                            sendNextFileFromQueue(); // Send next file
                         }
                     } catch (err) {
                         console.error("Send error:", err);
                     }
                 };
-
+                
                 reader.onerror = (e) => {
                     isSending = false;
                     activeSend = null;
@@ -2173,12 +2360,18 @@
                 };
 
                 function readSlice(o) {
+                    // --- FIX ---
+                    // If this job is no longer the active job (i.t. it was cancelled by sender),
+                    // do nothing.
                     if (activeSend !== fileJob) {
                          console.log('readSlice called for a cancelled/stale job. Ignoring.');
                         return;
                     }
+                    // --- END FIX ---
 
+                    // Check for cancellation before reading
                     if (fileJob.status === 'cancelled') {
+                        // This should now only be hit if cancelled by RECEIVER
                         isSending = false;
                         activeSend = null;
                         sendNextFileFromQueue();
@@ -2187,42 +2380,56 @@
                     const slice = file.slice(o, o + CHUNK_SIZE);
                     reader.readAsArrayBuffer(slice);
                 }
-
+                
                 readSlice(0);
             }
-
+            
+            /**
+             * @param {string} fileId
+             */
             function cancelTransfer(fileId) {
+                // Is it the active transfer?
                 if (activeSend && activeSend.id === fileId) {
                     console.log(`Cancelling active transfer: ${fileId}`);
-                    activeSend.status = 'cancelled';
-
+                    activeSend.status = 'cancelled'; // Flag for reader.onload/readSlice
+                    
+                    // Remove UI
                     document.getElementById(`transfer-${fileId}`)?.remove();
-
+                    
+                    // Send cancellation to peer
                     if (currentConnection && currentConnection.open) {
                         try {
                             currentConnection.send({ type: 'cancel', fileId: fileId });
                         } catch (err) {}
                     }
-
+                    
+                    // --- NEW ---
+                    // Immediately stop sending and start the next file
                     isSending = false;
                     activeSend = null;
-                    sendNextFileFromQueue();
+                    sendNextFileFromQueue(); // Start next file
+                    // --- END NEW ---
 
                 } else {
+                    // It's in the queue, just remove it
                     console.log(`Cancelling pending transfer: ${fileId}`);
                     fileQueue = fileQueue.filter(job => job.id !== fileId);
                     document.getElementById(`transfer-${fileId}`)?.remove();
+                    // No need to send 'cancel' message, it never started
                 }
-
+                
                 if (!isSending && fileQueue.length === 0) {
                      transferStatusEl.textContent = '❌ Cancelled';
                 }
             }
 
+            /**
+             * @param {string} fileId
+             */
             function updateProgress(fileId, sentBytes, totalBytes, startTime) {
                 const percent = Math.round((sentBytes / totalBytes) * 100);
                 const sizeText = `${formatBytes(sentBytes)} / ${formatBytes(totalBytes)}`;
-
+                
                 const elapsedTime = (Date.now() - startTime) / 1000;
                 let etaText = 'ETA: --:--';
                 if (elapsedTime > 0.5) {
@@ -2231,7 +2438,7 @@
                     const remainingTime = remainingBytes / speed;
                     etaText = `ETA: ${formatTime(remainingTime)}`;
                 }
-
+                
                 updateTransferUI(fileId, {
                     percent: percent,
                     sizeText: sizeText,
@@ -2239,18 +2446,23 @@
                 });
             }
 
+            // --- NEW: Cancel Receive Function ---
             function cancelReceive(fileId) {
                 console.log(`Cancelling receive: ${fileId}`);
+                // 1. Remove from map
                 receivingFiles.delete(fileId);
-
+                
+                // 2. Remove UI
                 document.getElementById(`transfer-${fileId}`)?.remove();
-
+                
+                // 3. Send cancellation to sender
                 if (currentConnection && currentConnection.open) {
                     try {
                         currentConnection.send({ type: 'cancel', fileId: fileId });
                     } catch (err) {}
                 }
-
+                
+                // 4. Update status if no more files
                 if (receivingFiles.size === 0 && !isSending) {
                     transferStatusEl.textContent = '❌ Receive cancelled';
                 }
@@ -2264,7 +2476,7 @@
                 const i = Math.floor(Math.log(bytes) / Math.log(k));
                 return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
             }
-
+            
             function formatTime(seconds) {
                 if (seconds === Infinity || isNaN(seconds)) return '--:--';
                 const min = Math.floor(seconds / 60);
@@ -2288,7 +2500,7 @@
                         downloadQrButton.style.display = 'inline-flex';
                         return;
                     }
-
+                    
                     const file = new File([blob], 'qr-code.png', { type: 'image/png' });
                     const shareData = {
                         title: 'QR Send',
@@ -2331,7 +2543,7 @@
                 } catch (err) {}
                 document.body.removeChild(textarea);
             }
-
+            
             function downloadQRCode() {
                 try {
                     const canvas = qrEl.querySelector('canvas');
@@ -2350,9 +2562,10 @@
             copyLinkButton.addEventListener('click', () => {
                 if (connectUrl) copyToClipboard(connectUrl, copyLinkButton);
             });
-
+            
             downloadQrButton.addEventListener('click', downloadQRCode);
 
+            // Start the app
             initializePeer();
         });
     </script>
