@@ -128,23 +128,10 @@
             background: var(--bg-primary);
             transition: transform 0.3s ease;
             z-index: 10;
-            position: absolute; /* Add this */
-            top: 0;
-            left: 0;
-            transform: translateX(0); /* Add this */
         }
 
         .chat-main {
-            display: flex; /* Change from none */
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
-            position: absolute; /* Add this */
-            top: 0;
-            left: 0;
-            transform: translateX(100%); /* Start off-screen */
-            transition: transform 0.3s ease-in-out;
-            z-index: 11; /* Above sidebar */
+            display: none; /* Hidden on mobile by default */
         }
 
         header {
@@ -987,17 +974,11 @@
                 min-width: 320px;
                 max-width: 400px;
                 border-right: 1px solid var(--border);
-                position: relative; /* Override absolute */
-                transform: translateX(0); /* Override */
-                z-index: 1; /* Override */
             }
 
             .chat-main {
                 width: 70%;
                 display: flex; /* Visible on desktop */
-                position: relative; /* Override absolute */
-                transform: translateX(0); /* Override */
-                z-index: 1; /* Override */
             }
             
             main {
@@ -1031,19 +1012,35 @@
                 padding: 25px;
             }
             
-            /* Show chat on mobile when connected - REMOVED from here */
+            /* --- MOBILE UI FIX --- */
+            /* Default mobile state */
+            body:not(.connected-desktop) .sidebar {
+                display: flex;
+            }
+            body:not(.connected-desktop) .chat-main {
+                display: none;
+            }
+            
+            /* Mobile connected state */
+            body.connected-mobile .sidebar {
+                display: none;
+            }
+            body.connected-mobile .chat-main {
+                display: flex;
+                width: 100%;
+                height: 100%;
+            }
             
             /* Desktop "connected" state */
             body.connected-desktop .sidebar {
-                transform: translateX(0); /* Stays visible */
+                display: flex; /* Stays visible */
             }
             
             body.connected-desktop .chat-main {
                 display: flex;
                 width: 70%;
-                position: relative; /* Not absolute */
-                transform: translateX(0);
             }
+            /* --- END MOBILE UI FIX --- */
             
             .chat-header {
                 padding: 15px 30px;
@@ -1061,25 +1058,6 @@
         @media (max-width: 767px) {
             .theme-toggle {
                 display: none; /* Hide on mobile to save space */
-            }
-            
-            /* When connected, slide sidebar left */
-            body.connected .sidebar {
-                /* position: absolute; */ /* Already set */
-                /* width: 100%; */ /* Already set */
-                transform: translateX(-100%);
-            }
-            
-            /* When connected, slide chat in */
-            body.connected .chat-main {
-                /* display: flex; */ /* Already set */
-                /* width: 100%; */ /* Already set */
-                /* position: absolute; */ /* Already set */
-                /* top: 0; */ /* Already set */
-                /* left: 100%; */ /* This logic is changed */
-                /* height: 100%; */ /* Already set */
-                transform: translateX(0);
-                /* transition: transform 0.3s ease-in-out; */ /* Already set */
             }
             
             /* Hide chat placeholder on mobile */
@@ -1479,7 +1457,7 @@
         }
         
         function showSidebar() {
-            document.body.classList.remove('connected');
+            document.body.classList.remove('connected-mobile');
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1505,6 +1483,7 @@
             const chatPlaceholderTemplate = document.getElementById('chat-placeholder-template');
 
             const CHUNK_SIZE = 64 * 1024;
+            const CHAT_CHUNK_SIZE = 1 * 1024 * 1024; // 1MB chunks for chat images
             const MAX_CHAT_MESSAGES = 1000; // Total messages to keep
             const MAX_CHAT_IMAGES = 6;
             const MAX_IMAGE_SIZE_TOTAL = 10 * 1024 * 1024; // 10MB
@@ -1519,11 +1498,10 @@
             
             let fileQueue = []; // Queue for sending files
             let isSending = false;
-            let activeSend = null; // NEW: Will store the active fileJob
-            let activeReader = null; // NEW: Store reference to the active file reader
+            let activeSend = null; // Will store the active fileJob
+            let activeReader = null; // Store reference to the active file reader
             
-            // NEW: Map to store receiving file metadata
-            let receivingFiles = new Map(); 
+            let receivingFiles = new Map(); // Map to store receiving file metadata
             
             let hasActiveTransfer = false;
             let heartbeatInterval = null;
@@ -1538,6 +1516,11 @@
             // --- READ RECEIPT STATE ---
             let unreadMessages = new Set();
             let sentMessages = new Map(); // { id: { element: <DOM>, status: 'sent' } }
+            
+            // --- CHAT IMAGE CHUNKING STATE ---
+            let chatImagesReceiving = new Map();
+            let activeChatImageSend = null;
+            let activeChatImageReader = null;
 
             window.addEventListener('beforeunload', (event) => {
                 if (isSending || receivingFiles.size > 0) {
@@ -1837,7 +1820,7 @@
                 
                 // 2. Add "connected" class to body
                 if (window.innerWidth < 768) {
-                    document.body.classList.add('connected');
+                    document.body.classList.add('connected-mobile');
                 } else {
                     document.body.classList.add('connected-desktop');
                 }
@@ -1864,6 +1847,7 @@
                 }, 100);
 
                 conn.on('data', (data) => {
+                    // --- GENERIC DATA HANDLING ---
                     if (data.type === 'ready') {
                         statusEl.textContent = '✅ Ready!';
                         return;
@@ -1928,39 +1912,44 @@
 
                         // 1. Is it our active send?
                         if (activeSend && activeSend.id === fileId) {
-                            activeSend.status = 'cancelled'; // This will be caught by reader.onload/readSlice
-                            document.getElementById(`transfer-${fileId}`)?.remove();
-                            
-                            // --- FIX ---
-                            // Abort the reader
+                            console.log('Cancelling active send (peer request)');
+                            activeSend.status = 'cancelled';
                             if (activeReader) {
-                                console.log('Aborting active file reader (peer cancelled)...');
                                 activeReader.abort();
                             }
-                            // We must manually stop and start the next file,
-                            // just like in cancelTransfer()
-                            isSending = false;
-                            activeSend = null;
-                            // --- FIX 2 ---
-                            // The 'abort' error handler will now call sendNextFileFromQueue()
-                            // sendNextFileFromQueue(); 
-                            // --- END FIX 2 ---
-
                         }
                         // 2. Is it in our pending send queue?
                         else if (fileQueue.some(job => job.id === fileId)) {
+                            console.log('Cancelling pending send (peer request)');
                             fileQueue = fileQueue.filter(job => job.id !== fileId);
                             document.getElementById(`transfer-${fileId}`)?.remove();
                             updateTransferStatus();
                         }
                         // 3. Are we receiving it?
                         else if (receivingFiles.has(fileId)) {
+                            console.log('Cancelling active receive (peer request)');
                             document.getElementById(`transfer-${fileId}`)?.remove();
                             receivingFiles.delete(fileId);
                         }
+                        // 4. Is it a chat image we are sending?
+                        else if (activeChatImageSend && activeChatImageSend.id === fileId) {
+                            console.log('Cancelling active chat image send (peer request)');
+                            activeChatImageSend.status = 'cancelled';
+                            if (activeChatImageReader) {
+                                activeChatImageReader.abort();
+                            }
+                        }
+                        // 5. Is it a chat image we are receiving?
+                        else if (chatImagesReceiving.has(fileId)) {
+                            console.log('Cancelling active chat image receive (peer request)');
+                            const imgData = chatImagesReceiving.get(fileId);
+                            if (imgData && imgData.bubble) {
+                                imgData.bubble.innerHTML = '<i>Message cancelled by peer.</i>';
+                            }
+                            chatImagesReceiving.delete(fileId);
+                        }
 
-                    } else {
-                        // This is a file chunk (ArrayBuffer)
+                    } else { // This is a file chunk (ArrayBuffer)
                         const fileId = data.fileId;
                         const fileData = receivingFiles.get(fileId);
                         
@@ -1995,15 +1984,40 @@
                     case 'text':
                         displayChatMessage(data, 'receiver');
                         break;
+                    
+                    // --- NEW CHAT IMAGE CHUNKING ---
                     case 'image_start':
-                        displayChatMessage(data, 'receiver');
+                        // Store placeholder for incoming chunks
+                        const bubble = displayChatMessage(data, 'receiver'); // Display placeholder
+                        chatImagesReceiving.set(data.id, {
+                            bubble: bubble,
+                            chunks: [],
+                            fileType: data.fileType,
+                            name: data.name
+                        });
                         break;
                     case 'image_chunk':
-                        // This logic is now handled by displayChatMessage
+                        const imgData = chatImagesReceiving.get(data.id);
+                        if (imgData) {
+                            imgData.chunks.push(data.chunk);
+                        }
                         break;
                     case 'image_end':
-                        // This logic is now handled by displayChatMessage
+                        const finishedImgData = chatImagesReceiving.get(data.id);
+                        if (finishedImgData) {
+                            const imgBlob = new Blob(finishedImgData.chunks, { type: finishedImgData.fileType });
+                            const dataUrl = URL.createObjectURL(imgBlob);
+                            
+                            const imgEl = finishedImgData.bubble.querySelector('img');
+                            if (imgEl) {
+                                imgEl.src = dataUrl;
+                                // No revoke needed for blob URLs
+                            }
+                            chatImagesReceiving.delete(data.id);
+                        }
                         break;
+                    // --- END CHAT IMAGE CHUNKING ---
+
                     case 'image_download':
                         const el = document.querySelector(`.message-bubble[data-message-id="${data.id}"]`);
                         if(el) {
@@ -2058,9 +2072,7 @@
                 sendData({ type: 'chat', ...data });
             }
             
-            // --- Image Sending Logic ---
-            let chatImagesReceiving = new Map();
-
+            // --- Image Sending Logic (with Chunks) ---
             function sendChatImage(file) {
                 if (chatImages.length >= MAX_CHAT_IMAGES) {
                     alert('You can only send 6 images. Old images will be removed.');
@@ -2073,32 +2085,78 @@
                     return;
                 }
                 
+                if (activeChatImageSend) {
+                    alert('Please wait for the previous image to finish sending.');
+                    return;
+                }
+                
                 const id = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const job = {
+                    id: id,
+                    file: file,
+                    status: 'sending'
+                };
+                activeChatImageSend = job;
+                
+                const localUrl = URL.createObjectURL(file);
+                
+                // 1. Display locally
+                const imgData = { 
+                    id, 
+                    timestamp: Date.now(), 
+                    type: 'image_start', 
+                    name: file.name, 
+                    fileType: file.type,
+                    content: localUrl // Local blob URL
+                };
+                displayChatMessage(imgData, 'sender');
+                
+                // 2. Send metadata
+                sendData({ type: 'chat', subtype: 'image_start', id: id, timestamp: imgData.timestamp, name: file.name, fileType: file.type });
+
+                // 3. Send image chunks
+                let offset = 0;
                 const reader = new FileReader();
+                activeChatImageReader = reader;
                 
                 reader.onload = (e) => {
-                    const dataUrl = e.target.result;
-                    const imgData = { 
-                        id, 
-                        timestamp: Date.now(), 
-                        type: 'image_start', 
-                        name: file.name, 
-                        fileType: file.type,
-                        content: dataUrl // For local display
-                    };
+                    if (activeChatImageSend !== job) return; // Cancelled
                     
-                    // 1. Display locally
-                    displayChatMessage(imgData, 'sender');
-                    
-                    // 2. Send metadata
-                    sendData({ type: 'chat', subtype: 'image_start', id: imgData.id, timestamp: imgData.timestamp, name: file.name, fileType: file.type });
-
-                    // 3. Send image chunks
-                    const arrayBuffer = dataUrl.split(',')[1]; // Base64 part
-                    sendData({ type: 'chat', subtype: 'image_end', id: imgData.id, chunk: arrayBuffer });
+                    try {
+                        sendData({ type: 'chat', subtype: 'image_chunk', id: id, chunk: e.target.result });
+                        offset += e.target.result.byteLength;
+                        
+                        if (offset < file.size) {
+                            readSlice(offset);
+                        } else {
+                            sendData({ type: 'chat', subtype: 'image_end', id: id });
+                            activeChatImageSend = null;
+                            activeChatImageReader = null;
+                        }
+                    } catch (err) {
+                        console.error("Chat image send error:", err);
+                        activeChatImageSend = null;
+                        activeChatImageReader = null;
+                    }
                 };
                 
-                reader.readAsDataURL(file);
+                reader.onerror = (e) => {
+                    if (e.name === 'AbortError') {
+                        console.log(`Chat image send aborted: ${id}`);
+                    } else {
+                        console.error(`Chat image read error: ${id}`, e);
+                    }
+                    activeChatImageSend = null;
+                    activeChatImageReader = null;
+                };
+
+                function readSlice(o) {
+                    if (activeChatImageSend !== job) return; // Cancelled
+                    const slice = file.slice(o, o + CHAT_CHUNK_SIZE);
+                    reader.readAsArrayBuffer(slice);
+                }
+                
+                readSlice(0);
             }
             
             function displayChatMessage(data, senderType) {
@@ -2119,35 +2177,11 @@
                 }
                 else if (data.type === 'image_start' || data.subtype === 'image_start') {
                     // This is the metadata for an image
-                    if (senderType === 'receiver') {
-                        // Store placeholder for incoming chunks
-                        chatImagesReceiving.set(data.id, {
-                            bubble: bubble,
-                            chunks: [],
-                            fileType: data.fileType
-                        });
-                    }
-                    // Display image from local DataURL (sender) or as placeholder (receiver)
                     const imgSrc = data.content ? data.content : 'https://placehold.co/250x250/eee/aaa?text=Loading...';
                     bubble.innerHTML = `
                         <img src="${imgSrc}" class="message-image" alt="image" data-id="${data.id}" onclick="downloadImage(this, '${data.name}')">
                     `;
                     chatImages.push({ id: data.id, size: data.size || 0 });
-                }
-                else if (data.subtype === 'image_end') {
-                    // All chunks received, assemble and display
-                    const imgData = chatImagesReceiving.get(data.id);
-                    if (imgData && senderType === 'receiver') {
-                        const fullBase64 = data.chunk;
-                        const dataUrl = `data:${imgData.fileType};base64,${fullBase64}`;
-                        
-                        const imgEl = imgData.bubble.querySelector('img');
-                        if (imgEl) {
-                            imgEl.src = dataUrl;
-                            imgEl.onload = () => URL.revokeObjectURL(dataUrl); // Clean up
-                        }
-                        chatImagesReceiving.delete(data.id);
-                    }
                 }
                 
                 // Add Meta (Timestamp + Ticks)
@@ -2197,6 +2231,8 @@
                         chatMessages = chatMessages.filter(msg => msg !== oldImgEl);
                     }
                 }
+                
+                return bubble; // Return the created bubble
             }
             
             // Function to download image and notify sender
@@ -2365,14 +2401,12 @@
                 activeReader = reader; // Store reference
 
                 reader.onload = (e) => {
-                    // --- FIX ---
-                    // If this job is no longer the active job (i.e., it was cancelled),
-                    // do nothing. The cancellation function handled cleanup.
+                    // --- CANCEL FIX ---
                     if (activeSend !== fileJob) {
                         console.log('reader.onload fired for a cancelled/stale job. Ignoring.');
                         return;
                     }
-                    // --- END FIX ---
+                    // --- END CANCEL FIX ---
                     
                     if(!currentConnection || !currentConnection.open) {
                         isSending = false;
@@ -2408,18 +2442,17 @@
                         }
                     } catch (err) {
                         console.error("Send error:", err);
-                        // Don't call handleDisconnect, let the error handler do it
                     }
                 };
                 
                 reader.onerror = (e) => {
-                    // --- FIX ---
+                    // --- CANCEL FIX ---
                     // This is now the main path for cancellation cleanup
-                    const wasAborted = (e.name === 'AbortError');
+                    const wasAborted = e.target.error && e.target.error.name === 'AbortError';
                     if (wasAborted) {
                         console.log(`File read aborted for ${fileJob.id}.`);
                     } else {
-                        console.error(`File read error for ${fileJob.id}:`, e);
+                        console.error(`File read error for ${fileJob.id}:`, e.target.error);
                         transferStatusEl.textContent = '❌ File Read error';
                         document.getElementById(`transfer-${fileJob.id}`)?.remove();
                     }
@@ -2434,18 +2467,16 @@
                     
                     // Send next file
                     sendNextFileFromQueue(); 
-                    // --- END FIX ---
+                    // --- END CANCEL FIX ---
                 };
 
                 function readSlice(o) {
-                    // --- FIX ---
-                    // If this job is no longer the active job (i.t. it was cancelled),
-                    // do nothing.
+                    // --- CANCEL FIX ---
                     if (activeSend !== fileJob) {
                          console.log('readSlice called for a cancelled/stale job. Ignoring.');
                         return;
                     }
-                    // --- END FIX ---
+                    // --- END CANCEL FIX ---
 
                     const slice = file.slice(o, o + CHUNK_SIZE);
                     reader.readAsArrayBuffer(slice);
@@ -2467,28 +2498,12 @@
                         activeReader.abort();
                     }
                     // --- END NEW ---
-
-                    // --- FIX: Cleanup is now handled by reader.onerror ---
-                    /*
+                    
                     // Remove UI
                     document.getElementById(`transfer-${fileId}`)?.remove();
                     
                     // Notify peer
                     sendData({ type: 'cancel', fileId: fileId });
-                    
-                    // Manually reset state and start next
-                    isSending = false;
-                    activeSend = null;
-                    activeReader = null;
-                    fileQueue = fileQueue.filter(job => job.id !== fileId);
-                    sendNextFileFromQueue();
-                    */
-                    // --- END FIX ---
-
-                    // We STILL need to remove UI and notify peer
-                    document.getElementById(`transfer-${fileId}`)?.remove();
-                    sendData({ type: 'cancel', fileId: fileId });
-
                 }
                 // Is it in the pending queue?
                 else if (fileQueue.some(job => job.id === fileId)) {
@@ -2545,13 +2560,17 @@
                 bar.classList.remove('pending');
                 bar.style.width = `${percent}%`;
                 el.querySelector('.progress-size').textContent = `${formatBytes(sentBytes)} / ${formatBytes(totalBytes)}`;
-                
+
                 const elapsedTime = (Date.now() - startTime) / 1000;
                 if (elapsedTime > 0.5) {
                     const speed = sentBytes / elapsedTime;
                     const remainingBytes = totalBytes - sentBytes;
                     const remainingTime = remainingBytes / speed;
-                    el.querySelector('.progress-eta').textContent = `ETA: ${formatTime(remainingTime)}`;
+                    if (isFinite(remainingTime)) {
+                        el.querySelector('.progress-eta').textContent = `ETA: ${formatTime(remainingTime)}`;
+                    } else {
+                        el.querySelector('.progress-eta').textContent = `ETA: --:--`;
+                    }
                 }
             }
 
