@@ -2117,7 +2117,15 @@
                         if (activeSend && activeSend.id === fileId) {
                             activeSend.status = 'cancelled'; // This will be caught by reader.onload/readSlice
                             document.getElementById(`transfer-${fileId}`)?.remove();
-                            // The reader loop will handle stopping and starting the next one
+                            
+                            // --- FIX ---
+                            // We must manually stop and start the next file,
+                            // just like in cancelTransfer()
+                            isSending = false;
+                            activeSend = null;
+                            sendNextFileFromQueue();
+                            // --- END FIX ---
+
                         }
                         // 2. Is it in our pending send queue?
                         else if (fileQueue.some(job => job.id === fileId)) {
@@ -2292,8 +2300,17 @@
                 const reader = new FileReader();
 
                 reader.onload = (e) => {
+                    // --- FIX ---
+                    // If this job is no longer the active job (i.e., it was cancelled by sender),
+                    // do nothing. The cancellation function handled cleanup.
+                    if (activeSend !== fileJob) {
+                        console.log('reader.onload fired for a cancelled/stale job. Ignoring.');
+                        return;
+                    }
+                    // --- END FIX ---
+
                     if (fileJob.status === 'cancelled') {
-                        // Don't send chunk, just stop
+                        // This should now only be hit if cancelled by RECEIVER
                         isSending = false;
                         activeSend = null;
                         sendNextFileFromQueue(); // Try next file
@@ -2343,8 +2360,18 @@
                 };
 
                 function readSlice(o) {
+                    // --- FIX ---
+                    // If this job is no longer the active job (i.t. it was cancelled by sender),
+                    // do nothing.
+                    if (activeSend !== fileJob) {
+                         console.log('readSlice called for a cancelled/stale job. Ignoring.');
+                        return;
+                    }
+                    // --- END FIX ---
+
                     // Check for cancellation before reading
                     if (fileJob.status === 'cancelled') {
+                        // This should now only be hit if cancelled by RECEIVER
                         isSending = false;
                         activeSend = null;
                         sendNextFileFromQueue();
