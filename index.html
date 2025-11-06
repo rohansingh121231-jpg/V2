@@ -650,22 +650,33 @@
             text-align: center;
         }
 
-        /* --- COMPACT PROGRESS BAR STYLES --- */
-        .progress-container {
+        /* --- NEW: Transfer List Container --- */
+        #transfer-list-container {
             margin-top: 15px;
-            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 190px; /* Approx 3 bars */
+            overflow-y: auto;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* --- COMPACT DYNAMIC PROGRESS BAR STYLES --- */
+        .progress-container {
+            padding: 8px; /* More compact */
             background: var(--bg-card);
             border-radius: 10px;
             box-shadow: 0 2px 8px var(--shadow);
-            display: none;
+            display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 4px; /* More compact */
         }
         
         .progress-top-row {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px; /* More compact */
             width: 100%;
         }
 
@@ -690,9 +701,9 @@
         .progress-bar-background {
             position: relative;
             width: 100%;
-            height: 12px;
+            height: 8px; /* More compact */
             background: var(--bg-secondary);
-            border-radius: 6px;
+            border-radius: 4px; /* More compact */
             overflow: hidden;
             box-shadow: inset 0 1px 2px var(--shadow);
         }
@@ -700,9 +711,14 @@
         .progress-bar {
             height: 100%;
             background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
-            border-radius: 6px;
+            border-radius: 4px; /* More compact */
             transition: width 0.3s ease;
             position: relative;
+        }
+
+        .progress-bar.pending {
+            background: var(--border);
+            width: 100% !important;
         }
 
         .delivery-boy {
@@ -717,14 +733,13 @@
             color: var(--text-secondary);
         }
 
-        #cancel-button {
+        .cancel-button { /* Changed to class */
             margin-top: 0;
             width: auto;
-            padding: 6px 12px;
-            font-size: 12px;
+            padding: 4px 8px; /* More compact */
+            font-size: 11px; /* More compact */
             flex-shrink: 0;
             
-            /* Copied from original */
             background: var(--error);
             color: white;
             border: none;
@@ -734,28 +749,12 @@
             transition: all 0.3s ease;
         }
         
-        #cancel-button:hover {
+        .cancel-button:hover {
              background: #d33828;
              transform: translateY(-2px);
              box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
         }
         
-        #progress-container,
-        #receive-progress-container {
-            display: none; /* Start hidden */
-            flex-direction: column;
-        }
-        
-        #progress-container .progress-label,
-        #receive-progress-container .progress-label {
-             margin-bottom: 0;
-        }
-
-        #progress-container .progress-stats,
-        #receive-progress-container .progress-stats {
-            margin-top: 4px;
-            font-size: 10px;
-        }
         /* --- END COMPACT PROGRESS BAR STYLES --- */
 
 
@@ -1120,44 +1119,11 @@
                 <input type="file" id="file-input" disabled multiple>
                 <div id="transfer-status">Waiting...</div>
 
-                <!-- COMPACT SENDER PROGRESS BAR -->
-                <div id="progress-container" class="progress-container">
-                    <div class="progress-top-row">
-                        <div class="progress-bar-wrapper">
-                            <div class="progress-label">
-                                <span>Sending...</span>
-                                <span id="progress-percentage">0%</span>
-                            </div>
-                            <div class="progress-bar-background">
-                                <div id="progress-bar" class="progress-bar"></div>
-                            </div>
-                        </div>
-                        <button id="cancel-button">❌ Cancel</button>
-                    </div>
-                    <div class="progress-stats">
-                        <span id="progress-size">0 MB / 0 MB</span>
-                        <span id="progress-eta">ETA: --:--</span>
-                    </div>
+                <!-- NEW: Transfer List Container -->
+                <div id="transfer-list-container">
+                    <!-- Dynamic progress bars will be injected here -->
                 </div>
                 
-                <!-- COMPACT RECEIVER PROGRESS BAR -->
-                <div id="receive-progress-container" class="progress-container">
-                    <div class="progress-top-row">
-                        <div class="progress-bar-wrapper">
-                            <div class="progress-label">
-                                <span>Receiving...</span>
-                                <span id="receive-progress-percentage">0%</span>
-                            </div>
-                            <div class="progress-bar-background">
-                                <div id="receive-progress-bar" class="progress-bar"></div>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="progress-stats">
-                        <span id="receive-progress-size">0 MB / 0 MB</span>
-                        <span>🔐 Encrypted</span>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -1394,7 +1360,89 @@
             }, 2000);
         }
 
-        // Removed updateDeliveryBoy function, as .delivery-boy is display: none
+        // --- NEW: Helper to create HTML for a progress bar ---
+        /**
+         * Creates and appends a progress bar UI to the transfer list.
+         * @param {string} fileId - The unique ID for this transfer.
+         * @param {string} fileName - The name of the file.
+         * @param {boolean} isSender - True if this is a sending bar, false for receiving.
+         */
+        function createTransferUI(fileId, fileName, isSender) {
+            const container = document.getElementById('transfer-list-container');
+            const el = document.createElement('div');
+            el.className = 'progress-container';
+            el.id = `transfer-${fileId}`;
+
+            const label = isSender ? `Sending: ${fileName}` : `Receiving: ${fileName}`;
+            const cancelButtonHTML = isSender ? `<button class="cancel-button" data-file-id="${fileId}">❌</button>` : '';
+
+            el.innerHTML = `
+                <div class="progress-top-row">
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-label">
+                            <span class="progress-label-text">${label}</span>
+                            <span class="progress-percentage">0%</span>
+                        </div>
+                        <div class="progress-bar-background">
+                            <div class="progress-bar"></div>
+                        </div>
+                    </div>
+                    ${cancelButtonHTML}
+                </div>
+                <div class="progress-stats">
+                    <span class="progress-size">-- MB / -- MB</span>
+                    <span class="progress-eta">ETA: --:--</span>
+                </div>
+            `;
+
+            container.appendChild(el);
+            
+            // Add click listener to cancel button if it exists
+            if (isSender) {
+                el.querySelector('.cancel-button').addEventListener('click', () => {
+                    cancelTransfer(fileId);
+                });
+            }
+        }
+
+        /**
+         * Updates a specific progress bar in the UI.
+         * @param {string} fileId - The ID of the transfer to update.
+         * @param {object} options - The values to update.
+         * @param {number} options.percent - The percentage (0-100).
+         * @param {string} options.sizeText - The formatted size string (e.g., "1.2 MB / 5 MB").
+         * @param {string} options.etaText - The formatted ETA string (e.g., "ETA: 0:05").
+         * @param {string} [options.status] - Optional status like "Pending".
+         */
+        function updateTransferUI(fileId, options) {
+            const el = document.getElementById(`transfer-${fileId}`);
+            if (!el) return;
+
+            const bar = el.querySelector('.progress-bar');
+            const percentage = el.querySelector('.progress-percentage');
+            const size = el.querySelector('.progress-size');
+            const eta = el.querySelector('.progress-eta');
+            const label = el.querySelector('.progress-label-text');
+
+            if (options.percent != null) {
+                bar.style.width = `${options.percent}%`;
+                percentage.textContent = `${options.percent}%`;
+            }
+            if (options.sizeText) size.textContent = options.sizeText;
+            if (options.etaText) eta.textContent = options.etaText;
+            
+            if (options.status === 'pending') {
+                bar.classList.add('pending');
+                label.style.opacity = 0.7;
+                percentage.textContent = 'Pending';
+                size.textContent = options.sizeText; // Show file size for pending
+                eta.textContent = '';
+            } else {
+                 bar.classList.remove('pending');
+                 label.style.opacity = 1;
+            }
+        }
+
 
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🚀 App initialized');
@@ -1675,20 +1723,8 @@
             const copyLinkButton = document.getElementById('copy-link-button');
             const downloadQrButton = document.getElementById('download-qr-button');
             
-            // --- PROGRESS BAR ELEMENTS (COMPACT) ---
-            const progressContainer = document.getElementById('progress-container');
-            const progressBar = document.getElementById('progress-bar');
-            const progressPercentage = document.getElementById('progress-percentage');
-            const progressSize = document.getElementById('progress-size');
-            const progressEta = document.getElementById('progress-eta');
-            const cancelButton = document.getElementById('cancel-button');
-            const progressLabel = progressContainer.querySelector('.progress-label span');
-            
-            const receiveProgressContainer = document.getElementById('receive-progress-container');
-            const receiveProgressBar = document.getElementById('receive-progress-bar');
-            const receiveProgressPercentage = document.getElementById('receive-progress-percentage');
-            const receiveProgressSize = document.getElementById('receive-progress-size');
-            const receiveProgressLabel = receiveProgressContainer.querySelector('.progress-label span');
+            // --- NEW: Transfer List Container ---
+            const transferListContainer = document.getElementById('transfer-list-container');
 
 
             // --- CHAT ELEMENTS ---
@@ -1751,15 +1787,19 @@
             let connectionRetryCount = 0;
             const MAX_RETRY = 3;
             
-            let fileQueue = [];
+            let fileQueue = []; // NEW: Will store { file, id, status }
             let isSending = false;
-            let isReceiving = false;
-            let cancelTransfer = false;
-            let hasActiveTransfer = false;
+            let activeSend = null; // NEW: Will store the active fileJob
+            
+            // NEW: Map to store receiving file metadata
+            let receivingFiles = new Map(); 
+
+            let hasActiveTransfer = false; // Will be true if isSending or receivingFiles.size > 0
             let heartbeatInterval = null;
             
             window.addEventListener('beforeunload', (event) => {
-                if (hasActiveTransfer || isSending || isReceiving) {
+                hasActiveTransfer = isSending || receivingFiles.size > 0;
+                if (hasActiveTransfer) {
                     const warningText = 'Transfer active!';
                     event.preventDefault();
                     event.returnValue = warningText;
@@ -1988,10 +2028,6 @@
                 if (switchBtn) switchBtn.remove();
                 
                 if (isHost) startHeartbeat();
-                
-                let incomingFileData = [];
-                let fileMetadata = {};
-                let receivedBytes = 0;
 
                 // Send a 'ready' signal to the other peer
                 setTimeout(() => {
@@ -2069,50 +2105,84 @@
 
                     // --- FILE TRANSFER LOGIC ---
                     if (data.type === 'metadata') {
-                        fileMetadata = data;
-                        incomingFileData = [];
-                        receivedBytes = 0;
-                        isReceiving = true;
-                        hasActiveTransfer = true;
+                        const fileId = data.fileId;
+                        receivingFiles.set(fileId, {
+                            id: fileId,
+                            name: data.name,
+                            size: data.size,
+                            type: data.fileType,
+                            data: [],
+                            receivedBytes: 0,
+                            startTime: Date.now() // Start ETA timer
+                        });
                         
-                        transferStatusEl.textContent = `📥 ${fileMetadata.name}`;
-                        // Show compact progress bar
-                        receiveProgressContainer.style.display = 'flex';
-                        receiveProgressLabel.textContent = `Receiving: ${fileMetadata.name}`;
-                        receiveProgressBar.style.width = '0%';
-                        receiveProgressPercentage.textContent = '0%';
-                        receiveProgressSize.textContent = `0 / ${formatBytes(fileMetadata.size)}`;
+                        createTransferUI(fileId, data.name, false);
+                        updateTransferUI(fileId, {
+                            percent: 0,
+                            sizeText: `0 / ${formatBytes(data.size)}`,
+                            etaText: 'ETA: --:--'
+                        });
+                        
+                        transferStatusEl.textContent = `Receiving...`;
                     } else if (data.type === 'end') {
-                        const fileBlob = new Blob(incomingFileData, { type: fileMetadata.type });
+                        const fileId = data.fileId;
+                        const fileData = receivingFiles.get(fileId);
+                        
+                        if (!fileData) return; // Already cancelled or finished
+
+                        const fileBlob = new Blob(fileData.data, { type: fileData.type });
                         const downloadUrl = URL.createObjectURL(fileBlob);
                         const a = document.createElement('a');
                         a.href = downloadUrl;
-                        a.download = fileMetadata.name;
+                        a.download = fileData.name;
                         document.body.appendChild(a);
                         a.click();
                         a.remove();
                         setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
                         
-                        transferStatusEl.textContent = `✅ Received`;
-                        receiveProgressContainer.style.display = 'none'; // Hide
-                        isReceiving = false;
-                        hasActiveTransfer = false;
-                        incomingFileData = [];
+                        document.getElementById(`transfer-${fileId}`)?.remove();
+                        receivingFiles.delete(fileId);
+                        
+                        if (receivingFiles.size === 0 && !isSending) {
+                            transferStatusEl.textContent = `✅ Received`;
+                        }
                     } else if (data.type === 'cancel') {
-                        transferStatusEl.textContent = '❌ Cancelled by sender';
-                        incomingFileData = [];
-                        receiveProgressContainer.style.display = 'none'; // Hide
-                        isReceiving = false;
-                        hasActiveTransfer = false;
+                        const fileId = data.fileId;
+                        document.getElementById(`transfer-${fileId}`)?.remove();
+                        receivingFiles.delete(fileId);
+
+                        if (receivingFiles.size === 0 && !isSending) {
+                            transferStatusEl.textContent = '❌ Cancelled by sender';
+                        }
                     } else {
                         // This is a file chunk (ArrayBuffer)
-                        incomingFileData.push(data);
-                        receivedBytes += data.byteLength;
+                        // It must have a fileId attached
+                        const fileId = data.fileId; 
+                        const chunk = data.chunk;
                         
-                        const percent = Math.round((receivedBytes / fileMetadata.size) * 100);
-                        receiveProgressBar.style.width = `${percent}%`;
-                        receiveProgressPercentage.textContent = `${percent}%`;
-                        receiveProgressSize.textContent = `${formatBytes(receivedBytes)} / ${formatBytes(fileMetadata.size)}`;
+                        const fileData = receivingFiles.get(fileId);
+                        if (!fileData) return; // No metadata for this chunk, ignore
+
+                        fileData.data.push(chunk);
+                        fileData.receivedBytes += chunk.byteLength;
+                        
+                        const percent = Math.round((fileData.receivedBytes / fileData.size) * 100);
+                        
+                        // Calculate Receiver ETA
+                        const elapsedTime = (Date.now() - fileData.startTime) / 1000;
+                        let etaText = 'ETA: --:--';
+                        if (elapsedTime > 0.5) {
+                            const speed = fileData.receivedBytes / elapsedTime;
+                            const remainingBytes = fileData.size - fileData.receivedBytes;
+                            const remainingTime = remainingBytes / speed;
+                            etaText = `ETA: ${formatTime(remainingTime)}`;
+                        }
+                        
+                        updateTransferUI(fileId, {
+                            percent: percent,
+                            sizeText: `${formatBytes(fileData.receivedBytes)} / ${formatBytes(fileData.size)}`,
+                            etaText: etaText
+                        });
                     }
                 });
 
@@ -2122,9 +2192,8 @@
                     handleDisconnect('Error');
                 });
                 
-                if (fileQueue.length > 0 && !isSending) {
-                    setTimeout(() => sendNextFileFromQueue(), 500);
-                }
+                // Start sending if queue has items
+                sendNextFileFromQueue();
             }
             
             function startHeartbeat() {
@@ -2182,10 +2251,23 @@
 
             fileInput.addEventListener('change', (event) => {
                 for (const file of event.target.files) {
-                    fileQueue.push(file);
+                    const fileId = crypto.randomUUID();
+                    const fileJob = {
+                        file: file,
+                        id: fileId,
+                        status: 'pending'
+                    };
+                    fileQueue.push(fileJob);
+                    
+                    // Add to UI as "Pending"
+                    createTransferUI(fileId, file.name, true);
+                    updateTransferUI(fileId, {
+                        status: 'pending',
+                        sizeText: formatBytes(file.size)
+                    });
                 }
                 event.target.value = null; // Clear input
-                transferStatusEl.textContent = `📁 ${fileQueue.length} queued`;
+                transferStatusEl.textContent = `📁 ${fileQueue.length} files queued`;
                 
                 if (currentConnection && currentConnection.open && !isSending) {
                     sendNextFileFromQueue();
@@ -2195,27 +2277,30 @@
             function sendNextFileFromQueue() {
                 if (fileQueue.length === 0) {
                     isSending = false;
-                    hasActiveTransfer = false;
-                    transferStatusEl.textContent = '✅ All sent!';
+                    activeSend = null;
+                    if (receivingFiles.size === 0) {
+                        transferStatusEl.textContent = '✅ All sent!';
+                    }
                     return;
                 }
                 
                 if (!currentConnection || !currentConnection.open || isSending) return;
                 
                 isSending = true;
-                hasActiveTransfer = true;
-                cancelTransfer = false;
-                const file = fileQueue.shift();
+                const fileJob = fileQueue.shift();
+                activeSend = fileJob; // Mark this job as active
                 
-                transferStatusEl.textContent = `📤 ${file.name}`;
-                progressContainer.style.display = 'flex'; // Show compact bar
-                progressLabel.textContent = `Sending: ${file.name}`;
+                fileJob.status = 'sending';
+                const file = fileJob.file;
+                
+                transferStatusEl.textContent = `📤 Sending...`;
                 
                 const startTime = Date.now();
 
                 try {
                     currentConnection.send({
                         type: 'metadata',
+                        fileId: fileJob.id, // Send the unique ID
                         name: file.name,
                         size: file.size,
                         fileType: file.type
@@ -2229,55 +2314,64 @@
                 const reader = new FileReader();
 
                 reader.onload = (e) => {
-                    if (cancelTransfer) {
+                    if (fileJob.status === 'cancelled') {
+                        // Don't send chunk, just stop
                         isSending = false;
-                        hasActiveTransfer = false;
-                        fileQueue = []; // Clear queue
-                        progressContainer.style.display = 'none'; // Hide
-                        transferStatusEl.textContent = '❌ Cancelled';
-                        if(currentConnection && currentConnection.open) {
-                             try {
-                                 currentConnection.send({ type: 'cancel' });
-                             } catch (err) {}
-                        }
+                        activeSend = null;
+                        sendNextFileFromQueue(); // Try next file
                         return;
                     }
                     
                     if(!currentConnection || !currentConnection.open) {
                         isSending = false;
-                        hasActiveTransfer = false;
-                        // Don't call handleDisconnect here, it will be called by conn.on('close')
+                        activeSend = null;
+                        // Put job back in queue
+                        fileQueue.unshift(fileJob);
                         console.error("Connection lost during sending");
                         return;
                     }
                 
                     try {
-                        currentConnection.send(e.target.result); // Send ArrayBuffer
+                        // Send chunk with fileId
+                        currentConnection.send({
+                            type: 'chunk',
+                            fileId: fileJob.id,
+                            chunk: e.target.result
+                        });
+                        
                         offset += e.target.result.byteLength;
-                        updateProgress(offset, file.size, startTime);
+                        
+                        updateProgress(fileJob.id, offset, file.size, startTime);
 
                         if (offset < file.size) {
                             readSlice(offset);
                         } else {
-                            currentConnection.send({ type: 'end' });
+                            currentConnection.send({ type: 'end', fileId: fileJob.id });
+                            document.getElementById(`transfer-${fileJob.id}`)?.remove();
                             isSending = false;
-                            progressContainer.style.display = 'none'; // Hide
+                            activeSend = null;
                             sendNextFileFromQueue(); // Send next file
                         }
                     } catch (err) {
                         console.error("Send error:", err);
-                        // Don't call handleDisconnect, let the error handler do it
                     }
                 };
                 
                 reader.onerror = (e) => {
                     isSending = false;
-                    hasActiveTransfer = false;
+                    activeSend = null;
                     transferStatusEl.textContent = '❌ File Read error';
-                    progressContainer.style.display = 'none'; // Hide
+                    document.getElementById(`transfer-${fileJob.id}`)?.remove();
                 };
 
                 function readSlice(o) {
+                    // Check for cancellation before reading
+                    if (fileJob.status === 'cancelled') {
+                        isSending = false;
+                        activeSend = null;
+                        sendNextFileFromQueue();
+                        return;
+                    }
                     const slice = file.slice(o, o + CHUNK_SIZE);
                     reader.readAsArrayBuffer(slice);
                 }
@@ -2285,20 +2379,56 @@
                 readSlice(0);
             }
             
-            function updateProgress(sentBytes, totalBytes, startTime) {
+            /**
+             * @param {string} fileId
+             */
+            function cancelTransfer(fileId) {
+                // Is it the active transfer?
+                if (activeSend && activeSend.id === fileId) {
+                    activeSend.status = 'cancelled'; // Flag for reader.onload
+                    
+                    // Remove UI
+                    document.getElementById(`transfer-${fileId}`)?.remove();
+                    
+                    // Send cancellation to peer
+                    if (currentConnection && currentConnection.open) {
+                        try {
+                            currentConnection.send({ type: 'cancel', fileId: fileId });
+                        } catch (err) {}
+                    }
+                    // `sendNextFileFromQueue` will be called by the reader.onload check
+                } else {
+                    // It's in the queue, just remove it
+                    fileQueue = fileQueue.filter(job => job.id !== fileId);
+                    document.getElementById(`transfer-${fileId}`)?.remove();
+                }
+                
+                if (!isSending && fileQueue.length === 0) {
+                     transferStatusEl.textContent = '❌ Cancelled';
+                }
+            }
+
+            /**
+             * @param {string} fileId
+             */
+            function updateProgress(fileId, sentBytes, totalBytes, startTime) {
                 const percent = Math.round((sentBytes / totalBytes) * 100);
-                progressBar.style.width = `${percent}%`;
-                progressPercentage.textContent = `${percent}%`;
-                progressSize.textContent = `${formatBytes(sentBytes)} / ${formatBytes(totalBytes)}`;
-                // updateDeliveryBoy(percent); // Removed
+                const sizeText = `${formatBytes(sentBytes)} / ${formatBytes(totalBytes)}`;
                 
                 const elapsedTime = (Date.now() - startTime) / 1000;
+                let etaText = 'ETA: --:--';
                 if (elapsedTime > 0.5) {
                     const speed = sentBytes / elapsedTime;
                     const remainingBytes = totalBytes - sentBytes;
                     const remainingTime = remainingBytes / speed;
-                    progressEta.textContent = `ETA: ${formatTime(remainingTime)}`;
+                    etaText = `ETA: ${formatTime(remainingTime)}`;
                 }
+                
+                updateTransferUI(fileId, {
+                    percent: percent,
+                    sizeText: sizeText,
+                    etaText: etaText
+                });
             }
 
             function formatBytes(bytes, decimals = 2) {
@@ -2316,10 +2446,6 @@
                 const sec = Math.floor(seconds % 60);
                 return `${min}:${sec < 10 ? '0' : ''}${sec}`;
             }
-
-            cancelButton.addEventListener('click', () => {
-                cancelTransfer = true;
-            });
 
             function setupShareButton() {
                 const canvas = qrEl.querySelector('canvas');
