@@ -1,4 +1,4 @@
-   <!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1753,6 +1753,7 @@
             let fileQueue = []; // NEW: Will store { file, id, status }
             let isSending = false;
             let activeSend = null; // NEW: Will store the active fileJob
+            let activeReader = null; // NEW: Store reference to the active file reader
             
             // NEW: Map to store receiving file metadata
             let receivingFiles = new Map(); 
@@ -2119,6 +2120,12 @@
                             document.getElementById(`transfer-${fileId}`)?.remove();
                             
                             // --- FIX ---
+                            // Abort the reader
+                            if (activeReader) {
+                                console.log('Aborting active file reader (peer cancelled)...');
+                                activeReader.abort();
+                                activeReader = null;
+                            }
                             // We must manually stop and start the next file,
                             // just like in cancelTransfer()
                             isSending = false;
@@ -2298,6 +2305,7 @@
 
                 let offset = 0;
                 const reader = new FileReader();
+                activeReader = reader; // Store reference
 
                 reader.onload = (e) => {
                     // --- FIX ---
@@ -2345,6 +2353,7 @@
                             document.getElementById(`transfer-${fileJob.id}`)?.remove();
                             isSending = false;
                             activeSend = null;
+                            activeReader = null; // Clear reader
                             sendNextFileFromQueue(); // Send next file
                         }
                     } catch (err) {
@@ -2353,10 +2362,16 @@
                 };
                 
                 reader.onerror = (e) => {
+                    // Don't log abort errors
+                    if (e.name === 'AbortError') {
+                        console.log('File read aborted.');
+                        return;
+                    }
                     isSending = false;
                     activeSend = null;
+                    activeReader = null; // Clear reader
                     transferStatusEl.textContent = '❌ File Read error';
-                    document.getElementById(`transfer-${fileJob.id}`)?.remove();
+                    document.getElementById(`transfer-${fileId}`)?.remove();
                 };
 
                 function readSlice(o) {
@@ -2392,6 +2407,14 @@
                 if (activeSend && activeSend.id === fileId) {
                     console.log(`Cancelling active transfer: ${fileId}`);
                     activeSend.status = 'cancelled'; // Flag for reader.onload/readSlice
+                    
+                    // --- NEW: Abort the reader ---
+                    if (activeReader) {
+                        console.log('Aborting active file reader...');
+                        activeReader.abort();
+                        activeReader = null;
+                    }
+                    // --- END NEW ---
                     
                     // Remove UI
                     document.getElementById(`transfer-${fileId}`)?.remove();
