@@ -655,22 +655,6 @@
             overflow: hidden;
             text-overflow: ellipsis;
             flex-shrink: 1;
-            /* New: Added for percentage */
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-        }
-        
-        .progress-label-text {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .progress-percentage {
-            font-weight: 500;
-            color: var(--text-secondary);
-            padding-left: 8px;
         }
 
         .progress-bar-wrapper {
@@ -688,7 +672,6 @@
             border-radius: 4px; /* More compact */
             overflow: hidden;
             box-shadow: inset 0 1px 2px var(--shadow);
-            margin-top: 2px; /* Added spacing */
         }
 
         .progress-bar {
@@ -733,9 +716,9 @@
         }
         
         .cancel-button:hover {
-             background: #d33828;
-             transform: translateY(-2px);
-             box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
+            background: #d33828;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
         }
         
         /* --- END COMPACT PROGRESS BAR STYLES --- */
@@ -1204,7 +1187,7 @@
             isScanning = true;
             console.log('🎥 Starting camera...');
 
-            html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCode = new Html5Qrcode('qr-reader');
             
             const config = {
                 fps: 30,
@@ -1218,7 +1201,7 @@
             };
             
             html5QrCode.start(
-                { facingMode: "environment" },
+                { facingMode: 'environment' },
                 config,
                 (decodedText) => {
                     if (hasScanned) {
@@ -1556,7 +1539,7 @@
                                 currentConnection.send({ type: 'chat-img-download', msgId: msgId });
                             }
                         } catch (e) {
-                            console.error("Download error:", e);
+                            console.error('Download error:', e);
                             showChatStatus('Image download failed', true);
                         }
                     };
@@ -1617,7 +1600,7 @@
                     currentConnection.send({ type: 'chat-stop-typing' });
 
                 } catch (e) {
-                    console.error("Chat send error:", e);
+                    console.error('Chat send error:', e);
                     showChatStatus('Message send error', true);
                 }
             }
@@ -1659,11 +1642,11 @@
                         pruneChat();
                         updateChatLimitsUI();
                     } catch (e) {
-                        console.error("Image send error:", e);
+                        console.error('Image send error:', e);
                         showChatStatus('Image send error', true);
                     }
                 }).catch(err => {
-                    console.error("Base64 conversion error:", err);
+                    console.error('Base64 conversion error:', err);
                     showChatStatus('Could not read image', true);
                 });
                 
@@ -1738,10 +1721,10 @@
                     setTimeout(() => { isTypingSent = false; }, 2000); 
                 }
                 
-                // Clear previous "stop" timer
+                // Clear previous 'stop' timer
                 clearTimeout(typingTimer);
                 
-                // Set a new timer to send "stop" if user pauses
+                // Set a new timer to send 'stop' if user pauses
                 typingTimer = setTimeout(() => {
                     currentConnection.send({ type: 'chat-stop-typing' });
                 }, 3000);
@@ -1767,7 +1750,7 @@
             let connectionRetryCount = 0;
             const MAX_RETRY = 3;
             
-            let fileQueue = []; // NEW: Will store { file, id, status }
+            let fileQueue = []; // NEW: Will store { file, id, status, reader? }
             let isSending = false;
             let activeSend = null; // NEW: Will store the active fileJob
             
@@ -1791,8 +1774,8 @@
             // any other part of the code relies on it.
             function clearHashFromUrl() {
                 const uri = window.location.toString();
-                if (uri.indexOf("#") > 0) {
-                    const cleanUri = uri.substring(0, uri.indexOf("#"));
+                if (uri.indexOf('#') > 0) {
+                    const cleanUri = uri.substring(0, uri.indexOf('#'));
                     window.history.replaceState({}, document.title, cleanUri);
                 }
             }
@@ -1861,8 +1844,8 @@
                             text: connectUrl,
                             width: 256,
                             height: 256,
-                            colorDark: "#000000",
-                            colorLight: "#ffffff",
+                            colorDark: '#000000',
+                            colorLight: '#ffffff',
                             correctLevel: QRCode.CorrectLevel.H
                         });
                         
@@ -1994,7 +1977,7 @@
                 fileInput.disabled = false;
                 transferStatusEl.textContent = '✅ Ready';
                 
-                // Hide QR container and show "Connected" status
+                // Hide QR container and show 'Connected' status
                 qrCodeContainer.style.display = 'none';
                 shareButtonsContainer.style.display = 'none';
                 scanInstructions.style.display = 'block';
@@ -2015,7 +1998,7 @@
                         try {
                             currentConnection.send({ type: 'ready' });
                         } catch(e) {
-                            console.error("Failed to send ready signal", e);
+                            console.error('Failed to send ready signal', e);
                         }
                     }
                 }, 100);
@@ -2132,17 +2115,13 @@
 
                         // 1. Is it our active send?
                         if (activeSend && activeSend.id === fileId) {
-                            activeSend.status = 'cancelled'; // This will be caught by reader.onload/readSlice
+                            activeSend.status = 'cancelled';
+                            // --- FIX: actively abort the FileReader so onload will not fire ---
+                            if (activeSend.reader && activeSend.reader.readyState === FileReader.LOADING) {
+                                try { activeSend.reader.abort(); } catch (_) {}
+                            }
                             document.getElementById(`transfer-${fileId}`)?.remove();
-                            
-                            // --- FIX ---
-                            // We must manually stop and start the next file,
-                            // just like in cancelTransfer()
-                            isSending = false;
-                            activeSend = null;
-                            sendNextFileFromQueue();
-                            // --- END FIX ---
-
+                            // Cleanup is handled in reader.onabort
                         }
                         // 2. Is it in our pending send queue?
                         else if (fileQueue.some(job => job.id === fileId)) {
@@ -2191,7 +2170,7 @@
 
                 conn.on('close', () => handleDisconnect('Closed'));
                 conn.on('error', (err) => {
-                    console.error("Connection error:", err);
+                    console.error('Connection error:', err);
                     handleDisconnect('Error');
                 });
                 
@@ -2258,11 +2237,12 @@
                     const fileJob = {
                         file: file,
                         id: fileId,
-                        status: 'pending'
+                        status: 'pending',
+                        reader: null // --- FIX: keep a handle to abort later ---
                     };
                     fileQueue.push(fileJob);
                     
-                    // Add to UI as "Pending"
+                    // Add to UI as 'Pending'
                     createTransferUI(fileId, file.name, true);
                     updateTransferUI(fileId, {
                         status: 'pending',
@@ -2315,48 +2295,18 @@
 
                 let offset = 0;
                 const reader = new FileReader();
-
-                // +++ NAYA CODE START +++
-                /**
-                 * Backpressure ko handle karne ke liye buffer check karta hai.
-                 * Agar buffer full hai, to ye thoda intezaar karta hai.
-                 */
-                function checkBufferAndReadNext(o) {
-                    // Ek buffer threshold set karte hain (jaise 16MB)
-                    // WebRTC data channels default me 16MB tak buffer kar sakte hain
-                    const BUFFER_THRESHOLD = 16 * 1024 * 1024; 
-
-                    if (currentConnection && currentConnection.dataChannel && currentConnection.dataChannel.bufferedAmount > BUFFER_THRESHOLD) {
-                        // Buffer full hai, khali hone ka intezaar karein
-                        console.log(`Buffer full (${currentConnection.dataChannel.bufferedAmount} bytes). Pausing...`);
-                        
-                        // 100ms baad fir se check karein
-                        setTimeout(() => checkBufferAndReadNext(o), 100);
-                    } else {
-                        // Buffer me jagah hai, agla chunk padhein
-                        // Hum abhi bhi setTimeout(0) ka istemal karenge taaki event loop block na ho
-                        setTimeout(() => readSlice(o), 0);
-                    }
-                }
-                // +++ NAYA CODE END +++
-
+                fileJob.reader = reader; // --- FIX: keep reader on the job ---
 
                 reader.onload = (e) => {
-                    // --- FIX ---
-                    // If this job is no longer the active job (i.e., it was cancelled by sender),
-                    // do nothing. The cancellation function handled cleanup.
+                    // If this job is no longer the active job (cancelled by sender), ignore.
                     if (activeSend !== fileJob) {
                         console.log('reader.onload fired for a cancelled/stale job. Ignoring.');
                         return;
                     }
-                    // --- END FIX ---
 
+                    // If cancelled by receiver (we set status below on 'cancel'), stop.
                     if (fileJob.status === 'cancelled') {
-                        // This should now only be hit if cancelled by RECEIVER
-                        isSending = false;
-                        activeSend = null;
-                        sendNextFileFromQueue(); // Try next file
-                        return;
+                        return; // onabort/oncancel will advance queue
                     }
                     
                     if(!currentConnection || !currentConnection.open) {
@@ -2364,7 +2314,7 @@
                         activeSend = null;
                         // Put job back in queue
                         fileQueue.unshift(fileJob);
-                        console.error("Connection lost during sending");
+                        console.error('Connection lost during sending');
                         return;
                     }
                 
@@ -2381,18 +2331,7 @@
                         updateProgress(fileJob.id, offset, file.size, startTime);
 
                         if (offset < file.size) {
-                            // ##################################################
-                            // ##
-                            // ## YAHAN PAR FIX BADLA GAYA HAI
-                            // ##
-                            // ##################################################
-                            
-                            // OLD FIX:
-                            // setTimeout(() => readSlice(offset), 0);
-                            
-                            // NEW FIX: (Backpressure ko check karne ke liye)
-                            checkBufferAndReadNext(offset);
-                            
+                            readSlice(offset);
                         } else {
                             currentConnection.send({ type: 'end', fileId: fileJob.id });
                             document.getElementById(`transfer-${fileJob.id}`)?.remove();
@@ -2401,10 +2340,20 @@
                             sendNextFileFromQueue(); // Send next file
                         }
                     } catch (err) {
-                        console.error("Send error:", err);
+                        console.error('Send error:', err);
                     }
                 };
                 
+                // --- FIX: handle abort explicitly so cancel is immediate and reliable ---
+                reader.onabort = () => {
+                    console.log('FileReader aborted for', fileJob.id);
+                    isSending = false;
+                    // do NOT requeue a cancelled job
+                    activeSend = null;
+                    // start next queued file if any
+                    sendNextFileFromQueue();
+                };
+
                 reader.onerror = (e) => {
                     isSending = false;
                     activeSend = null;
@@ -2413,22 +2362,15 @@
                 };
 
                 function readSlice(o) {
-                    // --- FIX ---
-                    // If this job is no longer the active job (i.t. it was cancelled by sender),
-                    // do nothing.
+                    // If this job is no longer the active job (cancelled), ignore.
                     if (activeSend !== fileJob) {
                          console.log('readSlice called for a cancelled/stale job. Ignoring.');
                         return;
                     }
-                    // --- END FIX ---
 
                     // Check for cancellation before reading
                     if (fileJob.status === 'cancelled') {
-                        // This should now only be hit if cancelled by RECEIVER
-                        isSending = false;
-                        activeSend = null;
-                        sendNextFileFromQueue();
-                        return;
+                        return; // reader.onabort/on cancel will handle queue
                     }
                     const slice = file.slice(o, o + CHUNK_SIZE);
                     reader.readAsArrayBuffer(slice);
@@ -2444,24 +2386,23 @@
                 // Is it the active transfer?
                 if (activeSend && activeSend.id === fileId) {
                     console.log(`Cancelling active transfer: ${fileId}`);
-                    activeSend.status = 'cancelled'; // Flag for reader.onload/readSlice
+                    activeSend.status = 'cancelled'; // Flag for guards
+
+                    // --- FIX: actively abort the FileReader so no more chunks are read ---
+                    if (activeSend.reader && activeSend.reader.readyState === FileReader.LOADING) {
+                        try { activeSend.reader.abort(); } catch (_) {}
+                    }
                     
-                    // Remove UI
+                    // Remove UI immediately
                     document.getElementById(`transfer-${fileId}`)?.remove();
                     
-                    // Send cancellation to peer
+                    // Notify peer
                     if (currentConnection && currentConnection.open) {
                         try {
                             currentConnection.send({ type: 'cancel', fileId: fileId });
                         } catch (err) {}
                     }
-                    
-                    // --- NEW ---
-                    // Immediately stop sending and start the next file
-                    isSending = false;
-                    activeSend = null;
-                    sendNextFileFromQueue(); // Start next file
-                    // --- END NEW ---
+                    // Cleanup and queue advance happen in reader.onabort
 
                 } else {
                     // It's in the queue, just remove it
