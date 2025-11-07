@@ -1,2719 +1,1822 @@
- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>QR Send - E2E Encrypted</title>
-    
-    <!-- ERUDA CONSOLE -->
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8f9fa;
-            --bg-card: #ffffff;
-            --text-primary: #1a1a1a;
-            --text-secondary: #666666;
-            --accent: #4285f4;
-            --accent-hover: #3367d6;
-            --border: #e0e0e0;
-            --shadow: rgba(0, 0, 0, 0.1);
-            --success: #34a853;
-            --error: #ea4335;
-            
-            /* New sender bubble colors for tick visibility */
-            --bg-sender: #dcf8c6;
-            --text-sender: #1a1a1a;
-        }
-
-        body.dark-mode {
-            --bg-primary: #0f0f0f;
-            --bg-secondary: #1a1a1a;
-            --bg-card: #1e1e1e;
-            --text-primary: #e8e8e8;
-            --text-secondary: #b0b0b0;
-            --border: #333333;
-            --shadow: rgba(255, 255, 255, 0.05);
-
-            /* New sender bubble colors for tick visibility */
-            --bg-sender: #224838;
-            --text-sender: #e8e8e8;
-        }
-
-        body {
-            font-family: 'Google Sans', 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-            color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0; /* Changed for full-screen mobile */
-            transition: all 0.3s ease;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, var(--accent) 1px, transparent 1px);
-            background-size: 50px 50px;
-            opacity: 0.03;
-            animation: bgMove 20s linear infinite;
-            z-index: 0;
-        }
-
-        @keyframes bgMove {
-            0% { transform: translate(0, 0); }
-            100% { transform: translate(50px, 50px); }
-        }
-
-        .theme-toggle {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            width: 45px;
-            height: 45px;
-            background: var(--bg-card);
-            border: 2px solid var(--border);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 1000;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px var(--shadow);
-        }
-
-        .theme-toggle:hover {
-            transform: translateY(-2px) scale(1.05);
-            box-shadow: 0 8px 20px var(--shadow);
-        }
-
-        .theme-toggle svg {
-            width: 22px;
-            height: 22px;
-            fill: var(--text-primary);
-            transition: all 0.3s ease;
-        }
-
-        /* WATERMARK REMOVED */
-
-        /* --- NEW LAYOUT --- */
-        .container {
-            position: relative;
-            max-width: 100%; /* Changed */
-            width: 100%;
-            background: var(--bg-card);
-            overflow: hidden;
-            z-index: 1;
-            
-            /* Full-screen mobile layout */
-            height: 100vh;
-            max-height: 100vh;
-            border-radius: 0;
-            box-shadow: none;
-            
-            display: flex;
-            flex-direction: column; /* Mobile-first: stacked layout */
-        }
-        
-        .sidebar {
-            flex-shrink: 0;
-            /* On mobile, this is just a stack of content */
-        }
-
-        .chat-main {
-            flex-grow: 1; /* Takes remaining height */
-            display: flex;
-            flex-direction: column;
-            overflow: hidden; /* CRITICAL for scrolling */
-            background: var(--bg-secondary);
-        }
-
-        .chat-placeholder {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex-grow: 1;
-            color: var(--text-secondary);
-            text-align: center;
-            padding: 20px;
-        }
-        .chat-placeholder svg {
-            width: 80px;
-            height: 80px;
-            fill: var(--text-secondary);
-            opacity: 0.5;
-            margin-bottom: 15px;
-        }
-        .chat-placeholder p {
-            font-size: 16px;
-            font-weight: 500;
-        }
-        /* --- END NEW LAYOUT --- */
-
-        .container::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .container::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-        }
-
-        .container::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 3px;
-        }
-
-        header {
-            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
-            padding: 20px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            flex-shrink: 0; /* Header should not shrink */
-        }
-
-        header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            animation: shimmer 3s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        h1 {
-            font-size: 22px;
-            font-weight: 600;
-            color: white;
-            margin-bottom: 6px;
-            letter-spacing: -0.5px;
-        }
-
-        #status {
-            font-size: 13px;
-            color: rgba(255,255,255,0.9);
-            font-weight: 500;
-        }
-
-        .connection-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            backdrop-filter: blur(10px);
-        }
-
-        .connection-overlay.active {
-            display: flex;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .lock-animation {
-            position: relative;
-            animation: lockBounce 1s ease-in-out;
-        }
-
-        @keyframes lockBounce {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-        }
-
-        .lock-svg {
-            width: 100px;
-            height: 100px;
-        }
-
-        .lock-body {
-            animation: lockClose 0.8s ease forwards;
-        }
-
-        @keyframes lockClose {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-
-        .lock-shackle {
-            animation: shackleClose 0.8s ease forwards 0.3s;
-        }
-
-        @keyframes shackleClose {
-            0% { transform: translateY(-10px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-        }
-
-        .checkmark {
-            animation: checkmarkDraw 0.5s ease forwards 1s;
-        }
-
-        @keyframes checkmarkDraw {
-            0% { stroke-dashoffset: 100; opacity: 0; }
-            100% { stroke-dashoffset: 0; opacity: 1; }
-        }
-
-        main {
-            padding: 20px;
-            flex-shrink: 0;
-        }
-
-        #qr-code-container {
-            text-align: center;
-        }
-
-        #qrcode {
-            display: inline-block;
-            padding: 15px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px var(--shadow);
-            margin-bottom: 15px;
-            transition: transform 0.3s ease;
-        }
-
-        #qrcode:hover {
-            transform: scale(1.03);
-        }
-
-        #qrcode canvas,
-        #qrcode img {
-            max-width: 100%;
-            height: auto !important;
-            width: auto !important;
-        }
-
-        #qr-code-container p {
-            color: var(--text-secondary);
-            font-size: 13px;
-            margin-bottom: 12px;
-        }
-
-        #share-buttons-container {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .share-button {
-            padding: 10px 18px;
-            border: 2px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .share-button:hover {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
-        }
-
-        .primary-share {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-
-        .scanner-button {
-            background: var(--success);
-            color: white;
-            border-color: var(--success);
-        }
-
-        .scanner-button:hover {
-            background: #2d8e47;
-            border-color: #2d8e47;
-        }
-
-        .scanner-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000000;
-            display: none;
-            flex-direction: column;
-            z-index: 10000;
-            padding: 0;
-        }
-
-        .scanner-modal.active {
-            display: flex;
-        }
-
-        .scanner-header {
-            background: rgba(0, 0, 0, 0.9);
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: relative;
-            z-index: 10001;
-        }
-
-        .scanner-header h2 {
-            font-size: 18px;
-            color: white;
-            font-weight: 600;
-        }
-
-        .close-scanner {
-            background: var(--error);
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            font-weight: bold;
-        }
-
-        .close-scanner:hover {
-            background: #c82333;
-            transform: scale(1.1);
-        }
-
-        #qr-reader {
-            width: 100% !important;
-            height: calc(100vh - 70px) !important;
-            position: relative;
-            background: #000;
-        }
-
-        #qr-reader video {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-        }
-
-        #qr-reader__dashboard,
-        #qr-reader__dashboard_section {
-            display: none !important;
-        }
-
-        #qr-reader__scan_region {
-            width: 100% !important;
-            height: 100% !important;
-            position: relative !important;
-            border: none !important;
-        }
-
-        .scan-indicator {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80%;
-            max-width: 350px;
-            height: 80%;
-            max-height: 350px;
-            border: 3px solid var(--success);
-            border-radius: 20px;
-            z-index: 10000;
-            pointer-events: none;
-            box-shadow: 
-                0 0 0 2000px rgba(0, 0, 0, 0.5),
-                inset 0 0 30px rgba(52, 168, 83, 0.3);
-        }
-
-        .scan-line {
-            position: absolute;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--success), transparent);
-            animation: scan 2s linear infinite;
-        }
-
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
-
-        .scan-corners {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-        }
-
-        .corner {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            border: 4px solid var(--success);
-        }
-
-        .corner.top-left {
-            top: -3px;
-            left: -3px;
-            border-right: none;
-            border-bottom: none;
-            border-radius: 20px 0 0 0;
-        }
-
-        .corner.top-right {
-            top: -3px;
-            right: -3px;
-            border-left: none;
-            border-bottom: none;
-            border-radius: 0 20px 0 0;
-        }
-
-        .corner.bottom-left {
-            bottom: -3px;
-            left: -3px;
-            border-right: none;
-            border-top: none;
-            border-radius: 0 0 0 20px;
-        }
-
-        .corner.bottom-right {
-            bottom: -3px;
-            right: -3px;
-            border-left: none;
-            border-top: none;
-            border-radius: 0 0 20px 0;
-        }
-
-        .scan-instruction {
-            position: absolute;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            z-index: 10001;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-
-        #scan-instructions {
-            text-align: center;
-            animation: slideUp 0.5s ease;
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        #scan-instructions p {
-            font-size: 16px;
-            color: var(--success);
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        #scan-instructions p::before {
-            content: '🔒';
-            font-size: 20px;
-            animation: rotate 2s linear infinite;
-        }
-
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .transfer-area {
-            padding: 20px;
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-
-        .transfer-area h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: var(--text-primary);
-        }
-
-        #file-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px dashed var(--border);
-            border-radius: 10px;
-            background: var(--bg-card);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
-            font-size: 13px;
-        }
-
-        #file-input:hover {
-            border-color: var(--accent);
-            background: var(--accent);
-            color: white;
-        }
-
-        #transfer-status {
-            margin-top: 12px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            text-align: center;
-        }
-
-        /* --- NEW: Transfer List Container --- */
-        #transfer-list-container {
-            margin-top: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-height: 190px; /* Approx 3 bars */
-            overflow-y: auto;
-            overflow-x: hidden;
-            scroll-behavior: smooth;
-        }
-
-        /* --- COMPACT DYNAMIC PROGRESS BAR STYLES --- */
-        .progress-container {
-            padding: 8px; /* More compact */
-            background: var(--bg-card);
-            border-radius: 10px;
-            box-shadow: 0 2px 8px var(--shadow);
-            display: flex;
-            flex-direction: column;
-            gap: 4px; /* More compact */
-        }
-        
-        .progress-top-row {
-            display: flex;
-            align-items: center;
-            gap: 8px; /* More compact */
-            width: 100%;
-        }
-
-        .progress-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex-shrink: 1;
-            /* New: Added for percentage */
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-        }
-        
-        .progress-label-text {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .progress-percentage {
-            font-weight: 500;
-            color: var(--text-secondary);
-            padding-left: 8px;
-        }
-
-        .progress-bar-wrapper {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-
-        .progress-bar-background {
-            position: relative;
-            width: 100%;
-            height: 8px; /* More compact */
-            background: var(--bg-secondary);
-            border-radius: 4px; /* More compact */
-            overflow: hidden;
-            box-shadow: inset 0 1px 2px var(--shadow);
-            margin-top: 2px; /* Added spacing */
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
-            border-radius: 4px; /* More compact */
-            transition: width 0.3s ease;
-            position: relative;
-        }
-
-        .progress-bar.pending {
-            background: var(--border);
-            width: 100% !important;
-        }
-
-        .delivery-boy {
-            display: none;
-        }
-
-        .progress-stats {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 4px;
-            font-size: 10px;
-            color: var(--text-secondary);
-        }
-
-        .cancel-button { /* Changed to class */
-            margin-top: 0;
-            width: auto;
-            padding: 4px 8px; /* More compact */
-            font-size: 11px; /* More compact */
-            flex-shrink: 0;
-            
-            background: var(--error);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .cancel-button:hover {
-             background: #d33828;
-             transform: translateY(-2px);
-             box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
-        }
-        
-        /* --- END COMPACT PROGRESS BAR STYLES --- */
-
-
-        .switch-mode-button {
-            margin-top: 12px;
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-            color: #000;
-            border: none;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
-        }
-
-        .switch-mode-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
-        }
-
-        /* --- CHAT STYLES --- */
-        .chat-container {
-            padding: 20px;
-            border-top: 1px solid var(--border);
-            
-            /* New layout properties */
-            display: none; /* Hidden by default */
-            flex-direction: column;
-            flex-grow: 1; /* Fill the .chat-main area */
-            overflow: hidden; /* Ensure it doesn't overflow */
-        }
-
-        .chat-container h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: var(--text-primary);
-            flex-shrink: 0;
-        }
-
-        .chat-messages {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px;
-            overflow-y: auto;
-            margin-bottom: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            
-            /* New layout */
-            flex-grow: 1; /* Fill all available space */
-            height: auto; /* Remove fixed height */
-        }
-
-        .chat-message {
-            padding: 8px 12px;
-            border-radius: 15px;
-            max-width: 80%;
-            word-wrap: break-word;
-            font-size: 14px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .chat-message.sender {
-            background: var(--bg-sender); /* Changed */
-            color: var(--text-sender); /* Changed */
-            align-self: flex-end;
-            border-bottom-right-radius: 3px;
-        }
-
-        .chat-message.receiver {
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            align-self: flex-start;
-            border-bottom-left-radius: 3px;
-        }
-
-        .chat-message img {
-            max-width: 200px;
-            max-height: 200px;
-            border-radius: 8px;
-            display: block;
-            cursor: pointer;
-        }
-        
-        .message-content {
-            /* This will hold the text or image */
-        }
-
-        .message-status-bar {
-            font-size: 10px;
-            margin-top: 2px;
-            text-align: right;
-            opacity: 0.8;
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .msg-status {
-            font-weight: 600;
-            transition: color 0.3s ease;
-            color: var(--text-secondary); /* Changed: Default tick color */
-        }
-
-        .msg-status.seen {
-            color: var(--accent); /* Changed: Blue tick for seen */
-        }
-
-        .download-status {
-            font-style: italic;
-            font-size: 9px;
-            display: none;
-        }
-        
-        .chat-message.receiver .message-status-bar {
-             display: none;
-        }
-
-        .chat-input-area {
-            display: flex;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-
-        #chat-input {
-            flex-grow: 1;
-            padding: 10px 12px;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            background: var(--bg-card);
-            color: var(--text-primary);
-            font-family: inherit;
-            font-size: 14px;
-            transition: border-color 0.3s ease;
-        }
-
-        #chat-input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        #chat-send-button,
-        #chat-attach-button {
-            padding: 0 15px;
-            height: 44px;
-            background: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        #chat-attach-button {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 2px solid var(--border);
-            font-size: 18px;
-            padding: 0 14px;
-        }
-        
-        #chat-send-button:hover {
-            background: var(--accent-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
-        }
-
-        #chat-attach-button:hover {
-            background: var(--border);
-        }
-
-        .chat-status {
-            font-size: 12px;
-            color: var(--success);
-            text-align: center;
-            height: 18px;
-            margin-top: 8px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            flex-shrink: 0;
-        }
-
-        .chat-limits-info {
-            font-size: 11px;
-            color: var(--text-secondary);
-            text-align: center;
-            margin-top: 8px;
-            flex-shrink: 0;
-        }
-        /* --- END CHAT STYLES --- */
-
-        /* --- DESKTOP LAYOUT (WHATSAPP-STYLE) --- */
-        @media (min-width: 768px) {
-            body {
-                padding: 15px; /* Add padding back for desktop */
-            }
-
-            .container {
-                flex-direction: row; /* Side-by-side layout */
-                max-width: 1100px; /* Wider */
-                max-height: 95vh;
-                border-radius: 20px;
-                box-shadow: 0 10px 40px var(--shadow), 0 0 0 1px var(--border);
-            }
-            
-            .container:hover {
-                transform: translateY(-5px);
-                box-shadow: 
-                    0 20px 60px var(--shadow),
-                    0 0 0 1px var(--border);
-            }
-
-            .sidebar {
-                width: 350px;
-                flex-shrink: 0;
-                border-right: 1px solid var(--border);
-                overflow-y: auto; /* Make sidebar scrollable */
-            }
-
-            .chat-main {
-                width: 100%; /* Takes rest of space */
-                border-left: 1px solid var(--border);
-            }
-
-            .chat-container {
-                padding: 20px; /* Restore padding */
-            }
-        }
-        /* --- END DESKTOP LAYOUT --- */
-
-        @media (max-width: 600px) {
-            .theme-toggle {
-                width: 40px;
-                height: 40px;
-                top: 10px;
-                right: 10px;
-            }
-            .scan-indicator {
-                width: 85%;
-                height: 85%;
-            }
-            .scan-instruction {
-                bottom: 80px;
-                font-size: 14px;
-                padding: 12px 20px;
-            }
-            
-            /* Adjust padding for mobile full-screen */
-            main { padding: 15px; }
-            .transfer-area { padding: 15px; }
-            .chat-container { padding: 15px; }
-        }
-
-    </style>
-</head>
-<body>
-
-    <div class="theme-toggle" onclick="toggleTheme()">
-        <svg id="theme-icon-light" viewBox="0 0 24 24" style="display: none;">
-            <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
-        </svg>
-        <svg id="theme-icon-dark" viewBox="0 0 24 24">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
-        </svg>
-    </div>
-
-    <!-- WATERMARK REMOVED -->
-
-    <div class="connection-overlay" id="connection-overlay">
-        <div class="lock-animation">
-            <svg class="lock-svg" viewBox="0 0 100 100">
-                <defs>
-                    <linearGradient id="lockGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" style="stop-color:#4285f4;stop-opacity:1" />
-                        <stop offset="100%" style="stop-color:#34a853;stop-opacity:1" />
-                    </linearGradient>
-                </defs>
-                <rect class="lock-body" x="30" y="45" width="40" height="35" rx="5" fill="url(#lockGradient)"/>
-                <path class="lock-shackle" d="M35 45 V35 C35 25 40 20 50 20 C60 20 65 25 65 35 V45" 
-                      stroke="url(#lockGradient)" stroke-width="5" fill="none" stroke-linecap="round"/>
-                <circle cx="50" cy="60" r="4" fill="white"/>
-                <rect x="48" y="60" width="4" height="8" fill="white"/>
-                <polyline class="checkmark" points="40,62 47,69 62,54" 
-                          stroke="#34a853" stroke-width="4" fill="none" 
-                          stroke-linecap="round" stroke-linejoin="round"
-                          stroke-dasharray="100" stroke-dashoffset="100"/>
-            </svg>
-            <p style="color: white; margin-top: 15px; font-size: 16px; font-weight: 600;">
-                🔐 E2E Encrypted Connection
-            </p>
-        </div>
-    </div>
-
-    <div class="scanner-modal" id="scanner-modal">
-        <div class="scanner-header">
-            <h2>📷 Scan QR Code</h2>
-            <button class="close-scanner" onclick="closeScanner()">✕</button>
-        </div>
-        <div id="qr-reader"></div>
-        
-        <div class="scan-indicator">
-            <div class="scan-line"></div>
-            <div class="scan-corners">
-                <div class="corner top-left"></div>
-                <div class="corner top-right"></div>
-                <div class="corner bottom-left"></div>
-                <div class="corner bottom-right"></div>
-            </div>
-        </div>
-        
-        <div class="scan-instruction">
-            📱 Point camera at QR code
-        </div>
-    </div>
-
-    <!-- NEW LAYOUT STRUCTURE -->
-    <div class="container">
-        
-        <!-- SIDEBAR (Controls) -->
-        <div class="sidebar">
-            <header>
-                <h1>QR Send Pro</h1>
-                <div id="status">Starting...</div>
-            </header>
-            
-            <main>
-                <div id="qr-code-container">
-                    <div id="qrcode"></div>
-                    <p>Scan QR code to connect securely</p>
-                    
-                    <div id="share-buttons-container">
-                        <button id="native-share-button" class="share-button primary-share" style="display: none;">📤 Share</button>
-                        <button id="copy-link-button" class="share-button">📋 Copy</button>
-                        <button id="download-qr-button" class="share-button">💾 Save</button>
-                        <button id="scan-qr-button" class="share-button scanner-button" onclick="openScanner()">📷 Scan</button>
-                    </div>
-                </div>
-
-                <div id="scan-instructions" style="display:none;">
-                    <p>✅ Connected Securely!</p>
-                </div>
-            </main>
-
-            <div class="transfer-area">
-                <h3>📁 Send Files</h3>
-                <input type="file" id="file-input" disabled multiple>
-                <div id="transfer-status">Waiting...</div>
-
-                <!-- NEW: Transfer List Container -->
-                <div id="transfer-list-container">
-                    <!-- Dynamic progress bars will be injected here -->
-                </div>
-                
-            </div>
-        </div>
-
-        <!-- MAIN CHAT AREA -->
-        <div class="chat-main">
-            <!-- CHAT UI -->
-            <div class="chat-container" id="chat-container">
-                <h3>💬 E2E Chat</h3>
-                <div class="chat-messages" id="chat-messages">
-                    <!-- Messages will go here -->
-                </div>
-                <div class="chat-status" id="chat-status"></div>
-                <div class="chat-input-area">
-                    <input type="text" id="chat-input" placeholder="Type a message...">
-                    <button id="chat-attach-button" title="Attach Image">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"></path></svg>
-                    </button>
-                    <button id="chat-send-button">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                    </button>
-                    <input type="file" id="chat-image-input" accept="image/*" style="display: none;">
-                </div>
-                <div class="chat-limits-info" id="chat-limits-info">
-                    Words: 0/1000 | Images: 0/6 (0/10 MB)
-                </div>
-            </div>
-
-            <!-- CHAT PLACEHOLDER -->
-            <div class="chat-placeholder" id="chat-placeholder">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
-                <p>Scan a QR code or share your link<br>to start a secure session.</p>
-            </div>
-        </div>
-
-    </div>
-    <!-- END NEW LAYOUT STRUCTURE -->
-
-    <script>
-        function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            document.getElementById('theme-icon-light').style.display = isDark ? 'block' : 'none';
-            document.getElementById('theme-icon-dark').style.display = isDark ? 'none' : 'block';
-            localStorage.setItem('theme', isDark ? 'dark' : 'light');
-        }
-
-        if (localStorage.getItem('theme') === 'dark') {
-            toggleTheme();
-        }
-
-        let html5QrCode = null;
-        let isScanning = false;
-        let hasScanned = false;
-        // This flag blocks peer init *while scanning* to prevent race conditions
-        let ALLOW_PEER_INIT = true;
-        // This flag prevents reload loops on disconnect
-        let IS_RELOADING = false; 
-
-        window.APP_PEER = null;
-        window.APP_CONNECTION = null;
-
-        function openScanner() {
-            // ADDED GUARD: If scanner modal is already active or we are scanning, do nothing.
-            if (isScanning || document.getElementById('scanner-modal').classList.contains('active')) {
-                console.log('⚠ openScanner called but scanner is already active. Ignoring.');
-                return;
-            }
-            console.log('📷 Opening scanner...');
-            hasScanned = false;
-            // Block peer auto-init *before* starting scanner
-            ALLOW_PEER_INIT = false; 
-            console.log('🚫 BLOCKED peer auto-init');
-            document.getElementById('scanner-modal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-            startScanner();
-        }
-
-        function closeScanner() {
-            // ADDED GUARD: Don't do anything if already closing
-            if (!document.getElementById('scanner-modal').classList.contains('active')) {
-                console.log('⚠ closeScanner called but modal is already closed.');
-                return;
-            }
-            console.log('❌ Closing scanner...');
-            document.getElementById('scanner-modal').classList.remove('active');
-            document.body.style.overflow = '';
-            stopScanner(); // This is now the only place that calls stopScanner after a scan
-            // Re-allow peer init *only if* no scan was successful (and we are not reloading)
-            if (!hasScanned && !IS_RELOADING) {
-                ALLOW_PEER_INIT = true;
-                console.log('✅ RE-ENABLED peer auto-init');
-            }
-        }
-
-        function startScanner() {
-            if (html5QrCode || isScanning) {
-                console.log('⚠ Scanner already running');
-                return;
-            }
-            isScanning = true;
-            console.log('🎥 Starting camera...');
-
-            html5QrCode = new Html5Qrcode("qr-reader");
-            
-            const config = {
-                fps: 30,
-                qrbox: function(viewfinderWidth, viewfinderHeight) {
-                    let minDimension = Math.min(viewfinderWidth, viewfinderHeight);
-                    let qrboxSize = Math.floor(minDimension * 0.8);
-                    return { width: qrboxSize, height: qrboxSize };
-                },
-                aspectRatio: 1.0,
-                disableFlip: false
-            };
-            
-            html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                (decodedText) => {
-                    if (hasScanned) {
-                        console.log('⚠ Already processed, ignoring...');
-                        return;
-                    }
-                    hasScanned = true;
-                    // ALLOW_PEER_INIT remains false, which is correct
-                    
-                    console.log('✓✓✓ QR SCANNED:', decodedText);
-                    console.log('🔍 Type:', typeof decodedText);
-                    console.log('🔍 Length:', decodedText.length);
-                    
-                    if (navigator.vibrate) {
-                        navigator.vibrate(200);
-                    }
-                    
-                    // --- MODIFIED LOGIC ---
-                    // Use setTimeout to break out of the scanner's execution context
-                    // and prevent any race conditions.
-                    setTimeout(() => {
-                        // 1. Process the QR code first. This will set the IS_RELOADING flag.
-                        console.log('→ Calling processQRCode NOW (from timeout)...');
-                        processQRCode(decodedText);
-
-                        // 2. Then, close the scanner modal. closeScanner() will handle stopping the camera.
-                        console.log('→ Calling closeScanner NOW (from timeout)...');
-                        closeScanner();
-                    }, 0); // 0ms timeout executes after current stack.
-                    // --- END MODIFIED LOGIC ---
-                },
-                (errorMessage) => {
-                    // Silent
-                }
-            ).catch((err) => {
-                console.error('❌ Scanner error:', err);
-                isScanning = false;
-                // Allow peer init to recover if camera fails
-                ALLOW_PEER_INIT = true; 
-                // Don't use alert, use a status message
-                showChatStatus('❌ Camera error: ' + err.name, true);
-                closeScanner();
-            });
-        }
-
-        /**
-         * UPDATED: This function now sets the URL hash and reloads the page.
-         */
-        function processQRCode(decodedText) {
-            // ADDED GUARD: Prevent multiple reloads
-            if (IS_RELOADING) {
-                console.log('⚠ Already processing QR and reloading. Ignoring.');
-                return;
-            }
-            IS_RELOADING = true; // Set flag immediately
-
-            console.log('=== PROCESSING QR CODE ===');
-            console.log('URL:', decodedText);
-            
-            try {
-                const url = new URL(decodedText);
-                console.log('✓ Valid URL');
-                console.log('Hash:', url.hash);
-                
-                const scannedPeerId = url.hash.substring(1);
-                console.log('🎯 Extracted Peer ID:', scannedPeerId);
-                console.log('🎯 Length:', scannedPeerId.length);
-                
-                if (!scannedPeerId || scannedPeerId.trim() === '') {
-                    console.error('❌ Empty peer ID!');
-                    showChatStatus('QR code has no peer ID', true);
-                    hasScanned = false; // Allow re-scan
-                    ALLOW_PEER_INIT = true; // Allow peer init to recover
-                    return;
-                }
-                
-                console.log('✓ Peer ID is valid');
-                
-                // --- NEW LOGIC ---
-                // Set the hash to the scanned ID and reload.
-                // The app will re-initialize in client mode.
-                console.log('🔄 Setting hash and reloading to switch to CLIENT mode...');
-                window.location.hash = scannedPeerId;
-                window.location.reload();
-
-            } catch (e) {
-                console.error('❌❌❌ QR parse FAILED:', e);
-                console.error('Error:', e.message);
-                showChatStatus('Invalid QR code: ' + e.message, true);
-                hasScanned = false; // Allow re-scan
-                ALLOW_PEER_INIT = true; // Allow peer init to recover
-                IS_RELOADING = false; // RESET FLAG on error
-            }
-        }
-
-        function stopScanner() {
-            if (html5QrCode && isScanning) {
-                console.log('🛑 Stopping scanner...');
-                html5QrCode.stop().then(() => {
-                    html5QrCode.clear();
-                    html5QrCode = null;
-                    isScanning = false;
-                    console.log('✓ Scanner stopped');
-                }).catch((err) => {
-                    console.error('Stop error:', err);
-                    html5QrCode = null;
-                    isScanning = false;
-                });
-            }
-        }
-
-        function showConnectionAnimation() {
-            const overlay = document.getElementById('connection-overlay');
-            overlay.classList.add('active');
-            setTimeout(() => {
-                overlay.classList.remove('active');
-            }, 2000);
-        }
-
-        // --- NEW: Helper to create HTML for a progress bar ---
-        /**
-         * Creates and appends a progress bar UI to the transfer list.
-         * @param {string} fileId - The unique ID for this transfer.
-         * @param {string} fileName - The name of the file.
-         * @param {boolean} isSender - True if this is a sending bar, false for receiving.
-         */
-        function createTransferUI(fileId, fileName, isSender) {
-            const container = document.getElementById('transfer-list-container');
-            const el = document.createElement('div');
-            el.className = 'progress-container';
-            el.id = `transfer-${fileId}`;
-
-            const label = isSender ? `Sending: ${fileName}` : `Receiving: ${fileName}`;
-            const cancelButtonHTML = `<button class="cancel-button" data-file-id="${fileId}">❌</button>`; // Always add
-
-            el.innerHTML = `
-                <div class="progress-top-row">
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-label">
-                            <span class="progress-label-text">${label}</span>
-                            <span class="progress-percentage">0%</span>
-                        </div>
-                        <div class="progress-bar-background">
-                            <div class="progress-bar"></div>
-                        </div>
-                    </div>
-                    ${cancelButtonHTML}
-                </div>
-                <div class="progress-stats">
-                    <span class="progress-size">-- MB / -- MB</span>
-                    <span class="progress-eta">ETA: --:--</span>
-                </div>
-            `;
-
-            container.appendChild(el);
-            
-            // Add click listener
-            el.querySelector('.cancel-button').addEventListener('click', () => {
-                if (isSender) {
-                    cancelTransfer(fileId);
-                } else {
-                    cancelReceive(fileId); // New function
-                }
-            });
-        }
-
-        /**
-         * Updates a specific progress bar in the UI.
-         * @param {string} fileId - The ID of the transfer to update.
-         * @param {object} options - The values to update.
-         * @param {number} options.percent - The percentage (0-100).
-         * @param {string} options.sizeText - The formatted size string (e.g., "1.2 MB / 5 MB").
-         * @param {string} options.etaText - The formatted ETA string (e.g., "ETA: 0:05").
-         * @param {string} [options.status] - Optional status like "Pending".
-         */
-        function updateTransferUI(fileId, options) {
-            const el = document.getElementById(`transfer-${fileId}`);
-            if (!el) return;
-
-            const bar = el.querySelector('.progress-bar');
-            const percentage = el.querySelector('.progress-percentage');
-            const size = el.querySelector('.progress-size');
-            const eta = el.querySelector('.progress-eta');
-            const label = el.querySelector('.progress-label-text');
-
-            if (options.percent != null) {
-                bar.style.width = `${options.percent}%`;
-                percentage.textContent = `${options.percent}%`;
-            }
-            if (options.sizeText) size.textContent = options.sizeText;
-            if (options.etaText) eta.textContent = options.etaText;
-            
-            if (options.status === 'pending') {
-                bar.classList.add('pending');
-                label.style.opacity = 0.7;
-                percentage.textContent = 'Pending';
-                size.textContent = options.sizeText; // Show file size for pending
-                eta.textContent = '';
-            } else {
-                 bar.classList.remove('pending');
-                 label.style.opacity = 1;
-            }
-        }
-
-
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 App initialized');
-            
-            // --- CHAT HELPER CONSTANTS ---
-            const MAX_WORDS = 1000;
-            const MAX_IMAGES = 6;
-            const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
-
-            // --- CHAT STATE VARIABLES ---
-            let typingTimer;
-            let isTypingSent = false;
-            let peerTypingTimer;
-
-
-            // --- CHAT HELPER FUNCTIONS ---
-            
-            /**
-             * Converts a File object to a Base64 Data URL.
-             * @param {File} file - The file to convert.
-             * @returns {Promise<string>} A promise that resolves with the Base64 string.
-             */
-            function fileToBase64(file) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = () => resolve(reader.result);
-                    reader.onerror = error => reject(error);
-                });
-            }
-
-            /**
-             * Scans the DOM and returns the current counts for words, images, and image size.
-             * @returns {{wordCount: number, imageCount: number, imageSize: number}}
-             */
-            function getChatLimits() {
-                const textMessages = chatMessages.querySelectorAll('.chat-message[data-type="text"]');
-                const imageMessages = chatMessages.querySelectorAll('.chat-message[data-type="image"]');
-
-                let totalWords = 0;
-                textMessages.forEach(msg => {
-                    totalWords += parseInt(msg.dataset.words || 0, 10);
-                });
-
-                let totalImageSize = 0;
-                imageMessages.forEach(img => {
-                    totalImageSize += parseInt(img.dataset.size || 0, 10);
-                });
-
-                return {
-                    wordCount: totalWords,
-                    imageCount: imageMessages.length,
-                    imageSize: totalImageSize
-                };
-            }
-
-            /**
-             * Prunes the chat DOM to enforce limits. Removes oldest messages first.
-             */
-            function pruneChat() {
-                // Prune text
-                const textMessages = Array.from(chatMessages.querySelectorAll('.chat-message[data-type="text"]'));
-                let { wordCount } = getChatLimits(); // Get current word count
-
-                while (wordCount > MAX_WORDS && textMessages.length > 0) {
-                    const oldMsg = textMessages.shift(); // Get oldest message
-                    const wordsToRemove = parseInt(oldMsg.dataset.words || 0, 10);
-                    wordCount -= wordsToRemove;
-                    oldMsg.remove();
-                }
-
-                // Prune images
-                const imageMessages = Array.from(chatMessages.querySelectorAll('.chat-message[data-type="image"]'));
-                let { imageCount, imageSize } = getChatLimits(); // Get current image stats
-
-                while ((imageCount > MAX_IMAGES || imageSize > MAX_IMAGE_SIZE) && imageMessages.length > 0) {
-                    const oldImg = imageMessages.shift(); // Get oldest image
-                    const sizeToRemove = parseInt(oldImg.dataset.size || 0, 10);
-                    imageSize -= sizeToRemove;
-                    imageCount--;
-                    oldImg.remove();
-                }
-            }
-
-            /**
-             * Updates the chat limits UI with current stats.
-             */
-            function updateChatLimitsUI() {
-                if (!chatLimitsInfo) return;
-                const { wordCount, imageCount, imageSize } = getChatLimits();
-                chatLimitsInfo.textContent = `Words: ${wordCount}/${MAX_WORDS} | Images: ${imageCount}/${MAX_IMAGES} (${formatBytes(imageSize)}/10 MB)`;
-            }
-
-            /**
-             * Adds a new message to the chat window.
-             * @param {string} type - 'text' or 'image'
-             * @param {string} content - The text message or Base64 image data
-             * @param {string} sender - 'sender' or 'receiver'
-             * @param {object} metadata - { words: number } or { size: number, name: string }
-             * @param {string} msgId - The unique message ID
-             */
-            function addMessageToDOM(type, content, sender, metadata, msgId) {
-                const msgEl = document.createElement('div');
-                msgEl.className = `chat-message ${sender}`;
-                msgEl.dataset.type = type;
-                msgEl.dataset.msgId = msgId;
-
-                const contentEl = document.createElement('div');
-                contentEl.className = 'message-content';
-
-                if (type === 'text') {
-                    contentEl.textContent = content;
-                    msgEl.dataset.words = metadata.words;
-                } else if (type === 'image') {
-                    const img = document.createElement('img');
-                    img.src = content; // 'content' is Base64 data
-                    img.dataset.filename = metadata.name; // Store filename for download
-                    
-                    // Add download click listener
-                    img.onclick = () => {
-                        try {
-                            const a = document.createElement('a');
-                            a.href = img.src;
-                            a.download = img.dataset.filename;
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            
-                            // Send download notification
-                            if (currentConnection && currentConnection.open) {
-                                currentConnection.send({ type: 'chat-img-download', msgId: msgId });
-                            }
-                        } catch (e) {
-                            console.error("Download error:", e);
-                            showChatStatus('Image download failed', true);
-                        }
-                    };
-                    
-                    img.onload = () => {
-                        chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll on image load
-                    };
-                    contentEl.appendChild(img);
-                    msgEl.dataset.size = metadata.size;
-                }
-                
-                msgEl.appendChild(contentEl);
-
-                // Add status bar (for sender only)
-                if (sender === 'sender') {
-                    const statusBar = document.createElement('div');
-                    statusBar.className = 'message-status-bar';
-                    
-                    if (type === 'image') {
-                         const downloadStatus = document.createElement('span');
-                         downloadStatus.className = 'download-status';
-                         downloadStatus.textContent = 'Downloaded by peer';
-                         statusBar.appendChild(downloadStatus);
-                    }
-                    
-                    const msgStatus = document.createElement('span');
-                    msgStatus.className = 'msg-status';
-                    msgStatus.innerHTML = '✓'; // One tick
-                    statusBar.appendChild(msgStatus);
-                    
-                    msgEl.appendChild(statusBar);
-                }
-
-                chatMessages.appendChild(msgEl);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-
-            /**
-             * Sends the text message from the input field.
-             */
-            function sendTextMessage() {
-                const message = chatInput.value.trim();
-                if (message === '' || !currentConnection || !currentConnection.open) return;
-
-                const wordCount = message.split(/\s+/).length;
-                const msgId = crypto.randomUUID();
-                
-                try {
-                    currentConnection.send({ type: 'chat-text', message: message, msgId: msgId });
-                    addMessageToDOM('text', message, 'sender', { words: wordCount }, msgId);
-                    pruneChat();
-                    updateChatLimitsUI();
-                    chatInput.value = '';
-                    
-                    // Stop typing indicator after send
-                    clearTimeout(typingTimer);
-                    isTypingSent = false;
-                    currentConnection.send({ type: 'chat-stop-typing' });
-
-                } catch (e) {
-                    console.error("Chat send error:", e);
-                    showChatStatus('Message send error', true);
-                }
-            }
-
-            /**
-             * Handles the file selection from the image input.
-             */
-            function handleImageUpload(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                if (file.size > MAX_IMAGE_SIZE) {
-                    showChatStatus('❌ Image is too large (Max 10MB)', true);
-                    return;
-                }
-                
-                const { imageCount, imageSize } = getChatLimits();
-                if (imageCount >= MAX_IMAGES || imageSize + file.size > MAX_IMAGE_SIZE) {
-                     showChatStatus('Image quota full. Old images will be removed.', true);
-                     // We still allow sending, pruneChat() will handle removal.
-                }
-
-                fileToBase64(file).then(base64data => {
-                    if (!currentConnection || !currentConnection.open) return;
-                    
-                    const msgId = crypto.randomUUID();
-                    const metadata = { size: file.size, name: file.name };
-
-                    try {
-                        currentConnection.send({
-                            type: 'chat-image',
-                            name: file.name,
-                            fileType: file.type,
-                            size: file.size,
-                            data: base64data,
-                            msgId: msgId
-                        });
-                        addMessageToDOM('image', base64data, 'sender', metadata, msgId);
-                        pruneChat();
-                        updateChatLimitsUI();
-                    } catch (e) {
-                        console.error("Image send error:", e);
-                        showChatStatus('Image send error', true);
-                    }
-                }).catch(err => {
-                    console.error("Base64 conversion error:", err);
-                    showChatStatus('Could not read image', true);
-                });
-                
-                event.target.value = null; // Clear input
-            }
-
-            /**
-             * Shows a temporary status message in the chat UI.
-             */
-            function showChatStatus(message, isError = false) {
-                if (!chatStatus) return;
-                chatStatus.textContent = message;
-                chatStatus.style.color = isError ? 'var(--error)' : 'var(--success)';
-                chatStatus.style.opacity = 1;
-                
-                // Clear any existing timer
-                clearTimeout(peerTypingTimer); 
-                
-                // Hide after 3 seconds
-                peerTypingTimer = setTimeout(() => {
-                    chatStatus.style.opacity = 0;
-                }, 3000);
-            }
-            
-            // --- END CHAT HELPER FUNCTIONS ---
-
-
-            const statusEl = document.getElementById('status');
-            const qrCodeContainer = document.getElementById('qr-code-container');
-            const qrEl = document.getElementById('qrcode');
-            const scanInstructions = document.getElementById('scan-instructions');
-            const fileInput = document.getElementById('file-input');
-            const transferStatusEl = document.getElementById('transfer-status');
-            const shareButtonsContainer = document.getElementById('share-buttons-container');
-
-            const nativeShareButton = document.getElementById('native-share-button');
-            const copyLinkButton = document.getElementById('copy-link-button');
-            const downloadQrButton = document.getElementById('download-qr-button');
-            
-            // --- NEW: Transfer List Container ---
-            const transferListContainer = document.getElementById('transfer-list-container');
-
-
-            // --- CHAT ELEMENTS ---
-            const chatContainer = document.getElementById('chat-container');
-            const chatPlaceholder = document.getElementById('chat-placeholder');
-            const chatMessages = document.getElementById('chat-messages');
-            const chatInput = document.getElementById('chat-input');
-            const chatSendButton = document.getElementById('chat-send-button');
-            const chatAttachButton = document.getElementById('chat-attach-button');
-            const chatImageInput = document.getElementById('chat-image-input');
-            const chatLimitsInfo = document.getElementById('chat-limits-info');
-            const chatStatus = document.getElementById('chat-status');
-
-            // --- CHAT LISTENERS ---
-            chatSendButton.addEventListener('click', sendTextMessage);
-            
-            chatInput.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') {
-                    sendTextMessage();
-                }
-            });
-            
-            // Typing Indicator Logic
-            chatInput.addEventListener('input', () => {
-                if (!currentConnection || !currentConnection.open) return;
-                
-                if (!isTypingSent) {
-                    currentConnection.send({ type: 'chat-typing' });
-                    isTypingSent = true;
-                    // Cooldown to prevent spam
-                    setTimeout(() => { isTypingSent = false; }, 2000); 
-                }
-                
-                // Clear previous "stop" timer
-                clearTimeout(typingTimer);
-                
-                // Set a new timer to send "stop" if user pauses
-                typingTimer = setTimeout(() => {
-                    currentConnection.send({ type: 'chat-stop-typing' });
-                }, 3000);
-            });
-            
-            chatInput.addEventListener('blur', () => {
-                 if (currentConnection && currentConnection.open) {
-                    currentConnection.send({ type: 'chat-stop-typing' });
-                 }
-            });
-
-            chatAttachButton.addEventListener('click', () => chatImageInput.click());
-            chatImageInput.addEventListener('change', handleImageUpload);
-
-
-            const CHUNK_SIZE = 64 * 1024; // 64 KB
-
-            let peer = null;
-            let currentConnection = null;
-            let myId = '';
-            let connectUrl = '';
-            let isHost = false; // This will be set by initializePeer
-            let connectionRetryCount = 0;
-            const MAX_RETRY = 3;
-            
-            // --- NAYA: FileReader ko DOMContentLoaded scope mein define karein ---
-            const fileReader = new FileReader();
-
-            let fileQueue = []; // NEW: Will store { file, id, status, offset, startTime }
-            let isSending = false;
-            let activeSend = null; // NEW: Will store the active fileJob
-            
-            // NEW: Map to store receiving file metadata
-            let receivingFiles = new Map(); 
-
-            let hasActiveTransfer = false; // Will be true if isSending or receivingFiles.size > 0
-            let heartbeatInterval = null;
-            
-            window.addEventListener('beforeunload', (event) => {
-                hasActiveTransfer = isSending || receivingFiles.size > 0;
-                if (hasActiveTransfer) {
-                    const warningText = 'Transfer active!';
-                    event.preventDefault();
-                    event.returnValue = warningText;
-                    return warningText;
-                }
-            });
-
-            // This function is no longer needed, but we keep it in case
-            // any other part of the code relies on it.
-            function clearHashFromUrl() {
-                const uri = window.location.toString();
-                if (uri.indexOf("#") > 0) {
-                    const cleanUri = uri.substring(0, uri.indexOf("#"));
-                    window.history.replaceState({}, document.title, cleanUri);
-                }
-            }
-
-            function initializePeer() {
-                if (!ALLOW_PEER_INIT) {
-                    console.log('🚫 Peer init BLOCKED (scanner active)');
-                    return;
-                }
-                
-                console.log('🔧 Initializing peer...');
-                
-                statusEl.textContent = 'Initializing...';
-                
-                try {
-                    peer = new Peer({
-                        config: {
-                            iceServers: [
-                                { urls: 'stun:stun.l.google.com:19302' },
-                                { 
-                                    urls: 'turn:openrelay.metered.ca:80',
-                                    username: 'openrelayproject',
-                                    credential: 'openrelayproject'
-                                }
-                            ],
-                            sdpSemantics: 'unified-plan'
-                        },
-                        debug: 1 // Debug level 1 provides basic info
-                    });
-                    
-                    window.APP_PEER = peer;
-                    
-                } catch (e) {
-                    console.error('❌ PeerJS Initialization Error:', e);
-                    statusEl.textContent = '❌ Error';
-                    return;
-                }
-
-                peer.on('open', (id) => {
-                    myId = id;
-                    console.log('✓ Peer ID:', id);
-                    const targetId = window.location.hash.substring(1);
-
-                    if (targetId) {
-                        // --- CLIENT MODE ---
-                        console.log('→ CLIENT MODE: Attempting to connect to', targetId);
-                        isHost = false;
-                        statusEl.textContent = '🔗 Connecting...';
-                        qrCodeContainer.style.display = 'none'; // Hide QR
-                        shareButtonsContainer.style.display = 'none'; // Hide buttons
-                        scanInstructions.style.display = 'none';
-                        attemptConnection(targetId);
-                    } else {
-                        // --- HOST MODE ---
-                        console.log('→ HOST MODE');
-                        isHost = true;
-                        qrCodeContainer.style.display = 'block';
-                        scanInstructions.style.display = 'none';
-                        
-                        statusEl.textContent = 'Generating QR...';
-                        
-                        connectUrl = `${window.location.origin}${window.location.pathname}#${myId}`;
-                        qrEl.innerHTML = '';
-                        
-                        try {
-                            new QRCode(qrEl, {
-                                text: connectUrl,
-                                width: 256,
-                                height: 256,
-                                colorDark: "#000000",
-                                colorLight: "#ffffff",
-                                correctLevel: QRCode.CorrectLevel.H
-                            });
-                        } catch (e) {
-                            console.error("QRCode generation failed:", e);
-                            statusEl.textContent = "❌ QR Error";
-                        }
-                        
-                        shareButtonsContainer.style.display = 'flex';
-                        setTimeout(setupShareButton, 100);
-                        statusEl.textContent = '✅ Ready';
-                    }
-                });
-
-                peer.on('connection', (conn) => {
-                    console.log('📡 Incoming connection from:', conn.peer);
-                    if (currentConnection) {
-                        console.warn('⚠ Already connected. Rejecting new connection from:', conn.peer);
-                        conn.on('open', () => conn.close()); // Let it open then close it
-                        return;
-                    }
-                    
-                    statusEl.textContent = '📡 Incoming...';
-                    
-                    if (conn.open) {
-                        console.log('Incoming connection was already open.');
-                        setupConnection(conn);
-                    } else {
-                        console.log('Incoming connection waiting to open...');
-                        conn.on('open', () => setupConnection(conn));
-                    }
-                });
-
-                peer.on('error', (err) => {
-                    console.error('❌ PeerJS Error:', err);
-                    if (err.type === 'peer-unavailable') {
-                        if (!isHost && connectionRetryCount < MAX_RETRY) {
-                            connectionRetryCount++;
-                            statusEl.textContent = `🔄 Peer not found. Retry ${connectionRetryCount}...`;
-                            console.warn(`Peer ${window.location.hash.substring(1)} unavailable. Retrying...`);
-                            setTimeout(() => {
-                                const targetId = window.location.hash.substring(1);
-                                if (targetId) attemptConnection(targetId);
-                            }, 2000 + connectionRetryCount * 1000); // Exponential backoff
-                        } else if (!isHost) {
-                            statusEl.textContent = '❌ Peer not found';
-                            console.error('Failed to connect after retries.');
-                            showSwitchButton(); // Show button to go back to host mode
-                        }
-                    } else if (err.type === 'network') {
-                        statusEl.textContent = '❌ Network Error. Retrying...';
-                        console.error('Peer network error. Re-initializing peer...');
-                        if (peer) peer.destroy();
-                        setTimeout(initializePeer, 3000); // Retry init
-                    } else {
-                         statusEl.textContent = `❌ Error: ${err.type}`;
-                    }
-                });
-            }
-
-            /**
-             * UPDATED: This button now just reloads the page with no hash.
-             */
-            function showSwitchButton() {
-                if (document.getElementById('switch-mode-btn')) return;
-                
-                const btn = document.createElement('button');
-                btn.id = 'switch-mode-btn';
-                btn.textContent = '🔄 Go to Host Mode';
-                btn.className = 'switch-mode-button';
-                btn.onclick = () => {
-                    btn.disabled = true;
-                    btn.textContent = '🔄 Reloading...';
-                    // --- NEW LOGIC ---
-                    // Just clear hash and reload
-                    window.location.hash = '';
-                    window.location.reload();
-                    // --- END NEW LOGIC ---
-                };
-                document.querySelector('.transfer-area').appendChild(btn);
-            }
-
-            function attemptConnection(targetId) {
-                console.log('→ Attempting connection to:', targetId);
-                let connectionFailed = false;
-                let connectionTimer = null;
-                
-                const handleFailure = (message) => {
-                    if (connectionFailed) return;
-                    connectionFailed = true;
-                    if (connectionTimer) clearTimeout(connectionTimer);
-                    console.error('❌ Connection failed:', message);
-                    
-                    if (connectionRetryCount < MAX_RETRY) {
-                        connectionRetryCount++;
-                        statusEl.textContent = `🔄 Retry ${connectionRetryCount}`;
-                        setTimeout(() => attemptConnection(targetId), 2000 + connectionRetryCount * 1000);
-                    } else {
-                        statusEl.textContent = '❌ Failed to connect';
-                        showSwitchButton(); // Show button to go back
-                    }
-                };
-
-                try {
-                    // Set a longer timeout for connection
-                    connectionTimer = setTimeout(() => handleFailure('Timeout (20s)'), 20000);
-                    
-                    const conn = peer.connect(targetId, { 
-                        reliable: true,
-                        serialization: 'binary' // Important for ArrayBuffer
-                    });
-
-                    conn.on('open', () => {
-                        console.log('✓✓✓ CONNECTION OPENED to:', conn.peer);
-                        clearTimeout(connectionTimer);
-                        if (!connectionFailed) {
-                            connectionRetryCount = 0;
-                            setupConnection(conn);
-                        } else {
-                            console.warn("Connection opened, but failure flag was set. Closing.");
-                            conn.close();
-                        }
-                    });
-
-                    conn.on('error', (err) => {
-                        console.error('❌ Connection Error:', err);
-                        handleFailure(`Error: ${err.type}`);
-                    });
-                    
-                    conn.on('close', () => {
-                        console.log('⚠ Connection closed early (pre-setup)');
-                        if (!currentConnection) handleFailure('Closed by peer');
-                    });
-                } catch (e) {
-                    console.error('❌ peer.connect() Exception:', e);
-                    handleFailure('Failed to initiate connection');
-                }
-            }
-
-            function setupConnection(conn) {
-                console.log(`✓ Connection setup complete with: ${conn.peer}`);
-                currentConnection = conn;
-                window.APP_CONNECTION = conn;
-                showConnectionAnimation();
-                
-                statusEl.textContent = '🔐 Connected!';
-                fileInput.disabled = false;
-                transferStatusEl.textContent = '✅ Ready to transfer';
-                
-                // Hide QR container and show "Connected" status
-                qrCodeContainer.style.display = 'none';
-                shareButtonsContainer.style.display = 'none';
-                scanInstructions.style.display = 'block';
-
-                // --- SHOW CHAT ---
-                chatPlaceholder.style.display = 'none';
-                chatContainer.style.display = 'flex'; // Changed to flex
-                updateChatLimitsUI();
-                
-                const switchBtn = document.getElementById('switch-mode-btn');
-                if (switchBtn) switchBtn.remove();
-                
-                if (isHost) startHeartbeat();
-
-                // Send a 'ready' signal to the other peer
-                setTimeout(() => {
-                    if (currentConnection && currentConnection.open) {
-                        try {
-                            currentConnection.send({ type: 'ready' });
-                        } catch(e) {
-                            console.error("Failed to send 'ready' signal:", e);
-                        }
-                    }
-                }, 100);
-
-                conn.on('data', (data) => {
-                    
-                    // --- HEARTBEAT & READY ---
-                    if (data.type === 'ready') {
-                        console.log("Peer is ready.");
-                        statusEl.textContent = '✅ Ready!';
-                        return;
-                    }
-                    if (data.type === 'heartbeat-ping') {
-                        // console.log("Received ping, sending pong.");
-                        try {
-                            conn.send({ type: 'heartbeat-pong' });
-                        } catch(e){}
-                        return;
-                    }
-                    if (data.type === 'heartbeat-pong') {
-                        // console.log("Received pong.");
-                        return;
-                    }
-
-                    // --- CHAT LOGIC ---
-                    if (data.type === 'chat-text') {
-                        addMessageToDOM('text', data.message, 'receiver', { words: data.message.split(/\s+/).length }, data.msgId);
-                        try {
-                            conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
-                        } catch(e){}
-                        pruneChat();
-                        updateChatLimitsUI();
-                        return;
-                    }
-                    if (data.type === 'chat-image') {
-                        addMessageToDOM('image', data.data, 'receiver', { size: data.size, name: data.name }, data.msgId);
-                        try {
-                            conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
-                        } catch(e){}
-                        pruneChat();
-                        updateChatLimitsUI();
-                        return;
-                    }
-                    if (data.type === 'chat-typing') {
-                        chatStatus.textContent = 'Typing...';
-                        chatStatus.style.opacity = 1;
-                        clearTimeout(peerTypingTimer);
-                        peerTypingTimer = setTimeout(() => { chatStatus.style.opacity = 0; }, 3500); // Auto-hide
-                        return;
-                    }
-                    if (data.type === 'chat-stop-typing') {
-                        clearTimeout(peerTypingTimer);
-                        chatStatus.style.opacity = 0;
-                        return;
-                    }
-                    if (data.type === 'chat-read') {
-                        const msgEl = document.querySelector(`.chat-message[data-msg-id="${data.msgId}"]`);
-                        if (msgEl) {
-                            const statusEl = msgEl.querySelector('.msg-status');
-                            if (statusEl) {
-                                statusEl.innerHTML = '✓✓';
-                                statusEl.classList.add('seen');
-                            }
-                        }
-                        return;
-                    }
-                    if (data.type === 'chat-img-download') {
-                        const msgEl = document.querySelector(`.chat-message[data-msg-id="${data.msgId}"]`);
-                        if (msgEl) {
-                            const statusEl = msgEl.querySelector('.download-status');
-                            if (statusEl) {
-                                statusEl.style.display = 'inline';
-                            }
-                        }
-                        return;
-                    }
-
-
-                    // --- FILE TRANSFER LOGIC ---
-                    if (data.type === 'metadata') {
-                        console.log(`Receiving metadata for: ${data.name} (${data.fileId})`);
-                        const fileId = data.fileId;
-                        receivingFiles.set(fileId, {
-                            id: fileId,
-                            name: data.name,
-                            size: data.size,
-                            type: data.fileType,
-                            data: [],
-                            receivedBytes: 0,
-                            startTime: Date.now() // Start ETA timer
-                        });
-                        
-                        createTransferUI(fileId, data.name, false);
-                        updateTransferUI(fileId, {
-                            percent: 0,
-                            sizeText: `0 / ${formatBytes(data.size)}`,
-                            etaText: 'ETA: --:--'
-                        });
-                        
-                        transferStatusEl.textContent = `Receiving ${data.name}...`;
-                    } else if (data.type === 'end') {
-                        const fileId = data.fileId;
-                        const fileData = receivingFiles.get(fileId);
-                        
-                        if (!fileData) {
-                            console.warn(`Received 'end' for unknown/cancelled file: ${fileId}`);
-                            return;
-                        }
-                        console.log(`Received 'end' for ${fileData.name}. Verifying size...`);
-
-
-                        if (fileData.receivedBytes === fileData.size) {
-                            console.log(`File ${fileData.name} complete. Triggering download.`);
-                            const fileBlob = new Blob(fileData.data, { type: fileData.type });
-                            const downloadUrl = URL.createObjectURL(fileBlob);
-                            const a = document.createElement('a');
-                            a.href = downloadUrl;
-                            a.download = fileData.name;
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
-                        } else {
-                             console.error(`File ${fileData.name} incomplete! Expected ${fileData.size} but got ${fileData.receivedBytes}`);
-                             // Handle incomplete file error (e.g., show error in UI)
-                        }
-                        
-                        document.getElementById(`transfer-${fileId}`)?.remove();
-                        receivingFiles.delete(fileId);
-                        
-                        if (receivingFiles.size === 0 && !isSending) {
-                            transferStatusEl.textContent = `✅ Received complete!`;
-                        }
-                    } else if (data.type === 'cancel') {
-                        const fileId = data.fileId;
-                        console.log(`Received 'cancel' signal for: ${fileId}`);
-
-                        // 1. Is it our active send?
-                        if (activeSend && activeSend.id === fileId) {
-                            console.log("Peer cancelled our active send.");
-                            activeSend.status = 'cancelled'; // This will be caught by the pump
-                            if(activeSend.pumpInterval) {
-                                clearInterval(activeSend.pumpInterval); // Stop the pump immediately
-                            }
-                            // Cleanup
-                            isSending = false;
-                            activeSend = null;
-                            sendNextFileFromQueue();
-                        }
-                        // 2. Is it in our pending send queue?
-                        else if (fileQueue.some(job => job.id === fileId)) {
-                            console.log("Peer cancelled a pending send.");
-                            fileQueue = fileQueue.filter(job => job.id !== fileId);
-                            document.getElementById(`transfer-${fileId}`)?.remove();
-                        }
-                        // 3. Is it our active receive?
-                        else if (receivingFiles.has(fileId)) {
-                            console.log("Peer cancelled their send (our receive).");
-                            receivingFiles.delete(fileId);
-                            document.getElementById(`transfer-${fileId}`)?.remove();
-                            if (receivingFiles.size === 0 && !isSending) {
-                                transferStatusEl.textContent = '❌ Cancelled by peer';
-                            }
-                        }
-                    } else {
-                        // This must be a file chunk (ArrayBuffer)
-                        const fileId = data.fileId; 
-                        const chunk = data.chunk;
-                        
-                        const fileData = receivingFiles.get(fileId);
-                        if (!fileData) {
-                            console.warn(`Received chunk for unknown/cancelled file: ${fileId}. Ignoring.`);
-                            return; // No metadata for this chunk, ignore
-                        }
-
-                        fileData.data.push(chunk);
-                        fileData.receivedBytes += chunk.byteLength;
-                        
-                        const percent = Math.round((fileData.receivedBytes / fileData.size) * 100);
-                        
-                        // Calculate Receiver ETA
-                        const elapsedTime = (Date.now() - fileData.startTime) / 1000; // in seconds
-                        let etaText = 'ETA: --:--';
-                        if (elapsedTime > 0.5) { // Wait half a second for a good speed estimate
-                            const speed = fileData.receivedBytes / elapsedTime; // bytes per second
-                            const remainingBytes = fileData.size - fileData.receivedBytes;
-                            if (speed > 0) {
-                                const remainingTime = remainingBytes / speed; // in seconds
-                                etaText = `ETA: ${formatTime(remainingTime)}`;
-                            }
-                        }
-                        
-                        updateTransferUI(fileId, {
-                            percent: percent,
-                            sizeText: `${formatBytes(fileData.receivedBytes)} / ${formatBytes(fileData.size)}`,
-                            etaText: etaText
-                        });
-                    }
-                });
-
-                conn.on('close', () => handleDisconnect('Connection closed by peer'));
-                conn.on('error', (err) => {
-                    console.error("Connection error:", err);
-                    handleDisconnect(`Connection Error: ${err.type}`);
-                });
-                
-                // Start sending if queue has items
-                sendNextFileFromQueue();
-            }
-            
-            function startHeartbeat() {
-                stopHeartbeat();
-                console.log("Starting heartbeat...");
-                heartbeatInterval = setInterval(() => {
-                    if (currentConnection && currentConnection.open) {
-                        try {
-                            // console.log("Sending ping");
-                            currentConnection.send({ type: 'heartbeat-ping' });
-                        } catch (e) {
-                            console.warn("Heartbeat send failed:", e);
-                            // This might indicate a problem, but handleDisconnect will eventually catch it.
-                        }
-                    }
-                }, 5000);
-            }
-
-            function stopHeartbeat() {
-                if (heartbeatInterval) {
-                    console.log("Stopping heartbeat.");
-                    clearInterval(heartbeatInterval);
-                    heartbeatInterval = null;
-                }
-            }
-            
-            /**
-             * UPDATED: This function now clears the hash and reloads the page.
-             */
-            function handleDisconnect(message) {
-                console.warn(`Handling disconnect. Reason: ${message}`);
-                stopHeartbeat();
-                
-                // --- HIDE CHAT ---
-                chatContainer.style.display = 'none';
-                chatPlaceholder.style.display = 'flex';
-
-                // Set a flag to prevent multiple reloads
-                if (IS_RELOADING) {
-                    console.warn("Disconnect already handled, reload in progress. Ignoring.");
-                    return;
-                }
-                IS_RELOADING = true;
-
-                statusEl.textContent = '⚠️ Disconnected... Reloading...';
-                
-                if (currentConnection) {
-                    try { currentConnection.close(); } catch (e) { console.error("Error closing connection:", e); }
-                    currentConnection = null;
-                }
-                if (peer && !peer.destroyed) {
-                    try { peer.destroy(); } catch (e) { console.error("Error destroying peer:", e); }
-                    peer = null;
-                }
-                
-                // --- NEW LOGIC ---
-                // Disconnected. Clear the hash and reload.
-                // The app will re-initialize in HOST mode.
-                console.log('🔄 Reverting to host mode by reloading...');
-                window.location.hash = '';
-                // Use setTimeout to ensure all cleanup code has run before reload
-                setTimeout(() => window.location.reload(), 100);
-                // --- END NEW LOGIC ---
-            }
-
-            fileInput.addEventListener('change', (event) => {
-                for (const file of event.target.files) {
-                    const fileId = crypto.randomUUID();
-                    console.log(`Queueing file: ${file.name} as ${fileId}`);
-                    const fileJob = {
-                        file: file,
-                        id: fileId,
-                        status: 'pending',
-                        offset: 0,          // NAYA
-                        startTime: 0       // NAYA
-                    };
-                    fileQueue.push(fileJob);
-                    
-                    // Add to UI as "Pending"
-                    createTransferUI(fileId, file.name, true);
-                    updateTransferUI(fileId, {
-                        status: 'pending',
-                        sizeText: formatBytes(file.size)
-                    });
-                }
-                event.target.value = null; // Clear input
-                transferStatusEl.textContent = `📁 ${fileQueue.length} files queued`;
-                
-                if (currentConnection && currentConnection.open && !isSending) {
-                    sendNextFileFromQueue();
-                }
-            });
-
-            // +++ NAYA: WORKING EXAMPLE SE LIYA GAYA LOGIC (RECURSIVE ASYNC) +++
-            function sendNextFileFromQueue() {
-                if (fileQueue.length === 0) {
-                    console.log("Send queue empty.");
-                    isSending = false;
-                    activeSend = null;
-                    if (receivingFiles.size === 0) {
-                        transferStatusEl.textContent = '✅ All sent!';
-                    }
-                    return;
-                }
-                
-                if (!currentConnection || !currentConnection.open || isSending) {
-                    console.log(`Skipping sendNextFile: isSending=${isSending}, connOpen=${currentConnection ? currentConnection.open : 'N/A'}`);
-                    return;
-                }
-                
-                isSending = true;
-                const fileJob = fileQueue.shift();
-                activeSend = fileJob;
-                
-                fileJob.status = 'sending';
-                fileJob.startTime = Date.now();
-                fileJob.offset = 0;
-                
-                const file = fileJob.file;
-                
-                console.log(`Starting send for: ${file.name} (${fileJob.id})`);
-                transferStatusEl.textContent = `📤 Sending ${file.name}...`;
-
-                try {
-                    currentConnection.send({
-                        type: 'metadata',
-                        fileId: fileJob.id,
-                        name: file.name,
-                        size: file.size,
-                        fileType: file.type
-                    });
-                } catch (e) {
-                    console.error("Failed to send metadata:", e);
-                    handleDisconnect('Send metadata failed');
-                    return;
-                }
-
-                // --- NAYA LOGIC YAHAN SE ---
-
-                fileReader.onload = (e) => {
-                    // 1. Check for cancellation (CLEANUP SPOT)
-                    if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
-                        console.log("reader.onload: Fired for stale or cancelled job. Cleaning up.");
-                        
-                        // --- PERFORM CLEANUP HERE ---
-                        if (currentConnection && currentConnection.open) {
-                            try { currentConnection.send({ type: 'cancel', fileId: fileJob.id }); } catch (err) {}
-                        }
-                        document.getElementById(`transfer-${fileJob.id}`)?.remove(); // Ensure UI is gone
-                        isSending = false;
-                        activeSend = null;
-                        sendNextFileFromQueue(); // Start next
-                        // --- END CLEANUP ---
-                        return;
-                    }
-
-                    // 2. Check for connection
-                    if (!currentConnection || !currentConnection.open) {
-                        console.log('reader.onload: Disconnected. Re-queuing.');
-                        isSending = false;
-                        activeSend = null;
-                        fileQueue.unshift(fileJob); // Put job back
-                        // handleDisconnect will be called by the connection's 'close' event
-                        return;
-                    }
-
-                    // 3. Send the chunk
-                    try {
-                        currentConnection.send({
-                            type: 'chunk',
-                            fileId: fileJob.id,
-                            chunk: e.target.result // This is ArrayBuffer
-                        });
-
-                        fileJob.offset += e.target.result.byteLength;
-                        updateProgress(fileJob.id, fileJob.offset, file.size, fileJob.startTime);
-
-                        // 4. Check if file is complete
-                        if (fileJob.offset < file.size) {
-                            // File not complete, read next slice (RECURSIVE CALL)
-                            readSlice(fileJob.offset);
-                        } else {
-                            // File is complete
-                            console.log(`Finished sending ${file.name} (${fileJob.id})`);
-                            if (currentConnection && currentConnection.open) {
-                                currentConnection.send({ type: 'end', fileId: fileJob.id });
-                            }
-                            document.getElementById(`transfer-${fileJob.id}`)?.remove();
-                            isSending = false;
-                            activeSend = null;
-                            sendNextFileFromQueue(); // Start next file
-                        }
-
-                    } catch (err) {
-                        console.error("Send chunk error:", err);
-                        // Check buffer size, if full, wait and retry
-                        if (err.message.includes("buffer is full")) {
-                             console.warn("Buffer is full, pausing for 100ms...");
-                             setTimeout(() => {
-                                 // We need to re-run the onload logic for the *same chunk*
-                                 // This is tricky. A better way is to check *before* send.
-                                 // BUT, for now, let's just re-read the slice.
-                                 // This is slightly inefficient but safer.
-                                 readSlice(fileJob.offset - e.target.result.byteLength); 
-                             }, 100);
-                        } else {
-                            handleDisconnect("Send chunk error");
-                        }
-                    }
-                };
-
-                fileReader.onerror = (e) => {
-                    if (!activeSend || activeSend.id !== fileJob.id) return;
-                    console.error("File Read Error:", e);
-                    transferStatusEl.textContent = '❌ File Read error';
-                    document.getElementById(`transfer-${fileJob.id}`)?.remove();
-                    isSending = false;
-                    activeSend = null;
-                    sendNextFileFromQueue();
-                };
-
-                function readSlice(o) {
-                    // Check for cancellation *before* reading (CLEANUP SPOT)
-                    if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
-                        console.log("readSlice: Job is stale or cancelled. Cleaning up.");
-                        
-                        // --- PERFORM CLEANUP HERE ---
-                        if (currentConnection && currentConnection.open) {
-                            try { currentConnection.send({ type: 'cancel', fileId: fileJob.id }); } catch (err) {}
-                        }
-                        document.getElementById(`transfer-${fileJob.id}`)?.remove(); // Ensure UI is gone
-                        isSending = false;
-                        activeSend = null;
-                        sendNextFileFromQueue(); // Start next
-                        // --- END CLEANUP ---
-                        return;
-                    }
-                    
-                    // --- NAYA: BUFFER CHECK (जैसा आपके वर्किंग कोड में होना चाहिए) ---
-                    const BUFFER_THRESHOLD = 8 * 1024 * 1024; // 8 MB
-                    if (currentConnection && currentConnection.open && currentConnection.dataChannel && currentConnection.dataChannel.bufferedAmount > BUFFER_THRESHOLD) {
-                        console.log(`readSlice: Buffer high (${currentConnection.dataChannel.bufferedAmount}). Pausing read.`);
-                        setTimeout(() => readSlice(o), 50); // 50ms इंतज़ार करें और *उसी* स्लाइस को पढ़ने की कोशिश करें
-                        return;
-                    }
-                    // --- END BUFFER CHECK ---
-
-                    // All clear! Read the next slice.
-                    try {
-                        const slice = file.slice(o, o + CHUNK_SIZE);
-                        fileReader.readAsArrayBuffer(slice);
-                    } catch (e) {
-                         console.error("File slice/read error:", e);
-                         fileReader.onerror(e); // Trigger error handler
-                    }
-                }
-                
-                // Start the process
-                readSlice(0);
-            }
-            // +++ END NAYA LOGIC +++
-
-            
-            /**
-             * @param {string} fileId
-             */
-            function cancelTransfer(fileId) {
-                console.log(`User clicked cancel for: ${fileId}`);
-                
-                // Is it the active transfer?
-                if (activeSend && activeSend.id === fileId) {
-                    console.log(`Cancelling active transfer: ${fileId}`);
-                    activeSend.status = 'cancelled'; // 1. Set flag
-                    
-                    // The 'onload' or 'readSlice' function will see this flag
-                    // and stop the loop, then call sendNextFileFromQueue.
-                    
-                    document.getElementById(`transfer-${fileId}`)?.remove(); // 2. Remove UI (immediate feedback)
-                    
-                    // 3. Manually stop 'isSending' and check for next file
-                    //    in case the 'onload' loop isn't running (e.g., stuck on buffer check).
-                    //    This cleanup will be redundant if the loop is running, but safe.
-                    isSending = false;
-                    activeSend = null;
-                    sendNextFileFromQueue();
-
-
-                } else {
-                    // It's in the queue, just remove it
-                    console.log(`Cancelling pending transfer: ${fileId}`);
-                    fileQueue = fileQueue.filter(job => job.id !== fileId);
-                    document.getElementById(`transfer-${fileId}`)?.remove();
-                }
-                
-                if (!isSending && fileQueue.length === 0) {
-                     transferStatusEl.textContent = '❌ Cancelled';
-                }
-            }
-
-
-            /**
-             * @param {string} fileId
-             */
-            function updateProgress(fileId, sentBytes, totalBytes, startTime) {
-                const percent = Math.round((sentBytes / totalBytes) * 100);
-                const sizeText = `${formatBytes(sentBytes)} / ${formatBytes(totalBytes)}`;
-                
-                const elapsedTime = (Date.now() - startTime) / 1000;
-                let etaText = 'ETA: --:--';
-                if (elapsedTime > 0.5) { // Wait for a stable speed reading
-                    const speed = sentBytes / elapsedTime;
-                    if (speed > 0) {
-                        const remainingBytes = totalBytes - sentBytes;
-                        const remainingTime = remainingBytes / speed;
-                        etaText = `ETA: ${formatTime(remainingTime)}`;
-                    }
-                }
-                
-                updateTransferUI(fileId, {
-                    percent: percent,
-                    sizeText: sizeText,
-                    etaText: etaText
-                });
-            }
-
-            // --- NEW: Cancel Receive Function ---
-            function cancelReceive(fileId) {
-                console.log(`User clicked cancel receive for: ${fileId}`);
-                // 1. Remove from map
-                const fileData = receivingFiles.get(fileId);
-                if (!fileData) {
-                    console.warn("Tried to cancel a receive that doesn't exist:", fileId);
-                    return;
-                }
-                receivingFiles.delete(fileId);
-                
-                // 2. Remove UI
-                document.getElementById(`transfer-${fileId}`)?.remove();
-                
-                // 3. Send cancellation to sender
-                if (currentConnection && currentConnection.open) {
-                    try {
-                        currentConnection.send({ type: 'cancel', fileId: fileId });
-                    } catch (err) {
-                        console.warn("Failed to send 'cancel' message:", err);
-                    }
-                }
-                
-                // 4. Update status if no more files
-                if (receivingFiles.size === 0 && !isSending) {
-                    transferStatusEl.textContent = '❌ Receive cancelled';
-                }
-            }
-
-            function formatBytes(bytes, decimals = 2) {
-                if (!bytes || bytes === 0) return '0 B';
-                const k = 1024;
-                const dm = decimals < 0 ? 0 : decimals;
-                const sizes = ['B', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(k));
-                return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-            }
-            
-            function formatTime(seconds) {
-                if (seconds === Infinity || isNaN(seconds) || seconds < 0) return '--:--';
-                const min = Math.floor(seconds / 60);
-                const sec = Math.floor(seconds % 60);
-                return `${min}:${sec < 10 ? '0' : ''}${sec}`;
-            }
-
-            function setupShareButton() {
-                const canvas = qrEl.querySelector('canvas');
-                if (!canvas || typeof navigator.share === 'undefined') {
-                    nativeShareButton.style.display = 'none';
-                    copyLinkButton.style.display = 'inline-flex';
-                    downloadQrButton.style.display = 'inline-flex';
-                    return;
-                }
-
-                try {
-                    canvas.toBlob((blob) => {
-                        if (!blob) {
-                           throw new Error("Canvas toBlob failed");
-                        }
-                        
-                        const file = new File([blob], 'qr-code.png', { type: 'image/png' });
-                        const shareData = {
-                            title: 'QR Send',
-                            text: 'Scan to connect',
-                            url: connectUrl,
-                            files: [file]
-                        };
-
-                        if (navigator.canShare && navigator.canShare(shareData)) {
-                            nativeShareButton.style.display = 'inline-flex';
-                            copyLinkButton.style.display = 'none';
-                            downloadQrButton.style.display = 'none';
-                            nativeShareButton.onclick = async () => {
-                                try {
-                                    await navigator.share(shareData);
-                                } catch (err) {
-                                    console.warn("Native share failed:", err);
-                                }
-                            };
-                        } else {
-                            nativeShareButton.style.display = 'none';
-                            copyLinkButton.style.display = 'inline-flex';
-                            downloadQrButton.style.display = 'inline-flex';
-                        }
-                    }, 'image/png');
-                } catch(e) {
-                     console.error("setupShareButton error:", e);
-                     nativeShareButton.style.display = 'none';
-                     copyLinkButton.style.display = 'inline-flex';
-                     downloadQrButton.style.display = 'inline-flex';
-                }
-            }
-
-            function copyToClipboard(text, element) {
-                try {
-                    const textarea = document.createElement('textarea');
-                    textarea.value = text;
-                    textarea.style.position = 'fixed'; // Prevent scrolling
-                    textarea.style.opacity = 0;
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    document.execCommand('copy');
-                    
-                    if(element) {
-                        const originalText = element.textContent;
-                        element.textContent = '✅ Copied!';
-                        setTimeout(() => {
-                            element.textContent = originalText;
-                        }, 1500);
-                    }
-                } catch (err) {
-                    console.error("Failed to copy:", err);
-                } finally {
-                    const textarea = document.querySelector('textarea');
-                    if(textarea) document.body.removeChild(textarea);
-                }
-            }
-            
-            function downloadQRCode() {
-                try {
-                    const canvas = qrEl.querySelector('canvas');
-                    if (canvas) {
-                        const dataUrl = canvas.toDataURL('image/png');
-                        const a = document.createElement('a');
-                        a.href = dataUrl;
-                        a.download = 'qr-send.png';
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                    }
-                } catch (e) {
-                    console.error("Failed to download QR:", e);
-                }
-            }
-
-            copyLinkButton.addEventListener('click', () => {
-                if (connectUrl) copyToClipboard(connectUrl, copyLinkButton);
-            });
-            
-            downloadQrButton.addEventListener('click', downloadQRCode);
-
-            // Start the app
-            initializePeer();
-        });
-    </script>
-</body>
-</html>
+ बिल्कुल! मैं आपको complete fixed code दे रहा हूं। आप इसे directly अपने computer पर save करके किसी भी browser में खोल सकते हैं या कहीं भी deploy कर सकते हैं:
+Action: file_editor view /app/frontend/public/qr-send.html
+Observation: /app/frontend/public/qr-send.html:
+1|<!DOCTYPE html>
+2|<html lang="en">
+3|<head>
+4|    <meta charset="UTF-8">
+5|    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+6|    <title>QR Send - E2E Encrypted</title>
+7|    
+8|    <!-- ERUDA CONSOLE -->
+9|    
+10|    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+11|    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+12|    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+13|    
+14|    <style>
+15|        * {
+16|            margin: 0;
+17|            padding: 0;
+18|            box-sizing: border-box;
+19|        }
+20|
+21|        :root {
+22|            --bg-primary: #ffffff;
+23|            --bg-secondary: #f8f9fa;
+24|            --bg-card: #ffffff;
+25|            --text-primary: #1a1a1a;
+26|            --text-secondary: #666666;
+27|            --accent: #4285f4;
+28|            --accent-hover: #3367d6;
+29|            --border: #e0e0e0;
+30|            --shadow: rgba(0, 0, 0, 0.1);
+31|            --success: #34a853;
+32|            --error: #ea4335;
+33|            
+34|            /* New sender bubble colors for tick visibility */
+35|            --bg-sender: #dcf8c6;
+36|            --text-sender: #1a1a1a;
+37|        }
+38|
+39|        body.dark-mode {
+40|            --bg-primary: #0f0f0f;
+41|            --bg-secondary: #1a1a1a;
+42|            --bg-card: #1e1e1e;
+43|            --text-primary: #e8e8e8;
+44|            --text-secondary: #b0b0b0;
+45|            --border: #333333;
+46|            --shadow: rgba(255, 255, 255, 0.05);
+47|
+48|            /* New sender bubble colors for tick visibility */
+49|            --bg-sender: #224838;
+50|            --text-sender: #e8e8e8;
+51|        }
+52|
+53|        body {
+54|            font-family: 'Google Sans', 'Segoe UI', Roboto, sans-serif;
+55|            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+56|            color: var(--text-primary);
+57|            min-height: 100vh;
+58|            display: flex;
+59|            align-items: center;
+60|            justify-content: center;
+61|            padding: 0; /* Changed for full-screen mobile */
+62|            transition: all 0.3s ease;
+63|            position: relative;
+64|            overflow-x: hidden;
+65|        }
+66|
+67|        body::before {
+68|            content: '';
+69|            position: fixed;
+70|            top: -50%;
+71|            left: -50%;
+72|            width: 200%;
+73|            height: 200%;
+74|            background: radial-gradient(circle, var(--accent) 1px, transparent 1px);
+75|            background-size: 50px 50px;
+76|            opacity: 0.03;
+77|            animation: bgMove 20s linear infinite;
+78|            z-index: 0;
+79|        }
+80|
+81|        @keyframes bgMove {
+82|            0% { transform: translate(0, 0); }
+83|            100% { transform: translate(50px, 50px); }
+84|        }
+85|
+86|        .theme-toggle {
+87|            position: fixed;
+88|            top: 15px;
+89|            right: 15px;
+90|            width: 45px;
+91|            height: 45px;
+92|            background: var(--bg-card);
+93|            border: 2px solid var(--border);
+94|            border-radius: 50%;
+95|            display: flex;
+96|            align-items: center;
+97|            justify-content: center;
+98|            cursor: pointer;
+99|            z-index: 1000;
+100|            transition: all 0.3s ease;
+101|            box-shadow: 0 4px 12px var(--shadow);
+102|        }
+103|
+104|        .theme-toggle:hover {
+105|            transform: translateY(-2px) scale(1.05);
+106|            box-shadow: 0 8px 20px var(--shadow);
+107|        }
+108|
+109|        .theme-toggle svg {
+110|            width: 22px;
+111|            height: 22px;
+112|            fill: var(--text-primary);
+113|            transition: all 0.3s ease;
+114|        }
+115|
+116|        /* WATERMARK REMOVED */
+117|
+118|        /* --- NEW LAYOUT --- */
+119|        .container {
+120|            position: relative;
+121|            max-width: 100%; /* Changed */
+122|            width: 100%;
+123|            background: var(--bg-card);
+124|            overflow: hidden;
+125|            z-index: 1;
+126|            
+127|            /* Full-screen mobile layout */
+128|            height: 100vh;
+129|            max-height: 100vh;
+130|            border-radius: 0;
+131|            box-shadow: none;
+132|            
+133|            display: flex;
+134|            flex-direction: column; /* Mobile-first: stacked layout */
+135|        }
+136|        
+137|        .sidebar {
+138|            flex-shrink: 0;
+139|            /* On mobile, this is just a stack of content */
+140|        }
+141|
+142|        .chat-main {
+143|            flex-grow: 1; /* Takes remaining height */
+144|            display: flex;
+145|            flex-direction: column;
+146|            overflow: hidden; /* CRITICAL for scrolling */
+147|            background: var(--bg-secondary);
+148|        }
+149|
+150|        .chat-placeholder {
+151|            display: flex;
+152|            flex-direction: column;
+153|            align-items: center;
+154|            justify-content: center;
+155|            flex-grow: 1;
+156|            color: var(--text-secondary);
+157|            text-align: center;
+158|            padding: 20px;
+159|        }
+160|        .chat-placeholder svg {
+161|            width: 80px;
+162|            height: 80px;
+163|            fill: var(--text-secondary);
+164|            opacity: 0.5;
+165|            margin-bottom: 15px;
+166|        }
+167|        .chat-placeholder p {
+168|            font-size: 16px;
+169|            font-weight: 500;
+170|        }
+171|        /* --- END NEW LAYOUT --- */
+172|
+173|        .container::-webkit-scrollbar {
+174|            width: 6px;
+175|        }
+176|
+177|        .container::-webkit-scrollbar-track {
+178|            background: var(--bg-secondary);
+179|        }
+180|
+181|        .container::-webkit-scrollbar-thumb {
+182|            background: var(--accent);
+183|            border-radius: 3px;
+184|        }
+185|
+186|        header {
+187|            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+188|            padding: 20px;
+189|            text-align: center;
+190|            position: relative;
+191|            overflow: hidden;
+192|            flex-shrink: 0; /* Header should not shrink */
+193|        }
+194|
+195|        header::before {
+196|            content: '';
+197|            position: absolute;
+198|            top: 0;
+199|            left: -100%;
+200|            width: 100%;
+201|            height: 100%;
+202|            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+203|            animation: shimmer 3s infinite;
+204|        }
+205|
+206|        @keyframes shimmer {
+207|            0% { left: -100%; }
+208|            100% { left: 100%; }
+209|        }
+210|
+211|        h1 {
+212|            font-size: 22px;
+213|            font-weight: 600;
+214|            color: white;
+215|            margin-bottom: 6px;
+216|            letter-spacing: -0.5px;
+217|        }
+218|
+219|        #status {
+220|            font-size: 13px;
+221|            color: rgba(255,255,255,0.9);
+222|            font-weight: 500;
+223|        }
+224|
+225|        .connection-overlay {
+226|            position: fixed;
+227|            top: 0;
+228|            left: 0;
+229|            width: 100%;
+230|            height: 100%;
+231|            background: rgba(0,0,0,0.85);
+232|            display: none;
+233|            align-items: center;
+234|            justify-content: center;
+235|            z-index: 9999;
+236|            backdrop-filter: blur(10px);
+237|        }
+238|
+239|        .connection-overlay.active {
+240|            display: flex;
+241|            animation: fadeIn 0.3s ease;
+242|        }
+243|
+244|        @keyframes fadeIn {
+245|            from { opacity: 0; }
+246|            to { opacity: 1; }
+247|        }
+248|
+249|        .lock-animation {
+250|            position: relative;
+251|            animation: lockBounce 1s ease-in-out;
+252|        }
+253|
+254|        @keyframes lockBounce {
+255|            0%, 100% { transform: scale(1); }
+256|            50% { transform: scale(1.2); }
+257|        }
+258|
+259|        .lock-svg {
+260|            width: 100px;
+261|            height: 100px;
+262|        }
+263|
+264|        .lock-body {
+265|            animation: lockClose 0.8s ease forwards;
+266|        }
+267|
+268|        @keyframes lockClose {
+269|            0% { opacity: 0; transform: translateY(20px); }
+270|            100% { opacity: 1; transform: translateY(0); }
+271|        }
+272|
+273|        .lock-shackle {
+274|            animation: shackleClose 0.8s ease forwards 0.3s;
+275|        }
+276|
+277|        @keyframes shackleClose {
+278|            0% { transform: translateY(-10px); opacity: 0; }
+279|            100% { transform: translateY(0); opacity: 1; }
+280|        }
+281|
+282|        .checkmark {
+283|            animation: checkmarkDraw 0.5s ease forwards 1s;
+284|        }
+285|
+286|        @keyframes checkmarkDraw {
+287|            0% { stroke-dashoffset: 100; opacity: 0; }
+288|            100% { stroke-dashoffset: 0; opacity: 1; }
+289|        }
+290|
+291|        main {
+292|            padding: 20px;
+293|            flex-shrink: 0;
+294|        }
+295|
+296|        #qr-code-container {
+297|            text-align: center;
+298|        }
+299|
+300|        #qrcode {
+301|            display: inline-block;
+302|            padding: 15px;
+303|            background: white;
+304|            border-radius: 12px;
+305|            box-shadow: 0 4px 16px var(--shadow);
+306|            margin-bottom: 15px;
+307|            transition: transform 0.3s ease;
+308|        }
+309|
+310|        #qrcode:hover {
+311|            transform: scale(1.03);
+312|        }
+313|
+314|        #qrcode canvas,
+315|        #qrcode img {
+316|            max-width: 100%;
+317|            height: auto !important;
+318|            width: auto !important;
+319|        }
+320|
+321|        #qr-code-container p {
+322|            color: var(--text-secondary);
+323|            font-size: 13px;
+324|            margin-bottom: 12px;
+325|        }
+326|
+327|        #share-buttons-container {
+328|            display: flex;
+329|            gap: 8px;
+330|            justify-content: center;
+331|            flex-wrap: wrap;
+332|        }
+333|
+334|        .share-button {
+335|            padding: 10px 18px;
+336|            border: 2px solid var(--border);
+337|            background: var(--bg-card);
+338|            color: var(--text-primary);
+339|            border-radius: 10px;
+340|            font-weight: 600;
+341|            font-size: 13px;
+342|            cursor: pointer;
+343|            transition: all 0.3s ease;
+344|            display: flex;
+345|            align-items: center;
+346|            gap: 6px;
+347|        }
+348|
+349|        .share-button:hover {
+350|            background: var(--accent);
+351|            color: white;
+352|            border-color: var(--accent);
+353|            transform: translateY(-2px);
+354|            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+355|        }
+356|
+357|        .primary-share {
+358|            background: var(--accent);
+359|            color: white;
+360|            border-color: var(--accent);
+361|        }
+362|
+363|        .scanner-button {
+364|            background: var(--success);
+365|            color: white;
+366|            border-color: var(--success);
+367|        }
+368|
+369|        .scanner-button:hover {
+370|            background: #2d8e47;
+371|            border-color: #2d8e47;
+372|        }
+373|
+374|        .scanner-modal {
+375|            position: fixed;
+376|            top: 0;
+377|            left: 0;
+378|            width: 100%;
+379|            height: 100%;
+380|            background: #000000;
+381|            display: none;
+382|            flex-direction: column;
+383|            z-index: 10000;
+384|            padding: 0;
+385|        }
+386|
+387|        .scanner-modal.active {
+388|            display: flex;
+389|        }
+390|
+391|        .scanner-header {
+392|            background: rgba(0, 0, 0, 0.9);
+393|            padding: 15px 20px;
+394|            display: flex;
+395|            justify-content: space-between;
+396|            align-items: center;
+397|            position: relative;
+398|            z-index: 10001;
+399|        }
+400|
+401|        .scanner-header h2 {
+402|            font-size: 18px;
+403|            color: white;
+404|            font-weight: 600;
+405|        }
+406|
+407|        .close-scanner {
+408|            background: var(--error);
+409|            color: white;
+410|            border: none;
+411|            width: 40px;
+412|            height: 40px;
+413|            border-radius: 50%;
+414|            cursor: pointer;
+415|            font-size: 22px;
+416|            display: flex;
+417|            align-items: center;
+418|            justify-content: center;
+419|            transition: all 0.3s ease;
+420|            font-weight: bold;
+421|        }
+422|
+423|        .close-scanner:hover {
+424|            background: #c82333;
+425|            transform: scale(1.1);
+426|        }
+427|
+428|        #qr-reader {
+429|            width: 100% !important;
+430|            height: calc(100vh - 70px) !important;
+431|            position: relative;
+432|            background: #000;
+433|        }
+434|
+435|        #qr-reader video {
+436|            width: 100% !important;
+437|            height: 100% !important;
+438|            object-fit: cover !important;
+439|            position: absolute !important;
+440|            top: 0 !important;
+441|            left: 0 !important;
+442|        }
+443|
+444|        #qr-reader__dashboard,
+445|        #qr-reader__dashboard_section {
+446|            display: none !important;
+447|        }
+448|
+449|        #qr-reader__scan_region {
+450|            width: 100% !important;
+451|            height: 100% !important;
+452|            position: relative !important;
+453|            border: none !important;
+454|        }
+455|
+456|        .scan-indicator {
+457|            position: absolute;
+458|            top: 50%;
+459|            left: 50%;
+460|            transform: translate(-50%, -50%);
+461|            width: 80%;
+462|            max-width: 350px;
+463|            height: 80%;
+464|            max-height: 350px;
+465|            border: 3px solid var(--success);
+466|            border-radius: 20px;
+467|            z-index: 10000;
+468|            pointer-events: none;
+469|            box-shadow: 
+470|                0 0 0 2000px rgba(0, 0, 0, 0.5),
+471|                inset 0 0 30px rgba(52, 168, 83, 0.3);
+472|        }
+473|
+474|        .scan-line {
+475|            position: absolute;
+476|            width: 100%;
+477|            height: 3px;
+478|            background: linear-gradient(90deg, transparent, var(--success), transparent);
+479|            animation: scan 2s linear infinite;
+480|        }
+481|
+482|        @keyframes scan {
+483|            0% { top: 0; }
+484|            100% { top: 100%; }
+485|        }
+486|
+487|        .scan-corners {
+488|            position: absolute;
+489|            width: 100%;
+490|            height: 100%;
+491|        }
+492|
+493|        .corner {
+494|            position: absolute;
+495|            width: 30px;
+496|            height: 30px;
+497|            border: 4px solid var(--success);
+498|        }
+499|
+500|        .corner.top-left {
+501|            top: -3px;
+502|            left: -3px;
+503|            border-right: none;
+504|            border-bottom: none;
+505|            border-radius: 20px 0 0 0;
+506|        }
+507|
+508|        .corner.top-right {
+509|            top: -3px;
+510|            right: -3px;
+511|            border-left: none;
+512|            border-bottom: none;
+513|            border-radius: 0 20px 0 0;
+514|        }
+515|
+516|        .corner.bottom-left {
+517|            bottom: -3px;
+518|            left: -3px;
+519|            border-right: none;
+520|            border-top: none;
+521|            border-radius: 0 0 0 20px;
+522|        }
+523|
+524|        .corner.bottom-right {
+525|            bottom: -3px;
+526|            right: -3px;
+527|            border-left: none;
+528|            border-top: none;
+529|            border-radius: 0 0 20px 0;
+530|        }
+531|
+532|        .scan-instruction {
+533|            position: absolute;
+534|            bottom: 100px;
+535|            left: 50%;
+536|            transform: translateX(-50%);
+537|            background: rgba(0, 0, 0, 0.8);
+538|            color: white;
+539|            padding: 15px 25px;
+540|            border-radius: 12px;
+541|            font-size: 16px;
+542|            font-weight: 600;
+543|            z-index: 10001;
+544|            text-align: center;
+545|            backdrop-filter: blur(10px);
+546|        }
+547|
+548|        #scan-instructions {
+549|            text-align: center;
+550|            animation: slideUp 0.5s ease;
+551|        }
+552|
+553|        @keyframes slideUp {
+554|            from { opacity: 0; transform: translateY(20px); }
+555|            to { opacity: 1; transform: translateY(0); }
+556|        }
+557|
+558|        #scan-instructions p {
+559|            font-size: 16px;
+560|            color: var(--success);
+561|            font-weight: 600;
+562|            display: flex;
+563|            align-items: center;
+564|            justify-content: center;
+565|            gap: 8px;
+566|        }
+567|
+568|        #scan-instructions p::before {
+569|            content: '🔒';
+570|            font-size: 20px;
+571|            animation: rotate 2s linear infinite;
+572|        }
+573|
+574|        @keyframes rotate {
+575|            from { transform: rotate(0deg); }
+576|            to { transform: rotate(360deg); }
+577|        }
+578|
+579|        .transfer-area {
+580|            padding: 20px;
+581|            background: var(--bg-secondary);
+582|            border-top: 1px solid var(--border);
+583|            flex-shrink: 0;
+584|        }
+585|
+586|        .transfer-area h3 {
+587|            font-size: 16px;
+588|            font-weight: 600;
+589|            margin-bottom: 12px;
+590|            color: var(--text-primary);
+591|        }
+592|
+593|        #file-input {
+594|            width: 100%;
+595|            padding: 12px;
+596|            border: 2px dashed var(--border);
+597|            border-radius: 10px;
+598|            background: var(--bg-card);
+599|            color: var(--text-primary);
+600|            cursor: pointer;
+601|            transition: all 0.3s ease;
+602|            font-family: inherit;
+603|            font-size: 13px;
+604|        }
+605|
+606|        #file-input:hover {
+607|            border-color: var(--accent);
+608|            background: var(--accent);
+609|            color: white;
+610|        }
+611|
+612|        #transfer-status {
+613|            margin-top: 12px;
+614|            font-size: 13px;
+615|            color: var(--text-secondary);
+616|            text-align: center;
+617|        }
+618|
+619|        /* --- NEW: Transfer List Container --- */
+620|        #transfer-list-container {
+621|            margin-top: 15px;
+622|            display: flex;
+623|            flex-direction: column;
+624|            gap: 8px;
+625|            max-height: 190px; /* Approx 3 bars */
+626|            overflow-y: auto;
+627|            overflow-x: hidden;
+628|            scroll-behavior: smooth;
+629|        }
+630|
+631|        /* --- COMPACT DYNAMIC PROGRESS BAR STYLES --- */
+632|        .progress-container {
+633|            padding: 8px; /* More compact */
+634|            background: var(--bg-card);
+635|            border-radius: 10px;
+636|            box-shadow: 0 2px 8px var(--shadow);
+637|            display: flex;
+638|            flex-direction: column;
+639|            gap: 4px; /* More compact */
+640|        }
+641|        
+642|        .progress-top-row {
+643|            display: flex;
+644|            align-items: center;
+645|            gap: 8px; /* More compact */
+646|            width: 100%;
+647|        }
+648|
+649|        .progress-label {
+650|            font-size: 13px;
+651|            font-weight: 600;
+652|            color: var(--text-primary);
+653|            margin-bottom: 0;
+654|            white-space: nowrap;
+655|            overflow: hidden;
+656|            text-overflow: ellipsis;
+657|            flex-shrink: 1;
+658|        }
+659|
+660|        .progress-bar-wrapper {
+661|            flex-grow: 1;
+662|            display: flex;
+663|            flex-direction: column;
+664|            min-width: 0;
+665|        }
+666|
+667|        .progress-bar-background {
+668|            position: relative;
+669|            width: 100%;
+670|            height: 8px; /* More compact */
+671|            background: var(--bg-secondary);
+672|            border-radius: 4px; /* More compact */
+673|            overflow: hidden;
+674|            box-shadow: inset 0 1px 2px var(--shadow);
+675|        }
+676|
+677|        .progress-bar {
+678|            height: 100%;
+679|            background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
+680|            border-radius: 4px; /* More compact */
+681|            transition: width 0.3s ease;
+682|            position: relative;
+683|        }
+684|
+685|        .progress-bar.pending {
+686|            background: var(--border);
+687|            width: 100% !important;
+688|        }
+689|
+690|        .delivery-boy {
+691|            display: none;
+692|        }
+693|
+694|        .progress-stats {
+695|            display: flex;
+696|            justify-content: space-between;
+697|            margin-top: 4px;
+698|            font-size: 10px;
+699|            color: var(--text-secondary);
+700|        }
+701|
+702|        .cancel-button { /* Changed to class */
+703|            margin-top: 0;
+704|            width: auto;
+705|            padding: 4px 8px; /* More compact */
+706|            font-size: 11px; /* More compact */
+707|            flex-shrink: 0;
+708|            
+709|            background: var(--error);
+710|            color: white;
+711|            border: none;
+712|            border-radius: 8px;
+713|            font-weight: 600;
+714|            cursor: pointer;
+715|            transition: all 0.3s ease;
+716|        }
+717|        
+718|        .cancel-button:hover {
+719|             background: #d33828;
+720|             transform: translateY(-2px);
+721|             box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
+722|        }
+723|        
+724|        /* --- END COMPACT PROGRESS BAR STYLES --- */
+725|
+726|
+727|        .switch-mode-button {
+728|            margin-top: 12px;
+729|            width: 100%;
+730|            padding: 12px;
+731|            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+732|            color: #000;
+733|            border: none;
+734|            border-radius: 10px;
+735|            font-weight: 700;
+736|            font-size: 14px;
+737|            cursor: pointer;
+738|            transition: all 0.3s ease;
+739|            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+740|        }
+741|
+742|        .switch-mode-button:hover {
+743|            transform: translateY(-2px);
+744|            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
+745|        }
+746|
+747|        /* --- CHAT STYLES --- */
+748|        .chat-container {
+749|            padding: 20px;
+750|            border-top: 1px solid var(--border);
+751|            
+752|            /* New layout properties */
+753|            display: none; /* Hidden by default */
+754|            flex-direction: column;
+755|            flex-grow: 1; /* Fill the .chat-main area */
+756|            overflow: hidden; /* Ensure it doesn't overflow */
+757|        }
+758|
+759|        .chat-container h3 {
+760|            font-size: 16px;
+761|            font-weight: 600;
+762|            margin-bottom: 12px;
+763|            color: var(--text-primary);
+764|            flex-shrink: 0;
+765|        }
+766|
+767|        .chat-messages {
+768|            background: var(--bg-secondary);
+769|            border: 1px solid var(--border);
+770|            border-radius: 10px;
+771|            padding: 10px;
+772|            overflow-y: auto;
+773|            margin-bottom: 10px;
+774|            display: flex;
+775|            flex-direction: column;
+776|            gap: 8px;
+777|            
+778|            /* New layout */
+779|            flex-grow: 1; /* Fill all available space */
+780|            height: auto; /* Remove fixed height */
+781|        }
+782|
+783|        .chat-message {
+784|            padding: 8px 12px;
+785|            border-radius: 15px;
+786|            max-width: 80%;
+787|            word-wrap: break-word;
+788|            font-size: 14px;
+789|            display: flex;
+790|            flex-direction: column;
+791|        }
+792|
+793|        .chat-message.sender {
+794|            background: var(--bg-sender); /* Changed */
+795|            color: var(--text-sender); /* Changed */
+796|            align-self: flex-end;
+797|            border-bottom-right-radius: 3px;
+798|        }
+799|
+800|        .chat-message.receiver {
+801|            background: var(--bg-card);
+802|            color: var(--text-primary);
+803|            border: 1px solid var(--border);
+804|            align-self: flex-start;
+805|            border-bottom-left-radius: 3px;
+806|        }
+807|
+808|        .chat-message img {
+809|            max-width: 200px;
+810|            max-height: 200px;
+811|            border-radius: 8px;
+812|            display: block;
+813|            cursor: pointer;
+814|        }
+815|        
+816|        .message-content {
+817|            /* This will hold the text or image */
+818|        }
+819|
+820|        .message-status-bar {
+821|            font-size: 10px;
+822|            margin-top: 2px;
+823|            text-align: right;
+824|            opacity: 0.8;
+825|            display: flex;
+826|            justify-content: flex-end;
+827|            align-items: center;
+828|            gap: 4px;
+829|        }
+830|
+831|        .msg-status {
+832|            font-weight: 600;
+833|            transition: color 0.3s ease;
+834|            color: var(--text-secondary); /* Changed: Default tick color */
+835|        }
+836|
+837|        .msg-status.seen {
+838|            color: var(--accent); /* Changed: Blue tick for seen */
+839|        }
+840|
+841|        .download-status {
+842|            font-style: italic;
+843|            font-size: 9px;
+844|            display: none;
+845|        }
+846|        
+847|        .chat-message.receiver .message-status-bar {
+848|             display: none;
+849|        }
+850|
+851|        .chat-input-area {
+852|            display: flex;
+853|            gap: 8px;
+854|            flex-shrink: 0;
+855|        }
+856|
+857|        #chat-input {
+858|            flex-grow: 1;
+859|            padding: 10px 12px;
+860|            border: 2px solid var(--border);
+861|            border-radius: 10px;
+862|            background: var(--bg-card);
+863|            color: var(--text-primary);
+864|            font-family: inherit;
+865|            font-size: 14px;
+866|            transition: border-color 0.3s ease;
+867|        }
+868|
+869|        #chat-input:focus {
+870|            outline: none;
+871|            border-color: var(--accent);
+872|        }
+873|
+874|        #chat-send-button,
+875|        #chat-attach-button {
+876|            padding: 0 15px;
+877|            height: 44px;
+878|            background: var(--accent);
+879|            color: white;
+880|            border: none;
+881|            border-radius: 10px;
+882|            font-weight: 600;
+883|            font-size: 14px;
+884|            cursor: pointer;
+885|            transition: all 0.3s ease;
+886|        }
+887|
+888|        #chat-attach-button {
+889|            background: var(--bg-secondary);
+890|            color: var(--text-primary);
+891|            border: 2px solid var(--border);
+892|            font-size: 18px;
+893|            padding: 0 14px;
+894|        }
+895|        
+896|        #chat-send-button:hover {
+897|            background: var(--accent-hover);
+898|            transform: translateY(-2px);
+899|            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+900|        }
+901|
+902|        #chat-attach-button:hover {
+903|            background: var(--border);
+904|        }
+905|
+906|        .chat-status {
+907|            font-size: 12px;
+908|            color: var(--success);
+909|            text-align: center;
+910|            height: 18px;
+911|            margin-top: 8px;
+912|            opacity: 0;
+913|            transition: opacity 0.3s ease;
+914|            flex-shrink: 0;
+915|        }
+916|
+917|        .chat-limits-info {
+918|            font-size: 11px;
+919|            color: var(--text-secondary);
+920|            text-align: center;
+921|            margin-top: 8px;
+922|            flex-shrink: 0;
+923|        }
+924|        /* --- END CHAT STYLES --- */
+925|
+926|        /* --- DESKTOP LAYOUT (WHATSAPP-STYLE) --- */
+927|        @media (min-width: 768px) {
+928|            body {
+929|                padding: 15px; /* Add padding back for desktop */
+930|            }
+931|
+932|            .container {
+933|                flex-direction: row; /* Side-by-side layout */
+934|                max-width: 1100px; /* Wider */
+935|                max-height: 95vh;
+936|                border-radius: 20px;
+937|                box-shadow: 0 10px 40px var(--shadow), 0 0 0 1px var(--border);
+938|            }
+939|            
+940|            .container:hover {
+941|                transform: translateY(-5px);
+942|                box-shadow: 
+943|                    0 20px 60px var(--shadow),
+944|                    0 0 0 1px var(--border);
+945|            }
+946|
+947|            .sidebar {
+948|                width: 350px;
+949|                flex-shrink: 0;
+950|                border-right: 1px solid var(--border);
+951|                overflow-y: auto; /* Make sidebar scrollable */
+952|            }
+953|
+954|            .chat-main {
+955|                width: 100%; /* Takes rest of space */
+956|                border-left: 1px solid var(--border);
+957|            }
+958|
+959|            .chat-container {
+960|                padding: 20px; /* Restore padding */
+961|            }
+962|        }
+963|        /* --- END DESKTOP LAYOUT --- */
+964|
+965|        @media (max-width: 600px) {
+966|            .theme-toggle {
+967|                width: 40px;
+968|                height: 40px;
+969|                top: 10px;
+970|                right: 10px;
+971|            }
+972|            .scan-indicator {
+973|                width: 85%;
+974|                height: 85%;
+975|            }
+976|            .scan-instruction {
+977|                bottom: 80px;
+978|                font-size: 14px;
+979|                padding: 12px 20px;
+980|            }
+981|            
+982|            /* Adjust padding for mobile full-screen */
+983|            main { padding: 15px; }
+984|            .transfer-area { padding: 15px; }
+985|            .chat-container { padding: 15px; }
+986|        }
+987|
+988|    </style>
+989|</head>
+990|<body>
+991|
+992|    <div class="theme-toggle" onclick="toggleTheme()">
+993|        <svg id="theme-icon-light" viewBox="0 0 24 24" style="display: none;">
+994|            <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+995|        </svg>
+996|        <svg id="theme-icon-dark" viewBox="0 0 24 24">
+997|            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor"/>
+998|        </svg>
+999|    </div>
+1000|
+1001|    <!-- WATERMARK REMOVED -->
+1002|
+1003|    <div class="connection-overlay" id="connection-overlay">
+1004|        <div class="lock-animation">
+1005|            <svg class="lock-svg" viewBox="0 0 100 100">
+1006|                <defs>
+1007|                    <linearGradient id="lockGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+1008|                        <stop offset="0%" style="stop-color:#4285f4;stop-opacity:1" />
+1009|                        <stop offset="100%" style="stop-color:#34a853;stop-opacity:1" />
+1010|                    </linearGradient>
+1011|                </defs>
+1012|                <rect class="lock-body" x="30" y="45" width="40" height="35" rx="5" fill="url(#lockGradient)"/>
+1013|                <path class="lock-shackle" d="M35 45 V35 C35 25 40 20 50 20 C60 20 65 25 65 35 V45" 
+1014|                      stroke="url(#lockGradient)" stroke-width="5" fill="none" stroke-linecap="round"/>
+1015|                <circle cx="50" cy="60" r="4" fill="white"/>
+1016|                <rect x="48" y="60" width="4" height="8" fill="white"/>
+1017|                <polyline class="checkmark" points="40,62 47,69 62,54" 
+1018|                          stroke="#34a853" stroke-width="4" fill="none" 
+1019|                          stroke-linecap="round" stroke-linejoin="round"
+1020|                          stroke-dasharray="100" stroke-dashoffset="100"/>
+1021|            </svg>
+1022|            <p style="color: white; margin-top: 15px; font-size: 16px; font-weight: 600;">
+1023|                🔐 E2E Encrypted Connection
+1024|            </p>
+1025|        </div>
+1026|    </div>
+1027|
+1028|    <div class="scanner-modal" id="scanner-modal">
+1029|        <div class="scanner-header">
+1030|            <h2>📷 Scan QR Code</h2>
+1031|            <button class="close-scanner" onclick="closeScanner()">✕</button>
+1032|        </div>
+1033|        <div id="qr-reader"></div>
+1034|        
+1035|        <div class="scan-indicator">
+1036|            <div class="scan-line"></div>
+1037|            <div class="scan-corners">
+1038|                <div class="corner top-left"></div>
+1039|                <div class="corner top-right"></div>
+1040|                <div class="corner bottom-left"></div>
+1041|                <div class="corner bottom-right"></div>
+1042|            </div>
+1043|        </div>
+1044|        
+1045|        <div class="scan-instruction">
+1046|            📱 Point camera at QR code
+1047|        </div>
+1048|    </div>
+1049|
+1050|    <!-- NEW LAYOUT STRUCTURE -->
+1051|    <div class="container">
+1052|        
+1053|        <!-- SIDEBAR (Controls) -->
+1054|        <div class="sidebar">
+1055|            <header>
+1056|                <h1>QR Send Pro</h1>
+1057|                <div id="status">Starting...</div>
+1058|            </header>
+1059|            
+1060|            <main>
+1061|                <div id="qr-code-container">
+1062|                    <div id="qrcode"></div>
+1063|                    <p>Scan QR code to connect securely</p>
+1064|                    
+1065|                    <div id="share-buttons-container">
+1066|                        <button id="native-share-button" class="share-button primary-share" style="display: none;">📤 Share</button>
+1067|                        <button id="copy-link-button" class="share-button">📋 Copy</button>
+1068|                        <button id="download-qr-button" class="share-button">💾 Save</button>
+1069|                        <button id="scan-qr-button" class="share-button scanner-button" onclick="openScanner()">📷 Scan</button>
+1070|                    </div>
+1071|                </div>
+1072|
+1073|                <div id="scan-instructions" style="display:none;">
+1074|                    <p>✅ Connected Securely!</p>
+1075|                </div>
+1076|            </main>
+1077|
+1078|            <div class="transfer-area">
+1079|                <h3>📁 Send Files</h3>
+1080|                <input type="file" id="file-input" disabled multiple>
+1081|                <div id="transfer-status">Waiting...</div>
+1082|
+1083|                <!-- NEW: Transfer List Container -->
+1084|                <div id="transfer-list-container">
+1085|                    <!-- Dynamic progress bars will be injected here -->
+1086|                </div>
+1087|                
+1088|            </div>
+1089|        </div>
+1090|
+1091|        <!-- MAIN CHAT AREA -->
+1092|        <div class="chat-main">
+1093|            <!-- CHAT UI -->
+1094|            <div class="chat-container" id="chat-container">
+1095|                <h3>💬 E2E Chat</h3>
+1096|                <div class="chat-messages" id="chat-messages">
+1097|                    <!-- Messages will go here -->
+1098|                </div>
+1099|                <div class="chat-status" id="chat-status"></div>
+1100|                <div class="chat-input-area">
+1101|                    <input type="text" id="chat-input" placeholder="Type a message...">
+1102|                    <button id="chat-attach-button" title="Attach Image">
+1103|                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"></path></svg>
+1104|                    </button>
+1105|                    <button id="chat-send-button">
+1106|                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+1107|                    </button>
+1108|                    <input type="file" id="chat-image-input" accept="image/*" style="display: none;">
+1109|                </div>
+1110|                <div class="chat-limits-info" id="chat-limits-info">
+1111|                    Words: 0/1000 | Images: 0/6 (0/10 MB)
+1112|                </div>
+1113|            </div>
+1114|
+1115|            <!-- CHAT PLACEHOLDER -->
+1116|            <div class="chat-placeholder" id="chat-placeholder">
+1117|                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+1118|                <p>Scan a QR code or share your link<br>to start a secure session.</p>
+1119|            </div>
+1120|        </div>
+1121|
+1122|    </div>
+1123|    <!-- END NEW LAYOUT STRUCTURE -->
+1124|
+1125|    <script>
+1126|        function toggleTheme() {
+1127|            document.body.classList.toggle('dark-mode');
+1128|            const isDark = document.body.classList.contains('dark-mode');
+1129|            document.getElementById('theme-icon-light').style.display = isDark ? 'block' : 'none';
+1130|            document.getElementById('theme-icon-dark').style.display = isDark ? 'none' : 'block';
+1131|            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+1132|        }
+1133|
+1134|        if (localStorage.getItem('theme') === 'dark') {
+1135|            toggleTheme();
+1136|        }
+1137|
+1138|        let html5QrCode = null;
+1139|        let isScanning = false;
+1140|        let hasScanned = false;
+1141|        // This flag blocks peer init *while scanning* to prevent race conditions
+1142|        let ALLOW_PEER_INIT = true;
+1143|        // This flag prevents reload loops on disconnect
+1144|        let IS_RELOADING = false; 
+1145|
+1146|        window.APP_PEER = null;
+1147|        window.APP_CONNECTION = null;
+1148|
+1149|        function openScanner() {
+1150|            // ADDED GUARD: If scanner modal is already active or we are scanning, do nothing.
+1151|            if (isScanning || document.getElementById('scanner-modal').classList.contains('active')) {
+1152|                console.log('⚠ openScanner called but scanner is already active. Ignoring.');
+1153|                return;
+1154|            }
+1155|            console.log('📷 Opening scanner...');
+1156|            hasScanned = false;
+1157|            // Block peer auto-init *before* starting scanner
+1158|            ALLOW_PEER_INIT = false; 
+1159|            console.log('🚫 BLOCKED peer auto-init');
+1160|            document.getElementById('scanner-modal').classList.add('active');
+1161|            document.body.style.overflow = 'hidden';
+1162|            startScanner();
+1163|        }
+1164|
+1165|        function closeScanner() {
+1166|            // ADDED GUARD: Don't do anything if already closing
+1167|            if (!document.getElementById('scanner-modal').classList.contains('active')) {
+1168|                console.log('⚠ closeScanner called but modal is already closed.');
+1169|                return;
+1170|            }
+1171|            console.log('❌ Closing scanner...');
+1172|            document.getElementById('scanner-modal').classList.remove('active');
+1173|            document.body.style.overflow = '';
+1174|            stopScanner(); // This is now the only place that calls stopScanner after a scan
+1175|            // Re-allow peer init *only if* no scan was successful (and we are not reloading)
+1176|            if (!hasScanned && !IS_RELOADING) {
+1177|                ALLOW_PEER_INIT = true;
+1178|                console.log('✅ RE-ENABLED peer auto-init');
+1179|            }
+1180|        }
+1181|
+1182|        function startScanner() {
+1183|            if (html5QrCode || isScanning) {
+1184|                console.log('⚠ Scanner already running');
+1185|                return;
+1186|            }
+1187|            isScanning = true;
+1188|            console.log('🎥 Starting camera...');
+1189|
+1190|            html5QrCode = new Html5Qrcode("qr-reader");
+1191|            
+1192|            const config = {
+1193|                fps: 30,
+1194|                qrbox: function(viewfinderWidth, viewfinderHeight) {
+1195|                    let minDimension = Math.min(viewfinderWidth, viewfinderHeight);
+1196|                    let qrboxSize = Math.floor(minDimension * 0.8);
+1197|                    return { width: qrboxSize, height: qrboxSize };
+1198|                },
+1199|                aspectRatio: 1.0,
+1200|                disableFlip: false
+1201|            };
+1202|            
+1203|            html5QrCode.start(
+1204|                { facingMode: "environment" },
+1205|                config,
+1206|                (decodedText) => {
+1207|                    if (hasScanned) {
+1208|                        console.log('⚠ Already processed, ignoring...');
+1209|                        return;
+1210|                    }
+1211|                    hasScanned = true;
+1212|                    // ALLOW_PEER_INIT remains false, which is correct
+1213|                    
+1214|                    console.log('✓✓✓ QR SCANNED:', decodedText);
+1215|                    console.log('🔍 Type:', typeof decodedText);
+1216|                    console.log('🔍 Length:', decodedText.length);
+1217|                    
+1218|                    if (navigator.vibrate) {
+1219|                        navigator.vibrate(200);
+1220|                    }
+1221|                    
+1222|                    // --- MODIFIED LOGIC ---
+1223|                    // Use setTimeout to break out of the scanner's execution context
+1224|                    // and prevent any race conditions.
+1225|                    setTimeout(() => {
+1226|                        // 1. Process the QR code first. This will set the IS_RELOADING flag.
+1227|                        console.log('→ Calling processQRCode NOW (from timeout)...');
+1228|                        processQRCode(decodedText);
+1229|
+1230|                        // 2. Then, close the scanner modal. closeScanner() will handle stopping the camera.
+1231|                        console.log('→ Calling closeScanner NOW (from timeout)...');
+1232|                        closeScanner();
+1233|                    }, 0); // 0ms timeout executes after current stack.
+1234|                    // --- END MODIFIED LOGIC ---
+1235|                },
+1236|                (errorMessage) => {
+1237|                    // Silent
+1238|                }
+1239|            ).catch((err) => {
+1240|                console.error('❌ Scanner error:', err);
+1241|                isScanning = false;
+1242|                // Allow peer init to recover if camera fails
+1243|                ALLOW_PEER_INIT = true; 
+1244|                // Don't use alert, use a status message
+1245|                showChatStatus('❌ Camera error: ' + err.name, true);
+1246|                closeScanner();
+1247|            });
+1248|        }
+1249|
+1250|        /**
+1251|         * UPDATED: This function now sets the URL hash and reloads the page.
+1252|         */
+1253|        function processQRCode(decodedText) {
+1254|            // ADDED GUARD: Prevent multiple reloads
+1255|            if (IS_RELOADING) {
+1256|                console.log('⚠ Already processing QR and reloading. Ignoring.');
+1257|                return;
+1258|            }
+1259|            IS_RELOADING = true; // Set flag immediately
+1260|
+1261|            console.log('=== PROCESSING QR CODE ===');
+1262|            console.log('URL:', decodedText);
+1263|            
+1264|            try {
+1265|                const url = new URL(decodedText);
+1266|                console.log('✓ Valid URL');
+1267|                console.log('Hash:', url.hash);
+1268|                
+1269|                const scannedPeerId = url.hash.substring(1);
+1270|                console.log('🎯 Extracted Peer ID:', scannedPeerId);
+1271|                console.log('🎯 Length:', scannedPeerId.length);
+1272|                
+1273|                if (!scannedPeerId || scannedPeerId.trim() === '') {
+1274|                    console.error('❌ Empty peer ID!');
+1275|                    showChatStatus('QR code has no peer ID', true);
+1276|                    hasScanned = false; // Allow re-scan
+1277|                    ALLOW_PEER_INIT = true; // Allow peer init to recover
+1278|                    return;
+1279|                }
+1280|                
+1281|                console.log('✓ Peer ID is valid');
+1282|                
+1283|                // --- NEW LOGIC ---
+1284|                // Set the hash to the scanned ID and reload.
+1285|                // The app will re-initialize in client mode.
+1286|                console.log('🔄 Setting hash and reloading to switch to CLIENT mode...');
+1287|                window.location.hash = scannedPeerId;
+1288|                window.location.reload();
+1289|
+1290|            } catch (e) {
+1291|                console.error('❌❌❌ QR parse FAILED:', e);
+1292|                console.error('Error:', e.message);
+1293|                showChatStatus('Invalid QR code: ' + e.message, true);
+1294|                hasScanned = false; // Allow re-scan
+1295|                ALLOW_PEER_INIT = true; // Allow peer init to recover
+1296|                IS_RELOADING = false; // RESET FLAG on error
+1297|            }
+1298|        }
+1299|
+1300|        function stopScanner() {
+1301|            if (html5QrCode && isScanning) {
+1302|                console.log('🛑 Stopping scanner...');
+1303|                html5QrCode.stop().then(() => {
+1304|                    html5QrCode.clear();
+1305|                    html5QrCode = null;
+1306|                    isScanning = false;
+1307|                    console.log('✓ Scanner stopped');
+1308|                }).catch((err) => {
+1309|                    console.error('Stop error:', err);
+1310|                    html5QrCode = null;
+1311|                    isScanning = false;
+1312|                });
+1313|            }
+1314|        }
+1315|
+1316|        function showConnectionAnimation() {
+1317|            const overlay = document.getElementById('connection-overlay');
+1318|            overlay.classList.add('active');
+1319|            setTimeout(() => {
+1320|                overlay.classList.remove('active');
+1321|            }, 2000);
+1322|        }
+1323|
+1324|        // --- NEW: Helper to create HTML for a progress bar ---
+1325|        /**
+1326|         * Creates and appends a progress bar UI to the transfer list.
+1327|         * @param {string} fileId - The unique ID for this transfer.
+1328|         * @param {string} fileName - The name of the file.
+1329|         * @param {boolean} isSender - True if this is a sending bar, false for receiving.
+1330|         */
+1331|        function createTransferUI(fileId, fileName, isSender) {
+1332|            const container = document.getElementById('transfer-list-container');
+1333|            const el = document.createElement('div');
+1334|            el.className = 'progress-container';
+1335|            el.id = `transfer-${fileId}`;
+1336|
+1337|            const label = isSender ? `Sending: ${fileName}` : `Receiving: ${fileName}`;
+1338|            // *** FIX: Store isSender as data attribute ***
+1339|            const cancelButtonHTML = `<button class="cancel-button" data-file-id="${fileId}" data-is-sender="${isSender}">❌</button>`;
+1340|
+1341|            el.innerHTML = `
+1342|                <div class="progress-top-row">
+1343|                    <div class="progress-bar-wrapper">
+1344|                        <div class="progress-label">
+1345|                            <span class="progress-label-text">${label}</span>
+1346|                            <span class="progress-percentage">0%</span>
+1347|                        </div>
+1348|                        <div class="progress-bar-background">
+1349|                            <div class="progress-bar"></div>
+1350|                        </div>
+1351|                    </div>
+1352|                    ${cancelButtonHTML}
+1353|                </div>
+1354|                <div class="progress-stats">
+1355|                    <span class="progress-size">-- MB / -- MB</span>
+1356|                    <span class="progress-eta">ETA: --:--</span>
+1357|                </div>
+1358|            `;
+1359|
+1360|            container.appendChild(el);
+1361|            
+1362|            // *** FIX: Read from data attribute instead of closure variable ***
+1363|            const cancelBtn = el.querySelector('.cancel-button');
+1364|            cancelBtn.addEventListener('click', (e) => {
+1365|                const btn = e.currentTarget;
+1366|                const fileIdToCancel = btn.dataset.fileId;
+1367|                const isSenderTransfer = btn.dataset.isSender === 'true';
+1368|                
+1369|                console.log(`❌ Cancel clicked for file: ${fileIdToCancel}, isSender: ${isSenderTransfer}`);
+1370|                
+1371|                if (isSenderTransfer) {
+1372|                    cancelTransfer(fileIdToCancel);
+1373|                } else {
+1374|                    cancelReceive(fileIdToCancel);
+1375|                }
+1376|            });
+1377|        }
+1378|
+1379|        /**
+1380|         * Updates a specific progress bar in the UI.
+1381|         * @param {string} fileId - The ID of the transfer to update.
+1382|         * @param {object} options - The values to update.
+1383|         * @param {number} options.percent - The percentage (0-100).
+1384|         * @param {string} options.sizeText - The formatted size string (e.g., "1.2 MB / 5 MB").
+1385|         * @param {string} options.etaText - The formatted ETA string (e.g., "ETA: 0:05").
+1386|         * @param {string} [options.status] - Optional status like "Pending".
+1387|         */
+1388|        function updateTransferUI(fileId, options) {
+1389|            const el = document.getElementById(`transfer-${fileId}`);
+1390|            if (!el) return;
+1391|
+1392|            const bar = el.querySelector('.progress-bar');
+1393|            const percentage = el.querySelector('.progress-percentage');
+1394|            const size = el.querySelector('.progress-size');
+1395|            const eta = el.querySelector('.progress-eta');
+1396|            const label = el.querySelector('.progress-label-text');
+1397|
+1398|            if (options.percent != null) {
+1399|                bar.style.width = `${options.percent}%`;
+1400|                percentage.textContent = `${options.percent}%`;
+1401|            }
+1402|            if (options.sizeText) size.textContent = options.sizeText;
+1403|            if (options.etaText) eta.textContent = options.etaText;
+1404|            
+1405|            if (options.status === 'pending') {
+1406|                bar.classList.add('pending');
+1407|                label.style.opacity = 0.7;
+1408|                percentage.textContent = 'Pending';
+1409|                size.textContent = options.sizeText; // Show file size for pending
+1410|                eta.textContent = '';
+1411|            } else {
+1412|                 bar.classList.remove('pending');
+1413|                 label.style.opacity = 1;
+1414|            }
+1415|        }
+1416|
+1417|
+1418|        document.addEventListener('DOMContentLoaded', () => {
+1419|            console.log('🚀 App initialized');
+1420|            
+1421|            // --- CHAT HELPER CONSTANTS ---
+1422|            const MAX_WORDS = 1000;
+1423|            const MAX_IMAGES = 6;
+1424|            const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10 MB
+1425|
+1426|            // --- CHAT STATE VARIABLES ---
+1427|            let typingTimer;
+1428|            let isTypingSent = false;
+1429|            let peerTypingTimer;
+1430|
+1431|
+1432|            // --- CHAT HELPER FUNCTIONS ---
+1433|            
+1434|            /**
+1435|             * Converts a File object to a Base64 Data URL.
+1436|             * @param {File} file - The file to convert.
+1437|             * @returns {Promise<string>} A promise that resolves with the Base64 string.
+1438|             */
+1439|            function fileToBase64(file) {
+1440|                return new Promise((resolve, reject) => {
+1441|                    const reader = new FileReader();
+1442|                    reader.readAsDataURL(file);
+1443|                    reader.onload = () => resolve(reader.result);
+1444|                    reader.onerror = error => reject(error);
+1445|                });
+1446|            }
+1447|
+1448|            /**
+1449|             * Scans the DOM and returns the current counts for words, images, and image size.
+1450|             * @returns {{wordCount: number, imageCount: number, imageSize: number}}
+1451|             */
+1452|            function getChatLimits() {
+1453|                const textMessages = chatMessages.querySelectorAll('.chat-message[data-type="text"]');
+1454|                const imageMessages = chatMessages.querySelectorAll('.chat-message[data-type="image"]');
+1455|
+1456|                let totalWords = 0;
+1457|                textMessages.forEach(msg => {
+1458|                    totalWords += parseInt(msg.dataset.words || 0, 10);
+1459|                });
+1460|
+1461|                let totalImageSize = 0;
+1462|                imageMessages.forEach(img => {
+1463|                    totalImageSize += parseInt(img.dataset.size || 0, 10);
+1464|                });
+1465|
+1466|                return {
+1467|                    wordCount: totalWords,
+1468|                    imageCount: imageMessages.length,
+1469|                    imageSize: totalImageSize
+1470|                };
+1471|            }
+1472|
+1473|            /**
+1474|             * Prunes the chat DOM to enforce limits. Removes oldest messages first.
+1475|             */
+1476|            function pruneChat() {
+1477|                // Prune text
+1478|                const textMessages = Array.from(chatMessages.querySelectorAll('.chat-message[data-type="text"]'));
+1479|                let { wordCount } = getChatLimits(); // Get current word count
+1480|
+1481|                while (wordCount > MAX_WORDS && textMessages.length > 0) {
+1482|                    const oldMsg = textMessages.shift(); // Get oldest message
+1483|                    const wordsToRemove = parseInt(oldMsg.dataset.words || 0, 10);
+1484|                    wordCount -= wordsToRemove;
+1485|                    oldMsg.remove();
+1486|                }
+1487|
+1488|                // Prune images
+1489|                const imageMessages = Array.from(chatMessages.querySelectorAll('.chat-message[data-type="image"]'));
+1490|                let { imageCount, imageSize } = getChatLimits(); // Get current image stats
+1491|
+1492|                while ((imageCount > MAX_IMAGES || imageSize > MAX_IMAGE_SIZE) && imageMessages.length > 0) {
+1493|                    const oldImg = imageMessages.shift(); // Get oldest image
+1494|                    const sizeToRemove = parseInt(oldImg.dataset.size || 0, 10);
+1495|                    imageSize -= sizeToRemove;
+1496|                    imageCount--;
+1497|                    oldImg.remove();
+1498|                }
+1499|            }
+1500|
+1501|            /**
+1502|             * Updates the chat limits UI with current stats.
+1503|             */
+1504|            function updateChatLimitsUI() {
+1505|                if (!chatLimitsInfo) return;
+1506|                const { wordCount, imageCount, imageSize } = getChatLimits();
+1507|                chatLimitsInfo.textContent = `Words: ${wordCount}/${MAX_WORDS} | Images: ${imageCount}/${MAX_IMAGES} (${formatBytes(imageSize)}/10 MB)`;
+1508|            }
+1509|
+1510|            /**
+1511|             * Adds a new message to the chat window.
+1512|             * @param {string} type - 'text' or 'image'
+1513|             * @param {string} content - The text message or Base64 image data
+1514|             * @param {string} sender - 'sender' or 'receiver'
+1515|             * @param {object} metadata - { words: number } or { size: number, name: string }
+1516|             * @param {string} msgId - The unique message ID
+1517|             */
+1518|            function addMessageToDOM(type, content, sender, metadata, msgId) {
+1519|                const msgEl = document.createElement('div');
+1520|                msgEl.className = `chat-message ${sender}`;
+1521|                msgEl.dataset.type = type;
+1522|                msgEl.dataset.msgId = msgId;
+1523|
+1524|                const contentEl = document.createElement('div');
+1525|                contentEl.className = 'message-content';
+1526|
+1527|                if (type === 'text') {
+1528|                    contentEl.textContent = content;
+1529|                    msgEl.dataset.words = metadata.words;
+1530|                } else if (type === 'image') {
+1531|                    const img = document.createElement('img');
+1532|                    img.src = content; // 'content' is Base64 data
+1533|                    img.dataset.filename = metadata.name; // Store filename for download
+1534|                    
+1535|                    // Add download click listener
+1536|                    img.onclick = () => {
+1537|                        try {
+1538|                            const a = document.createElement('a');
+1539|                            a.href = img.src;
+1540|                            a.download = img.dataset.filename;
+1541|                            document.body.appendChild(a);
+1542|                            a.click();
+1543|                            a.remove();
+1544|                            
+1545|                            // Send download notification
+1546|                            if (currentConnection && currentConnection.open) {
+1547|                                currentConnection.send({ type: 'chat-img-download', msgId: msgId });
+1548|                            }
+1549|                        } catch (e) {
+1550|                            console.error("Download error:", e);
+1551|                            showChatStatus('Image download failed', true);
+1552|                        }
+1553|                    };
+1554|                    
+1555|                    img.onload = () => {
+1556|                        chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll on image load
+1557|                    };
+1558|                    contentEl.appendChild(img);
+1559|                    msgEl.dataset.size = metadata.size;
+1560|                }
+1561|                
+1562|                msgEl.appendChild(contentEl);
+1563|
+1564|                // Add status bar (for sender only)
+1565|                if (sender === 'sender') {
+1566|                    const statusBar = document.createElement('div');
+1567|                    statusBar.className = 'message-status-bar';
+1568|                    
+1569|                    if (type === 'image') {
+1570|                         const downloadStatus = document.createElement('span');
+1571|                         downloadStatus.className = 'download-status';
+1572|                         downloadStatus.textContent = 'Downloaded by peer';
+1573|                         statusBar.appendChild(downloadStatus);
+1574|                    }
+1575|                    
+1576|                    const msgStatus = document.createElement('span');
+1577|                    msgStatus.className = 'msg-status';
+1578|                    msgStatus.innerHTML = '✓'; // One tick
+1579|                    statusBar.appendChild(msgStatus);
+1580|                    
+1581|                    msgEl.appendChild(statusBar);
+1582|                }
+1583|
+1584|                chatMessages.appendChild(msgEl);
+1585|                chatMessages.scrollTop = chatMessages.scrollHeight;
+1586|            }
+1587|
+1588|            /**
+1589|             * Sends the text message from the input field.
+1590|             */
+1591|            function sendTextMessage() {
+1592|                const message = chatInput.value.trim();
+1593|                if (message === '' || !currentConnection || !currentConnection.open) return;
+1594|
+1595|                const wordCount = message.split(/\s+/).length;
+1596|                const msgId = crypto.randomUUID();
+1597|                
+1598|                try {
+1599|                    currentConnection.send({ type: 'chat-text', message: message, msgId: msgId });
+1600|                    addMessageToDOM('text', message, 'sender', { words: wordCount }, msgId);
+1601|                    pruneChat();
+1602|                    updateChatLimitsUI();
+1603|                    chatInput.value = '';
+1604|                    
+1605|                    // Stop typing indicator after send
+1606|                    clearTimeout(typingTimer);
+1607|                    isTypingSent = false;
+1608|                    currentConnection.send({ type: 'chat-stop-typing' });
+1609|
+1610|                } catch (e) {
+1611|                    console.error("Chat send error:", e);
+1612|                    showChatStatus('Message send error', true);
+1613|                }
+1614|            }
+1615|
+1616|            /**
+1617|             * Handles the file selection from the image input.
+1618|             */
+1619|            function handleImageUpload(event) {
+1620|                const file = event.target.files[0];
+1621|                if (!file) return;
+1622|
+1623|                if (file.size > MAX_IMAGE_SIZE) {
+1624|                    showChatStatus('❌ Image is too large (Max 10MB)', true);
+1625|                    return;
+1626|                }
+1627|                
+1628|                const { imageCount, imageSize } = getChatLimits();
+1629|                if (imageCount >= MAX_IMAGES || imageSize + file.size > MAX_IMAGE_SIZE) {
+1630|                     showChatStatus('Image quota full. Old images will be removed.', true);
+1631|                     // We still allow sending, pruneChat() will handle removal.
+1632|                }
+1633|
+1634|                fileToBase64(file).then(base64data => {
+1635|                    if (!currentConnection || !currentConnection.open) return;
+1636|                    
+1637|                    const msgId = crypto.randomUUID();
+1638|                    const metadata = { size: file.size, name: file.name };
+1639|
+1640|                    try {
+1641|                        currentConnection.send({
+1642|                            type: 'chat-image',
+1643|                            name: file.name,
+1644|                            fileType: file.type,
+1645|                            size: file.size,
+1646|                            data: base64data,
+1647|                            msgId: msgId
+1648|                        });
+1649|                        addMessageToDOM('image', base64data, 'sender', metadata, msgId);
+1650|                        pruneChat();
+1651|                        updateChatLimitsUI();
+1652|                    } catch (e) {
+1653|                        console.error("Image send error:", e);
+1654|                        showChatStatus('Image send error', true);
+1655|                    }
+1656|                }).catch(err => {
+1657|                    console.error("Base64 conversion error:", err);
+1658|                    showChatStatus('Could not read image', true);
+1659|                });
+1660|                
+1661|                event.target.value = null; // Clear input
+1662|            }
+1663|
+1664|            /**
+1665|             * Shows a temporary status message in the chat UI.
+1666|             */
+1667|            function showChatStatus(message, isError = false) {
+1668|                if (!chatStatus) return;
+1669|                chatStatus.textContent = message;
+1670|                chatStatus.style.color = isError ? 'var(--error)' : 'var(--success)';
+1671|                chatStatus.style.opacity = 1;
+1672|                
+1673|                // Clear any existing timer
+1674|                clearTimeout(peerTypingTimer); 
+1675|                
+1676|                // Hide after 3 seconds
+1677|                peerTypingTimer = setTimeout(() => {
+1678|                    chatStatus.style.opacity = 0;
+1679|                }, 3000);
+1680|            }
+1681|            
+1682|            // --- END CHAT HELPER FUNCTIONS ---
+1683|
+1684|
+1685|            const statusEl = document.getElementById('status');
+1686|            const qrCodeContainer = document.getElementById('qr-code-container');
+1687|            const qrEl = document.getElementById('qrcode');
+1688|            const scanInstructions = document.getElementById('scan-instructions');
+1689|            const fileInput = document.getElementById('file-input');
+1690|            const transferStatusEl = document.getElementById('transfer-status');
+1691|            const shareButtonsContainer = document.getElementById('share-buttons-container');
+1692|
+1693|            const nativeShareButton = document.getElementById('native-share-button');
+1694|            const copyLinkButton = document.getElementById('copy-link-button');
+1695|            const downloadQrButton = document.getElementById('download-qr-button');
+1696|            
+1697|            // --- NEW: Transfer List Container ---
+1698|            const transferListContainer = document.getElementById('transfer-list-container');
+1699|
+1700|
+1701|            // --- CHAT ELEMENTS ---
+1702|            const chatContainer = document.getElementById('chat-container');
+1703|            const chatPlaceholder = document.getElementById('chat-placeholder');
+1704|            const chatMessages = document.getElementById('chat-messages');
+1705|            const chatInput = document.getElementById('chat-input');
+1706|            const chatSendButton = document.getElementById('chat-send-button');
+1707|            const chatAttachButton = document.getElementById('chat-attach-button');
+1708|            const chatImageInput = document.getElementById('chat-image-input');
+1709|            const chatLimitsInfo = document.getElementById('chat-limits-info');
+1710|            const chatStatus = document.getElementById('chat-status');
+1711|
+1712|            // --- CHAT LISTENERS ---
+1713|            chatSendButton.addEventListener('click', sendTextMessage);
+1714|            
+1715|            chatInput.addEventListener('keyup', (e) => {
+1716|                if (e.key === 'Enter') {
+1717|                    sendTextMessage();
+1718|                }
+1719|            });
+1720|            
+1721|            // Typing Indicator Logic
+1722|            chatInput.addEventListener('input', () => {
+1723|                if (!currentConnection || !currentConnection.open) return;
+1724|                
+1725|                if (!isTypingSent) {
+1726|                    currentConnection.send({ type: 'chat-typing' });
+1727|                    isTypingSent = true;
+1728|                    // Cooldown to prevent spam
+1729|                    setTimeout(() => { isTypingSent = false; }, 2000); 
+1730|                }
+1731|                
+1732|                // Clear previous "stop" timer
+1733|                clearTimeout(typingTimer);
+1734|                
+1735|                // Set a new timer to send "stop" if user pauses
+1736|                typingTimer = setTimeout(() => {
+1737|                    currentConnection.send({ type: 'chat-stop-typing' });
+1738|                }, 3000);
+1739|            });
+1740|            
+1741|            chatInput.addEventListener('blur', () => {
+1742|                 if (currentConnection && currentConnection.open) {
+1743|                    currentConnection.send({ type: 'chat-stop-typing' });
+1744|                 }
+1745|            });
+1746|
+1747|            chatAttachButton.addEventListener('click', () => chatImageInput.click());
+1748|            chatImageInput.addEventListener('change', handleImageUpload);
+1749|
+1750|
+1751|            const CHUNK_SIZE = 64 * 1024;
+1752|
+1753|            let peer = null;
+1754|            let currentConnection = null;
+1755|            let myId = '';
+1756|            let connectUrl = '';
+1757|            let isHost = false; // This will be set by initializePeer
+1758|            let connectionRetryCount = 0;
+1759|            const MAX_RETRY = 3;
+1760|            
+1761|            let fileQueue = []; // NEW: Will store { file, id, status }
+1762|            let isSending = false;
+1763|            let activeSend = null; // NEW: Will store the active fileJob
+1764|            
+1765|            // NEW: Map to store receiving file metadata
+1766|            let receivingFiles = new Map(); 
+1767|
+1768|            let hasActiveTransfer = false; // Will be true if isSending or receivingFiles.size > 0
+1769|            let heartbeatInterval = null;
+1770|            
+1771|            window.addEventListener('beforeunload', (event) => {
+1772|                hasActiveTransfer = isSending || receivingFiles.size > 0;
+1773|                if (hasActiveTransfer) {
+1774|                    const warningText = 'Transfer active!';
+1775|                    event.preventDefault();
+1776|                    event.returnValue = warningText;
+1777|                    return warningText;
+1778|                }
+1779|            });
+1780|
+1781|            // This function is no longer needed, but we keep it in case
+1782|            // any other part of the code relies on it.
+1783|            function clearHashFromUrl() {
+1784|                const uri = window.location.toString();
+1785|                if (uri.indexOf("#") > 0) {
+1786|                    const cleanUri = uri.substring(0, uri.indexOf("#"));
+1787|                    window.history.replaceState({}, document.title, cleanUri);
+1788|                }
+1789|            }
+1790|
+1791|            function initializePeer() {
+1792|                if (!ALLOW_PEER_INIT) {
+1793|                    console.log('🚫 Peer init BLOCKED (scanner active)');
+1794|                    return;
+1795|                }
+1796|                
+1797|                console.log('🔧 Initializing peer...');
+1798|                
+1799|                statusEl.textContent = 'Initializing...';
+1800|                
+1801|                try {
+1802|                    peer = new Peer({
+1803|                        config: {
+1804|                            iceServers: [
+1805|                                { urls: 'stun:stun.l.google.com:19302' },
+1806|                                { 
+1807|                                    urls: 'turn:openrelay.metered.ca:80',
+1808|                                    username: 'openrelayproject',
+1809|                                    credential: 'openrelayproject'
+1810|                                }
+1811|                            ],
+1812|                            sdpSemantics: 'unified-plan'
+1813|                        },
+1814|                        debug: 1
+1815|                    });
+1816|                    
+1817|                    window.APP_PEER = peer;
+1818|   <response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with `grep -n` in order to find the line numbers of what you are looking for.</NOTE>
+[Content truncated to 64000 characters]
