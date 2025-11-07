@@ -1770,7 +1770,7 @@
             // --- NAYA: FileReader ko DOMContentLoaded scope mein define karein ---
             const fileReader = new FileReader();
 
-            let fileQueue = []; // NEW: Will store { file, id, status, pumpInterval, offset, startTime, isReading }
+            let fileQueue = []; // NEW: Will store { file, id, status, offset, startTime }
             let isSending = false;
             let activeSend = null; // NEW: Will store the active fileJob
             
@@ -2318,10 +2318,8 @@
                         file: file,
                         id: fileId,
                         status: 'pending',
-                        pumpInterval: null, // NAYA
                         offset: 0,          // NAYA
-                        startTime: 0,       // NAYA
-                        isReading: false    // NAYA
+                        startTime: 0       // NAYA
                     };
                     fileQueue.push(fileJob);
                     
@@ -2340,7 +2338,7 @@
                 }
             });
 
-            // +++ NAYA: INTERVAL-BASED FILE SEND LOGIC +++
+            // +++ NAYA: WORKING EXAMPLE SE LIYA GAYA LOGIC (RECURSIVE ASYNC) +++
             function sendNextFileFromQueue() {
                 if (fileQueue.length === 0) {
                     console.log("Send queue empty.");
@@ -2364,7 +2362,6 @@
                 fileJob.status = 'sending';
                 fileJob.startTime = Date.now();
                 fileJob.offset = 0;
-                fileJob.isReading = false;
                 
                 const file = fileJob.file;
                 
@@ -2385,19 +2382,30 @@
                     return;
                 }
 
-                // Setup the 'onload' handler for our single reader
+                // --- NAYA LOGIC YAHAN SE ---
+
                 fileReader.onload = (e) => {
+                    // 1. Check for cancellation
                     if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
                         console.log("reader.onload: Fired for stale or cancelled job. Ignoring.");
-                        if (activeSend && activeSend.pumpInterval) {
-                            clearInterval(activeSend.pumpInterval);
-                        }
+                        // Cleanup is handled by cancelTransfer or the readSlice check
                         isSending = false;
                         activeSend = null;
                         sendNextFileFromQueue();
                         return;
                     }
 
+                    // 2. Check for connection
+                    if (!currentConnection || !currentConnection.open) {
+                        console.log('reader.onload: Disconnected. Re-queuing.');
+                        isSending = false;
+                        activeSend = null;
+                        fileQueue.unshift(fileJob); // Put job back
+                        // handleDisconnect will be called by the connection's 'close' event
+                        return;
+                    }
+
+                    // 3. Send the chunk
                     try {
                         currentConnection.send({
                             type: 'chunk',
@@ -2408,10 +2416,13 @@
                         fileJob.offset += e.target.result.byteLength;
                         updateProgress(fileJob.id, fileJob.offset, file.size, fileJob.startTime);
 
-                        if (fileJob.offset >= file.size) {
+                        // 4. Check if file is complete
+                        if (fileJob.offset < file.size) {
+                            // File not complete, read next slice (RECURSIVE CALL)
+                            readSlice(fileJob.offset);
+                        } else {
                             // File is complete
                             console.log(`Finished sending ${file.name} (${fileJob.id})`);
-                            clearInterval(fileJob.pumpInterval); // Stop the pump
                             if (currentConnection && currentConnection.open) {
                                 currentConnection.send({ type: 'end', fileId: fileJob.id });
                             }
@@ -2419,14 +2430,10 @@
                             isSending = false;
                             activeSend = null;
                             sendNextFileFromQueue(); // Start next file
-                        } else {
-                            // File not complete, unlock the pump
-                            fileJob.isReading = false;
                         }
 
                     } catch (err) {
                         console.error("Send chunk error:", err);
-                        clearInterval(fileJob.pumpInterval);
                         handleDisconnect("Send chunk error");
                     }
                 };
@@ -2434,7 +2441,6 @@
                 fileReader.onerror = (e) => {
                     if (!activeSend || activeSend.id !== fileJob.id) return;
                     console.error("File Read Error:", e);
-                    clearInterval(fileJob.pumpInterval);
                     transferStatusEl.textContent = '❌ File Read error';
                     document.getElementById(`transfer-${fileJob.id}`)?.remove();
                     isSending = false;
@@ -2442,52 +2448,28 @@
                     sendNextFileFromQueue();
                 };
 
-                // This is the pump
-                const pump = () => {
-                    // Check for cancellation (cancelTransfer clears the interval, but as a safeguard)
+                function readSlice(o) {
+                    // Check for cancellation *before* reading
                     if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
-                        console.log("pump: Job is stale or cancelled. Stopping pump.");
-                        if (fileJob.pumpInterval) clearInterval(fileJob.pumpInterval);
-                        // Cleanup already handled in cancelTransfer, just stop
-                        return;
-                    }
-
-                    // Check if reader is busy
-                    if (fileJob.isReading) {
-                        // console.log("pump: Reader is busy, skipping tick.");
-                        return;
-                    }
-
-                    // Check for connection
-                    if (!currentConnection || !currentConnection.open) {
-                        console.log('pump: Disconnected. Re-queuing.');
-                        clearInterval(fileJob.pumpInterval);
+                        console.log("readSlice: Job is stale or cancelled. Stopping read.");
                         isSending = false;
                         activeSend = null;
-                        fileQueue.unshift(fileJob); // Put job back
+                        sendNextFileFromQueue(); // Check for next file
                         return;
-                    }
-
-                    // Check buffer
-                    const BUFFER_THRESHOLD = 8 * 1024 * 1024; // 8 MB
-                    if (currentConnection.dataChannel && currentConnection.dataChannel.bufferedAmount > BUFFER_THRESHOLD) {
-                        console.log(`pump: Buffer high (${currentConnection.dataChannel.bufferedAmount}). Pausing.`);
-                        return; // Skip this tick, will try again in 10ms
                     }
 
                     // All clear! Read the next slice.
                     try {
-                        fileJob.isReading = true; // Lock the pump
-                        const slice = file.slice(fileJob.offset, fileJob.offset + CHUNK_SIZE);
+                        const slice = file.slice(o, o + CHUNK_SIZE);
                         fileReader.readAsArrayBuffer(slice);
                     } catch (e) {
                          console.error("File slice/read error:", e);
                          fileReader.onerror(e); // Trigger error handler
                     }
-                };
+                }
                 
-                // Start the pump
-                fileJob.pumpInterval = setInterval(pump, 10); // Run pump every 10ms
+                // Start the process
+                readSlice(0);
             }
             // +++ END NAYA LOGIC +++
 
@@ -2497,39 +2479,36 @@
              */
             function cancelTransfer(fileId) {
                 console.log(`User clicked cancel for: ${fileId}`);
-                let jobToCancel = null;
-
+                
                 // Is it the active transfer?
                 if (activeSend && activeSend.id === fileId) {
-                    jobToCancel = activeSend;
                     console.log(`Cancelling active transfer: ${fileId}`);
-                    isSending = false;
-                    activeSend = null;
-                } else {
-                    // It's in the queue
-                    console.log(`Cancelling pending transfer: ${fileId}`);
-                    fileQueue = fileQueue.filter(job => job.id !== fileId);
-                    document.getElementById(`transfer-${fileId}`)?.remove();
-                }
-
-                if (jobToCancel) {
-                    jobToCancel.status = 'cancelled';
-                    if (jobToCancel.pumpInterval) {
-                        clearInterval(jobToCancel.pumpInterval); // Stop the pump
-                    }
+                    activeSend.status = 'cancelled'; // 1. Set flag
                     
-                    document.getElementById(`transfer-${fileId}`)?.remove();
+                    // The 'onload' or 'readSlice' function will see this flag
+                    // and stop the loop, then call sendNextFileFromQueue.
+                    
+                    document.getElementById(`transfer-${fileId}`)?.remove(); // 2. Remove UI
                     
                     if (currentConnection && currentConnection.open) {
                         try {
-                            currentConnection.send({ type: 'cancel', fileId: fileId });
+                            currentConnection.send({ type: 'cancel', fileId: fileId }); // 3. Notify peer
                         } catch (err) {
                              console.warn("Failed to send 'cancel' message:", err);
                         }
                     }
                     
-                    // Start next file
+                    // 4. Manually stop 'isSending' and check for next file
+                    //    in case the 'onload' loop isn't running.
+                    isSending = false;
+                    activeSend = null;
                     sendNextFileFromQueue();
+
+                } else {
+                    // It's in the queue, just remove it
+                    console.log(`Cancelling pending transfer: ${fileId}`);
+                    fileQueue = fileQueue.filter(job => job.id !== fileId);
+                    document.getElementById(`transfer-${fileId}`)?.remove();
                 }
                 
                 if (!isSending && fileQueue.length === 0) {
