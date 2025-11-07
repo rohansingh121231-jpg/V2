@@ -2385,13 +2385,19 @@
                 // --- NAYA LOGIC YAHAN SE ---
 
                 fileReader.onload = (e) => {
-                    // 1. Check for cancellation
+                    // 1. Check for cancellation (CLEANUP SPOT)
                     if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
-                        console.log("reader.onload: Fired for stale or cancelled job. Ignoring.");
-                        // Cleanup is handled by cancelTransfer or the readSlice check
+                        console.log("reader.onload: Fired for stale or cancelled job. Cleaning up.");
+                        
+                        // --- PERFORM CLEANUP HERE ---
+                        if (currentConnection && currentConnection.open) {
+                            try { currentConnection.send({ type: 'cancel', fileId: fileJob.id }); } catch (err) {}
+                        }
+                        document.getElementById(`transfer-${fileJob.id}`)?.remove(); // Ensure UI is gone
                         isSending = false;
                         activeSend = null;
-                        sendNextFileFromQueue();
+                        sendNextFileFromQueue(); // Start next
+                        // --- END CLEANUP ---
                         return;
                     }
 
@@ -2434,7 +2440,19 @@
 
                     } catch (err) {
                         console.error("Send chunk error:", err);
-                        handleDisconnect("Send chunk error");
+                        // Check buffer size, if full, wait and retry
+                        if (err.message.includes("buffer is full")) {
+                             console.warn("Buffer is full, pausing for 100ms...");
+                             setTimeout(() => {
+                                 // We need to re-run the onload logic for the *same chunk*
+                                 // This is tricky. A better way is to check *before* send.
+                                 // BUT, for now, let's just re-read the slice.
+                                 // This is slightly inefficient but safer.
+                                 readSlice(fileJob.offset - e.target.result.byteLength); 
+                             }, 100);
+                        } else {
+                            handleDisconnect("Send chunk error");
+                        }
                     }
                 };
 
@@ -2449,14 +2467,30 @@
                 };
 
                 function readSlice(o) {
-                    // Check for cancellation *before* reading
+                    // Check for cancellation *before* reading (CLEANUP SPOT)
                     if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
-                        console.log("readSlice: Job is stale or cancelled. Stopping read.");
+                        console.log("readSlice: Job is stale or cancelled. Cleaning up.");
+                        
+                        // --- PERFORM CLEANUP HERE ---
+                        if (currentConnection && currentConnection.open) {
+                            try { currentConnection.send({ type: 'cancel', fileId: fileJob.id }); } catch (err) {}
+                        }
+                        document.getElementById(`transfer-${fileJob.id}`)?.remove(); // Ensure UI is gone
                         isSending = false;
                         activeSend = null;
-                        sendNextFileFromQueue(); // Check for next file
+                        sendNextFileFromQueue(); // Start next
+                        // --- END CLEANUP ---
                         return;
                     }
+                    
+                    // --- NAYA: BUFFER CHECK (जैसा आपके वर्किंग कोड में होना चाहिए) ---
+                    const BUFFER_THRESHOLD = 8 * 1024 * 1024; // 8 MB
+                    if (currentConnection && currentConnection.open && currentConnection.dataChannel && currentConnection.dataChannel.bufferedAmount > BUFFER_THRESHOLD) {
+                        console.log(`readSlice: Buffer high (${currentConnection.dataChannel.bufferedAmount}). Pausing read.`);
+                        setTimeout(() => readSlice(o), 50); // 50ms इंतज़ार करें और *उसी* स्लाइस को पढ़ने की कोशिश करें
+                        return;
+                    }
+                    // --- END BUFFER CHECK ---
 
                     // All clear! Read the next slice.
                     try {
@@ -2488,21 +2522,15 @@
                     // The 'onload' or 'readSlice' function will see this flag
                     // and stop the loop, then call sendNextFileFromQueue.
                     
-                    document.getElementById(`transfer-${fileId}`)?.remove(); // 2. Remove UI
+                    document.getElementById(`transfer-${fileId}`)?.remove(); // 2. Remove UI (immediate feedback)
                     
-                    if (currentConnection && currentConnection.open) {
-                        try {
-                            currentConnection.send({ type: 'cancel', fileId: fileId }); // 3. Notify peer
-                        } catch (err) {
-                             console.warn("Failed to send 'cancel' message:", err);
-                        }
-                    }
-                    
-                    // 4. Manually stop 'isSending' and check for next file
-                    //    in case the 'onload' loop isn't running.
+                    // 3. Manually stop 'isSending' and check for next file
+                    //    in case the 'onload' loop isn't running (e.g., stuck on buffer check).
+                    //    This cleanup will be redundant if the loop is running, but safe.
                     isSending = false;
                     activeSend = null;
                     sendNextFileFromQueue();
+
 
                 } else {
                     // It's in the queue, just remove it
