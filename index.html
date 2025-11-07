@@ -2366,7 +2366,12 @@
                         // Check karein ki file poori ho gayi ya nahi
                         if (offset < file.size) {
                             // File poori nahi hui, *agla* slice padhein
-                            readSlice(offset);
+                            
+                            // ### ASLI FIX YAHAN HAI ###
+                            // Har chunk bhejne ke baad, 0ms ka break dein
+                            // Taaki browser 'Cancel' click jaise doosre events ko process kar sake
+                            setTimeout(() => readSlice(offset), 0);
+
                         } else {
                             // File poori bhej di gayi hai
                             console.log(`Finished sending ${fileJob.id}`);
