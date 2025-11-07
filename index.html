@@ -1767,7 +1767,10 @@
             let connectionRetryCount = 0;
             const MAX_RETRY = 3;
             
-            let fileQueue = []; // NEW: Will store { file, id, status, streamReader }
+            // --- NAYA: FileReader ko DOMContentLoaded scope mein define karein ---
+            const fileReader = new FileReader();
+
+            let fileQueue = []; // NEW: Will store { file, id, status, pumpInterval, offset, startTime, isReading }
             let isSending = false;
             let activeSend = null; // NEW: Will store the active fileJob
             
@@ -2174,12 +2177,14 @@
                         // 1. Is it our active send?
                         if (activeSend && activeSend.id === fileId) {
                             console.log("Peer cancelled our active send.");
-                            activeSend.status = 'cancelled'; // This will be caught by pump/sendChunk
-                            if (activeSend.streamReader) {
-                                activeSend.streamReader.cancel('Cancelled by peer');
+                            activeSend.status = 'cancelled'; // This will be caught by the pump
+                            if(activeSend.pumpInterval) {
+                                clearInterval(activeSend.pumpInterval); // Stop the pump immediately
                             }
-                            // Cleanup will be handled by the pump/sendChunk functions
-                            // when they see the 'cancelled' flag.
+                            // Cleanup
+                            isSending = false;
+                            activeSend = null;
+                            sendNextFileFromQueue();
                         }
                         // 2. Is it in our pending send queue?
                         else if (fileQueue.some(job => job.id === fileId)) {
@@ -2313,7 +2318,10 @@
                         file: file,
                         id: fileId,
                         status: 'pending',
-                        streamReader: null // Placeholder for the stream reader
+                        pumpInterval: null, // NAYA
+                        offset: 0,          // NAYA
+                        startTime: 0,       // NAYA
+                        isReading: false    // NAYA
                     };
                     fileQueue.push(fileJob);
                     
@@ -2332,6 +2340,7 @@
                 }
             });
 
+            // +++ NAYA: INTERVAL-BASED FILE SEND LOGIC +++
             function sendNextFileFromQueue() {
                 if (fileQueue.length === 0) {
                     console.log("Send queue empty.");
@@ -2350,20 +2359,22 @@
                 
                 isSending = true;
                 const fileJob = fileQueue.shift();
-                activeSend = fileJob; // Mark this job as active
+                activeSend = fileJob;
                 
                 fileJob.status = 'sending';
+                fileJob.startTime = Date.now();
+                fileJob.offset = 0;
+                fileJob.isReading = false;
+                
                 const file = fileJob.file;
                 
                 console.log(`Starting send for: ${file.name} (${fileJob.id})`);
                 transferStatusEl.textContent = `📤 Sending ${file.name}...`;
-                
-                const startTime = Date.now();
 
                 try {
                     currentConnection.send({
                         type: 'metadata',
-                        fileId: fileJob.id, // Send the unique ID
+                        fileId: fileJob.id,
                         name: file.name,
                         size: file.size,
                         fileType: file.type
@@ -2374,96 +2385,33 @@
                     return;
                 }
 
-                // +++ NAYA STREAM-BASED LOGIC +++
-                
-                if (!file.stream) {
-                    console.error("ReadableStream API not supported. Aborting.");
-                    transferStatusEl.textContent = "❌ Browser too old";
-                    // Cleanup
-                    document.getElementById(`transfer-${fileJob.id}`)?.remove();
-                    isSending = false;
-                    activeSend = null;
-                    return;
-                }
-
-                const stream = file.stream();
-                const streamReader = stream.getReader();
-                activeSend.streamReader = streamReader; // Store reader on the job
-                let offset = 0;
-
-                function sendChunkWhenReady(chunk) {
-                    // 1. Check Cancellation
+                // Setup the 'onload' handler for our single reader
+                fileReader.onload = (e) => {
                     if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
-                        console.log('sendChunkWhenReady: Transfer cancelled or stale.');
-                        streamReader.cancel('Cancelled by user').catch(()=>{}); // Stop reading the stream
-                        if(activeSend && activeSend.id === fileJob.id) {
-                            isSending = false;
-                            activeSend = null;
-                            sendNextFileFromQueue();
+                        console.log("reader.onload: Fired for stale or cancelled job. Ignoring.");
+                        if (activeSend && activeSend.pumpInterval) {
+                            clearInterval(activeSend.pumpInterval);
                         }
-                        return;
-                    }
-
-                    // 2. Check Connection
-                    if (!currentConnection || !currentConnection.open) {
-                        console.log('sendChunkWhenReady: Disconnected. Re-queuing.');
-                        streamReader.cancel('Disconnected').catch(()=>{});
                         isSending = false;
                         activeSend = null;
-                        fileQueue.unshift(fileJob);
+                        sendNextFileFromQueue();
                         return;
                     }
-                    
-                    // 3. Check Buffer (Proactive Pause)
-                    const BUFFER_THRESHOLD = 8 * 1024 * 1024; // 8 MB
-                    try {
-                        if (currentConnection.dataChannel && currentConnection.dataChannel.bufferedAmount > BUFFER_THRESHOLD) {
-                            console.log(`Buffer high (${currentConnection.dataChannel.bufferedAmount} bytes). Pausing send...`);
-                            setTimeout(() => sendChunkWhenReady(chunk), 100); // Retry same chunk
-                            return;
-                        }
-                        
-                        // 4. Send Chunk (chunk is Uint8Array, send as ArrayBuffer)
-                        // PeerJS needs ArrayBuffer.
-                        const bufferChunk = chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength);
 
+                    try {
                         currentConnection.send({
                             type: 'chunk',
                             fileId: fileJob.id,
-                            chunk: bufferChunk // Send ArrayBuffer
+                            chunk: e.target.result // This is ArrayBuffer
                         });
 
-                        // 5. Update Progress
-                        offset += bufferChunk.byteLength;
-                        updateProgress(fileJob.id, offset, file.size, startTime);
+                        fileJob.offset += e.target.result.byteLength;
+                        updateProgress(fileJob.id, fileJob.offset, file.size, fileJob.startTime);
 
-                        // 6. Schedule next read (pump) (Polite Pause)
-                        setTimeout(pump, 10); 
-
-                    } catch (err) {
-                        console.error("Send chunk error:", err);
-                        streamReader.cancel('Send error').catch(()=>{});
-                        handleDisconnect("Send chunk error");
-                    }
-                }
-
-                function pump() {
-                    // Check cancellation *before* reading
-                    if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
-                         console.log('pump: Transfer cancelled. Stopping read.');
-                         streamReader.cancel('Cancelled by user').catch(()=>{});
-                         if(activeSend && activeSend.id === fileJob.id) {
-                            isSending = false;
-                            activeSend = null;
-                            sendNextFileFromQueue();
-                         }
-                        return;
-                    }
-
-                    streamReader.read().then(({ done, value }) => {
-                        if (done) {
+                        if (fileJob.offset >= file.size) {
                             // File is complete
                             console.log(`Finished sending ${file.name} (${fileJob.id})`);
+                            clearInterval(fileJob.pumpInterval); // Stop the pump
                             if (currentConnection && currentConnection.open) {
                                 currentConnection.send({ type: 'end', fileId: fileJob.id });
                             }
@@ -2471,71 +2419,124 @@
                             isSending = false;
                             activeSend = null;
                             sendNextFileFromQueue(); // Start next file
-                            return;
+                        } else {
+                            // File not complete, unlock the pump
+                            fileJob.isReading = false;
                         }
 
-                        // We have a chunk (value is Uint8Array)
-                        // Pass it to the sender logic
-                        sendChunkWhenReady(value);
+                    } catch (err) {
+                        console.error("Send chunk error:", err);
+                        clearInterval(fileJob.pumpInterval);
+                        handleDisconnect("Send chunk error");
+                    }
+                };
 
-                    }).catch(error => {
-                        console.error("Stream read error:", error);
-                        transferStatusEl.textContent = '❌ File Read error';
-                        document.getElementById(`transfer-${fileJob.id}`)?.remove();
+                fileReader.onerror = (e) => {
+                    if (!activeSend || activeSend.id !== fileJob.id) return;
+                    console.error("File Read Error:", e);
+                    clearInterval(fileJob.pumpInterval);
+                    transferStatusEl.textContent = '❌ File Read error';
+                    document.getElementById(`transfer-${fileJob.id}`)?.remove();
+                    isSending = false;
+                    activeSend = null;
+                    sendNextFileFromQueue();
+                };
+
+                // This is the pump
+                const pump = () => {
+                    // Check for cancellation (cancelTransfer clears the interval, but as a safeguard)
+                    if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
+                        console.log("pump: Job is stale or cancelled. Stopping pump.");
+                        if (fileJob.pumpInterval) clearInterval(fileJob.pumpInterval);
+                        // Cleanup already handled in cancelTransfer, just stop
+                        return;
+                    }
+
+                    // Check if reader is busy
+                    if (fileJob.isReading) {
+                        // console.log("pump: Reader is busy, skipping tick.");
+                        return;
+                    }
+
+                    // Check for connection
+                    if (!currentConnection || !currentConnection.open) {
+                        console.log('pump: Disconnected. Re-queuing.');
+                        clearInterval(fileJob.pumpInterval);
                         isSending = false;
                         activeSend = null;
-                        sendNextFileFromQueue();
-                    });
-                }
+                        fileQueue.unshift(fileJob); // Put job back
+                        return;
+                    }
+
+                    // Check buffer
+                    const BUFFER_THRESHOLD = 8 * 1024 * 1024; // 8 MB
+                    if (currentConnection.dataChannel && currentConnection.dataChannel.bufferedAmount > BUFFER_THRESHOLD) {
+                        console.log(`pump: Buffer high (${currentConnection.dataChannel.bufferedAmount}). Pausing.`);
+                        return; // Skip this tick, will try again in 10ms
+                    }
+
+                    // All clear! Read the next slice.
+                    try {
+                        fileJob.isReading = true; // Lock the pump
+                        const slice = file.slice(fileJob.offset, fileJob.offset + CHUNK_SIZE);
+                        fileReader.readAsArrayBuffer(slice);
+                    } catch (e) {
+                         console.error("File slice/read error:", e);
+                         fileReader.onerror(e); // Trigger error handler
+                    }
+                };
                 
                 // Start the pump
-                pump();
-                
-                // --- NAYA LOGIC YAHAN KHATM HUA ---
+                fileJob.pumpInterval = setInterval(pump, 10); // Run pump every 10ms
             }
+            // +++ END NAYA LOGIC +++
+
             
             /**
              * @param {string} fileId
              */
             function cancelTransfer(fileId) {
                 console.log(`User clicked cancel for: ${fileId}`);
+                let jobToCancel = null;
+
                 // Is it the active transfer?
                 if (activeSend && activeSend.id === fileId) {
+                    jobToCancel = activeSend;
                     console.log(`Cancelling active transfer: ${fileId}`);
-                    activeSend.status = 'cancelled'; // 1. Set flag
-                    
-                    if (activeSend.streamReader) {
-                        console.log("Cancelling stream reader...");
-                        activeSend.streamReader.cancel('Cancelled by user').catch(()=>{}); // 2. Stop the stream
+                    isSending = false;
+                    activeSend = null;
+                } else {
+                    // It's in the queue
+                    console.log(`Cancelling pending transfer: ${fileId}`);
+                    fileQueue = fileQueue.filter(job => job.id !== fileId);
+                    document.getElementById(`transfer-${fileId}`)?.remove();
+                }
+
+                if (jobToCancel) {
+                    jobToCancel.status = 'cancelled';
+                    if (jobToCancel.pumpInterval) {
+                        clearInterval(jobToCancel.pumpInterval); // Stop the pump
                     }
                     
-                    document.getElementById(`transfer-${fileId}`)?.remove(); // 3. Remove UI
+                    document.getElementById(`transfer-${fileId}`)?.remove();
                     
                     if (currentConnection && currentConnection.open) {
                         try {
-                            currentConnection.send({ type: 'cancel', fileId: fileId }); // 4. Notify peer
+                            currentConnection.send({ type: 'cancel', fileId: fileId });
                         } catch (err) {
                              console.warn("Failed to send 'cancel' message:", err);
                         }
                     }
                     
-                    // 5. Cleanup and start next
-                    isSending = false;
-                    activeSend = null;
+                    // Start next file
                     sendNextFileFromQueue();
-
-                } else {
-                    // It's in the queue, just remove it
-                    console.log(`Cancelling pending transfer: ${fileId}`);
-                    fileQueue = fileQueue.filter(job => job.id !== fileId);
-                    document.getElementById(`transfer-${fileId}`)?.remove();
-                    // No need to send 'cancel' message, it never started
                 }
                 
                 if (!isSending && fileQueue.length === 0) {
                      transferStatusEl.textContent = '❌ Cancelled';
                 }
             }
+
 
             /**
              * @param {string} fileId
