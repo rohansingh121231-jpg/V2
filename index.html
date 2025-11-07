@@ -2316,6 +2316,31 @@
                 let offset = 0;
                 const reader = new FileReader();
 
+                // +++ NAYA CODE START +++
+                /**
+                 * Backpressure ko handle karne ke liye buffer check karta hai.
+                 * Agar buffer full hai, to ye thoda intezaar karta hai.
+                 */
+                function checkBufferAndReadNext(o) {
+                    // Ek buffer threshold set karte hain (jaise 16MB)
+                    // WebRTC data channels default me 16MB tak buffer kar sakte hain
+                    const BUFFER_THRESHOLD = 16 * 1024 * 1024; 
+
+                    if (currentConnection && currentConnection.dataChannel && currentConnection.dataChannel.bufferedAmount > BUFFER_THRESHOLD) {
+                        // Buffer full hai, khali hone ka intezaar karein
+                        console.log(`Buffer full (${currentConnection.dataChannel.bufferedAmount} bytes). Pausing...`);
+                        
+                        // 100ms baad fir se check karein
+                        setTimeout(() => checkBufferAndReadNext(o), 100);
+                    } else {
+                        // Buffer me jagah hai, agla chunk padhein
+                        // Hum abhi bhi setTimeout(0) ka istemal karenge taaki event loop block na ho
+                        setTimeout(() => readSlice(o), 0);
+                    }
+                }
+                // +++ NAYA CODE END +++
+
+
                 reader.onload = (e) => {
                     // --- FIX ---
                     // If this job is no longer the active job (i.e., it was cancelled by sender),
@@ -2358,15 +2383,15 @@
                         if (offset < file.size) {
                             // ##################################################
                             // ##
-                            // ## THE FIX IS HERE
+                            // ## YAHAN PAR FIX BADLA GAYA HAI
                             // ##
                             // ##################################################
-                            // readSlice(offset); // OLD PROBLEMATIC LINE
                             
-                            // NEW FIXED LINE:
-                            // Use setTimeout to yield to the event loop,
-                            // allowing click events (like 'cancel') to be processed.
-                            setTimeout(() => readSlice(offset), 0);
+                            // OLD FIX:
+                            // setTimeout(() => readSlice(offset), 0);
+                            
+                            // NEW FIX: (Backpressure ko check karne ke liye)
+                            checkBufferAndReadNext(offset);
                             
                         } else {
                             currentConnection.send({ type: 'end', fileId: fileJob.id });
