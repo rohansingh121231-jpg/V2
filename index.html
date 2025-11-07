@@ -1,4 +1,4 @@
-   <!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -655,6 +655,22 @@
             overflow: hidden;
             text-overflow: ellipsis;
             flex-shrink: 1;
+            /* New: Added for percentage */
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+        
+        .progress-label-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .progress-percentage {
+            font-weight: 500;
+            color: var(--text-secondary);
+            padding-left: 8px;
         }
 
         .progress-bar-wrapper {
@@ -672,6 +688,7 @@
             border-radius: 4px; /* More compact */
             overflow: hidden;
             box-shadow: inset 0 1px 2px var(--shadow);
+            margin-top: 2px; /* Added spacing */
         }
 
         .progress-bar {
@@ -2339,7 +2356,18 @@
                         updateProgress(fileJob.id, offset, file.size, startTime);
 
                         if (offset < file.size) {
-                            readSlice(offset);
+                            // ##################################################
+                            // ##
+                            // ## THE FIX IS HERE
+                            // ##
+                            // ##################################################
+                            // readSlice(offset); // OLD PROBLEMATIC LINE
+                            
+                            // NEW FIXED LINE:
+                            // Use setTimeout to yield to the event loop,
+                            // allowing click events (like 'cancel') to be processed.
+                            setTimeout(() => readSlice(offset), 0);
+                            
                         } else {
                             currentConnection.send({ type: 'end', fileId: fileJob.id });
                             document.getElementById(`transfer-${fileJob.id}`)?.remove();
