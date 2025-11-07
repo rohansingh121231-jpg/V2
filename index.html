@@ -1767,7 +1767,7 @@
             let connectionRetryCount = 0;
             const MAX_RETRY = 3;
             
-            let fileQueue = []; // NEW: Will store { file, id, status }
+            let fileQueue = []; // NEW: Will store { file, id, status, streamReader }
             let isSending = false;
             let activeSend = null; // NEW: Will store the active fileJob
             
@@ -2174,13 +2174,12 @@
                         // 1. Is it our active send?
                         if (activeSend && activeSend.id === fileId) {
                             console.log("Peer cancelled our active send.");
-                            activeSend.status = 'cancelled'; // This will be caught by reader.onload/readSlice
-                            document.getElementById(`transfer-${fileId}`)?.remove();
-                            
-                            // Stop sending this file and start the next
-                            isSending = false;
-                            activeSend = null;
-                            sendNextFileFromQueue();
+                            activeSend.status = 'cancelled'; // This will be caught by pump/sendChunk
+                            if (activeSend.streamReader) {
+                                activeSend.streamReader.cancel('Cancelled by peer');
+                            }
+                            // Cleanup will be handled by the pump/sendChunk functions
+                            // when they see the 'cancelled' flag.
                         }
                         // 2. Is it in our pending send queue?
                         else if (fileQueue.some(job => job.id === fileId)) {
@@ -2219,8 +2218,10 @@
                         if (elapsedTime > 0.5) { // Wait half a second for a good speed estimate
                             const speed = fileData.receivedBytes / elapsedTime; // bytes per second
                             const remainingBytes = fileData.size - fileData.receivedBytes;
-                            const remainingTime = remainingBytes / speed; // in seconds
-                            etaText = `ETA: ${formatTime(remainingTime)}`;
+                            if (speed > 0) {
+                                const remainingTime = remainingBytes / speed; // in seconds
+                                etaText = `ETA: ${formatTime(remainingTime)}`;
+                            }
                         }
                         
                         updateTransferUI(fileId, {
@@ -2311,7 +2312,8 @@
                     const fileJob = {
                         file: file,
                         id: fileId,
-                        status: 'pending'
+                        status: 'pending',
+                        streamReader: null // Placeholder for the stream reader
                     };
                     fileQueue.push(fileJob);
                     
@@ -2372,21 +2374,29 @@
                     return;
                 }
 
+                // +++ NAYA STREAM-BASED LOGIC +++
+                
+                if (!file.stream) {
+                    console.error("ReadableStream API not supported. Aborting.");
+                    transferStatusEl.textContent = "❌ Browser too old";
+                    // Cleanup
+                    document.getElementById(`transfer-${fileJob.id}`)?.remove();
+                    isSending = false;
+                    activeSend = null;
+                    return;
+                }
+
+                const stream = file.stream();
+                const streamReader = stream.getReader();
+                activeSend.streamReader = streamReader; // Store reader on the job
                 let offset = 0;
-                const reader = new FileReader();
 
-                // +++ NAYA LOGIC START +++
-
-                /**
-                 * Is function ko reader.onload call karega.
-                 * Ye buffer check karta hai aur chunk bhejta hai.
-                 */
                 function sendChunkWhenReady(chunk) {
-                    // Bhejne se pehle cancellation check karein
+                    // 1. Check Cancellation
                     if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
-                        console.log('sendChunkWhenReady: Transfer was cancelled or is stale. Stopping.');
+                        console.log('sendChunkWhenReady: Transfer cancelled or stale.');
+                        streamReader.cancel('Cancelled by user').catch(()=>{}); // Stop reading the stream
                         if(activeSend && activeSend.id === fileJob.id) {
-                            // Ye job cancel ho gaya hai, agla start karein
                             isSending = false;
                             activeSend = null;
                             sendNextFileFromQueue();
@@ -2394,98 +2404,54 @@
                         return;
                     }
 
-                    // Disconnection check karein
+                    // 2. Check Connection
                     if (!currentConnection || !currentConnection.open) {
                         console.log('sendChunkWhenReady: Disconnected. Re-queuing.');
+                        streamReader.cancel('Disconnected').catch(()=>{});
                         isSending = false;
                         activeSend = null;
-                        fileQueue.unshift(fileJob); // Job ko wapas queue me daalein
+                        fileQueue.unshift(fileJob);
                         return;
                     }
                     
-                    // ##########################################
-                    // ## FIX PART 1: Proactive Pause
-                    // ## Buffer ko 16MB se kam, 8MB par check karein
-                    // ##########################################
+                    // 3. Check Buffer (Proactive Pause)
                     const BUFFER_THRESHOLD = 8 * 1024 * 1024; // 8 MB
-                    
                     try {
                         if (currentConnection.dataChannel && currentConnection.dataChannel.bufferedAmount > BUFFER_THRESHOLD) {
-                            // Buffer full hai, 100ms intezaar karein aur *yahi chunk* firse try karein
                             console.log(`Buffer high (${currentConnection.dataChannel.bufferedAmount} bytes). Pausing send...`);
-                            setTimeout(() => sendChunkWhenReady(chunk), 100); // Wait 100ms
-                            return; // Abhi ke liye return, retry hoga
+                            setTimeout(() => sendChunkWhenReady(chunk), 100); // Retry same chunk
+                            return;
                         }
                         
-                        // Buffer me jagah hai, chunk bhej dein
+                        // 4. Send Chunk (chunk is Uint8Array, send as ArrayBuffer)
+                        // PeerJS needs ArrayBuffer.
+                        const bufferChunk = chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength);
+
                         currentConnection.send({
                             type: 'chunk',
                             fileId: fileJob.id,
-                            chunk: chunk
+                            chunk: bufferChunk // Send ArrayBuffer
                         });
 
-                        // Bhejne ke baad progress update karein
-                        offset += chunk.byteLength;
+                        // 5. Update Progress
+                        offset += bufferChunk.byteLength;
                         updateProgress(fileJob.id, offset, file.size, startTime);
 
-                        // Check karein ki file poori ho gayi ya nahi
-                        if (offset < file.size) {
-                            // File poori nahi hui, *agla* slice padhein
-                            
-                            // ##########################################
-                            // ## FIX PART 2: Polite Pause
-                            // ## Har chunk ke baad 10ms ka break dein
-                            // ##########################################
-                            setTimeout(() => readSlice(offset), 10); // 10ms break
-
-                        } else {
-                            // File poori bhej di gayi hai
-                            console.log(`Finished sending ${file.name} (${fileJob.id})`);
-                            currentConnection.send({ type: 'end', fileId: fileJob.id });
-                            document.getElementById(`transfer-${fileJob.id}`)?.remove();
-                            isSending = false;
-                            activeSend = null;
-                            sendNextFileFromQueue(); // Agla file queue se start karein
-                        }
+                        // 6. Schedule next read (pump) (Polite Pause)
+                        setTimeout(pump, 10); 
 
                     } catch (err) {
                         console.error("Send chunk error:", err);
-                        // Bhejne me error, disconnect handle karein
+                        streamReader.cancel('Send error').catch(()=>{});
                         handleDisconnect("Send chunk error");
                     }
                 }
-                
-                reader.onload = (e) => {
-                    // Check karein ki read complete hone tak job cancel to nahi ho gaya
-                    if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
-                        console.log('reader.onload: Transfer cancelled or stale. Stopping read.');
-                        if(activeSend && activeSend.id === fileJob.id) {
-                            isSending = false;
-                            activeSend = null;
-                            sendNextFileFromQueue();
-                        }
-                        return;
-                    }
-                    
-                    // Chunk memory me hai, ab use bhejne ke liye ready function ko call karein
-                    sendChunkWhenReady(e.target.result);
-                };
-                
-                reader.onerror = (e) => {
-                    if (!activeSend || activeSend.status === 'cancelled') return; // Cancelled hai to kuch na karein
-                    console.error("File Read Error:", e);
-                    isSending = false;
-                    activeSend = null;
-                    transferStatusEl.textContent = '❌ File Read error';
-                    document.getElementById(`transfer-${fileJob.id}`)?.remove();
-                    // Try next file
-                    sendNextFileFromQueue();
-                };
 
-                function readSlice(o) {
-                    // Padhne se pehle check karein ki job cancel to nahi ho gaya
+                function pump() {
+                    // Check cancellation *before* reading
                     if (!activeSend || activeSend.id !== fileJob.id || activeSend.status === 'cancelled') {
-                         console.log('readSlice: Transfer cancelled or stale. Stopping read.');
+                         console.log('pump: Transfer cancelled. Stopping read.');
+                         streamReader.cancel('Cancelled by user').catch(()=>{});
                          if(activeSend && activeSend.id === fileJob.id) {
                             isSending = false;
                             activeSend = null;
@@ -2493,18 +2459,37 @@
                          }
                         return;
                     }
-                    
-                    try {
-                        const slice = file.slice(o, o + CHUNK_SIZE);
-                        reader.readAsArrayBuffer(slice);
-                    } catch (e) {
-                         console.error("File slice/read error:", e);
-                         reader.onerror(e); // Trigger the error handler
-                    }
+
+                    streamReader.read().then(({ done, value }) => {
+                        if (done) {
+                            // File is complete
+                            console.log(`Finished sending ${file.name} (${fileJob.id})`);
+                            if (currentConnection && currentConnection.open) {
+                                currentConnection.send({ type: 'end', fileId: fileJob.id });
+                            }
+                            document.getElementById(`transfer-${fileJob.id}`)?.remove();
+                            isSending = false;
+                            activeSend = null;
+                            sendNextFileFromQueue(); // Start next file
+                            return;
+                        }
+
+                        // We have a chunk (value is Uint8Array)
+                        // Pass it to the sender logic
+                        sendChunkWhenReady(value);
+
+                    }).catch(error => {
+                        console.error("Stream read error:", error);
+                        transferStatusEl.textContent = '❌ File Read error';
+                        document.getElementById(`transfer-${fileJob.id}`)?.remove();
+                        isSending = false;
+                        activeSend = null;
+                        sendNextFileFromQueue();
+                    });
                 }
                 
-                // Process shuru karein
-                readSlice(0);
+                // Start the pump
+                pump();
                 
                 // --- NAYA LOGIC YAHAN KHATM HUA ---
             }
@@ -2517,28 +2502,27 @@
                 // Is it the active transfer?
                 if (activeSend && activeSend.id === fileId) {
                     console.log(`Cancelling active transfer: ${fileId}`);
-                    activeSend.status = 'cancelled'; // Flag for reader.onload/readSlice/sendChunk
+                    activeSend.status = 'cancelled'; // 1. Set flag
                     
-                    // Remove UI
-                    document.getElementById(`transfer-${fileId}`)?.remove();
+                    if (activeSend.streamReader) {
+                        console.log("Cancelling stream reader...");
+                        activeSend.streamReader.cancel('Cancelled by user').catch(()=>{}); // 2. Stop the stream
+                    }
                     
-                    // Send cancellation to peer
+                    document.getElementById(`transfer-${fileId}`)?.remove(); // 3. Remove UI
+                    
                     if (currentConnection && currentConnection.open) {
                         try {
-                            currentConnection.send({ type: 'cancel', fileId: fileId });
+                            currentConnection.send({ type: 'cancel', fileId: fileId }); // 4. Notify peer
                         } catch (err) {
                              console.warn("Failed to send 'cancel' message:", err);
                         }
                     }
                     
-                    // IMPORTANT: Don't call sendNextFileFromQueue here.
-                    // The send/read loop will see the 'cancelled' status
-                    // and will call sendNextFileFromQueue itself.
-                    // This prevents a race condition.
-                    // We just set the flag.
-                    isSending = false; // Allow sendNextFile to run
+                    // 5. Cleanup and start next
+                    isSending = false;
                     activeSend = null;
-                    sendNextFileFromQueue(); // Manually trigger next one just in case
+                    sendNextFileFromQueue();
 
                 } else {
                     // It's in the queue, just remove it
