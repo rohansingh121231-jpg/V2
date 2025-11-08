@@ -621,46 +621,59 @@
             margin-top: 15px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px; /* Increased gap */
             max-height: 190px; /* Approx 3 bars */
             overflow-y: auto;
             overflow-x: hidden;
             scroll-behavior: smooth;
         }
 
-        /* --- COMPACT DYNAMIC PROGRESS BAR STYLES --- */
+        /* --- UPDATED PROFESSIONAL PROGRESS BAR STYLES --- */
         .progress-container {
-            padding: 10px; /* More padding */
+            padding: 10px;
             background: var(--bg-card);
             border-radius: 10px;
             box-shadow: 0 2px 8px var(--shadow);
             display: flex;
             flex-direction: column;
-            gap: 6px; /* Spacing */
+            gap: 6px;
         }
         
         .progress-top-row {
             display: flex;
             align-items: center;
-            gap: 10px; /* More gap */
+            gap: 10px;
             width: 100%;
         }
 
+        .progress-bar-wrapper {
+            flex-grow: 1;
+            min-width: 0; /* Important for flex shrink */
+        }
+        
         .progress-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 13px;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 0;
+            margin-bottom: 4px; /* Space between label and bar */
+        }
+        
+        .progress-label-text {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            flex-grow: 1; /* Take up space */
             flex-shrink: 1;
-            min-width: 0;
         }
-
-        .progress-bar-wrapper {
-            /* This is no longer a wrapper, combining with top row */
+        
+        .progress-percentage {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+            margin-left: 8px;
         }
 
         .progress-bar-background {
@@ -700,56 +713,10 @@
             to { background-position: 0 0; }
         }
 
-
         .progress-bar.pending {
             background: var(--border);
             width: 100% !important;
             animation: none; /* No animation for pending */
-        }
-
-        .progress-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex-shrink: 1;
-        }
-
-        .progress-bar-wrapper {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-
-        .progress-bar-background {
-            position: relative;
-            width: 100%;
-            height: 8px; /* More compact */
-            background: var(--bg-secondary);
-            border-radius: 4px; /* More compact */
-            overflow: hidden;
-            box-shadow: inset 0 1px 2px var(--shadow);
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent) 0%, var(--success) 100%);
-            border-radius: 4px; /* More compact */
-            transition: width 0.3s ease;
-            position: relative;
-        }
-
-        .progress-bar.pending {
-            background: var(--border);
-            width: 100% !important;
-        }
-
-        .delivery-boy {
-            display: none;
         }
 
         .progress-stats {
@@ -760,13 +727,12 @@
             color: var(--text-secondary);
         }
 
-        .cancel-button { /* Changed to class */
+        .cancel-button {
             margin-top: 0;
             width: auto;
-            padding: 4px 8px; /* More compact */
-            font-size: 11px; /* More compact */
+            padding: 4px 8px;
+            font-size: 11px;
             flex-shrink: 0;
-            
             background: var(--error);
             color: white;
             border: none;
@@ -781,8 +747,7 @@
              transform: translateY(-2px);
              box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
         }
-        
-        /* --- END COMPACT PROGRESS BAR STYLES --- */
+        /* --- END UPDATED PROGRESS BAR STYLES --- */
 
 
         .switch-mode-button {
@@ -1489,8 +1454,8 @@
     <!-- WATERMARK REMOVED -->
 
     <!-- NEW IMAGE MODAL -->
-    <div class="image-modal-overlay" id="image-modal-overlay" onclick="closeImageModal()">
-        <button class="image-modal-close" onclick="closeImageModal()">✕</button>
+    <div class="image-modal-overlay" id="image-modal-overlay"> <!-- Removed onclick -->
+        <button class="image-modal-close" id="image-modal-close-btn">✕</button> <!-- Added ID -->
         <a class="image-modal-download" id="image-modal-download" download="image.png">
             <!-- Download SVG Icon -->
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -1664,6 +1629,16 @@
                     <!-- Messages will go here -->
                 </div>
                 <div class="chat-status" id="chat-status"></div>
+                
+                <!-- NEW: Reply Context Bar HTML -->
+                <div class="reply-context-bar" id="reply-context-bar">
+                    <div class="reply-context-content" id="reply-context-content">
+                        Replying to...
+                    </div>
+                    <button class="reply-context-close" id="reply-context-close">✕</button>
+                </div>
+                <!-- END NEW HTML -->
+                
                 <div class="chat-input-area">
                     <input type="text" id="chat-input" placeholder="Type a message...">
                     <button id="chat-attach-button" title="Attach Image">
@@ -1707,15 +1682,16 @@
          * @param {string} src - The full-size image src
          * @param {string} filename - The original filename for download
          * @param {string} sender - 'sender' or 'receiver'
+         * @param {string} msgId - The unique message ID (for download notification)
          */
-        function openImageModal(src, filename, sender) {
+        function openImageModal(src, filename, sender, msgId) { // Added msgId
             const imageModalOverlay = document.getElementById('image-modal-overlay');
             const imageModalContent = document.getElementById('image-modal-content');
             const imageModalDownload = document.getElementById('image-modal-download');
             
             if (!imageModalOverlay || !imageModalContent || !imageModalDownload) return;
             
-            console.log(`Opening modal for ${sender}`);
+            console.log(`Opening modal for ${sender}, msgId: ${msgId}`);
             
             // Set image source
             imageModalContent.src = src;
@@ -1725,8 +1701,19 @@
                 imageModalDownload.href = src;
                 imageModalDownload.download = filename;
                 imageModalDownload.classList.add('active'); // Show download button
+                
+                // --- NEW: Add dynamic onclick for download notification ---
+                imageModalDownload.onclick = (e) => {
+                    e.stopPropagation(); // Prevent modal from closing
+                    console.log('Download button clicked, sending notification...');
+                    sendImageDownloadNotification(msgId);
+                    // The 'a' tag will handle the download itself
+                };
+                // --- END NEW ---
+                
             } else {
                 imageModalDownload.classList.remove('active'); // Hide for sender
+                imageModalDownload.onclick = null; // Clear any previous listener
             }
             
             // Show modal
@@ -1740,6 +1727,7 @@
             if (!imageModalOverlay) return;
             imageModalOverlay.classList.remove('active');
             imageModalContent.src = ''; // Clear src
+            
             // --- NEW: Clear download onclick ---
             const imageModalDownload = document.getElementById('image-modal-download');
             imageModalDownload.onclick = null;
@@ -1755,7 +1743,7 @@
         // This flag blocks peer init *while scanning* to prevent race conditions
         let ALLOW_PEER_INIT = true;
         // This flag prevents reload loops on disconnect
-        let IS_RELOADING = false; // <<<--- RE-ADDED THIS FLAG
+        let IS_RELOADING = false; 
 
         // --- NEW CALL STATE VARS ---
         let localStream = null;
@@ -1796,7 +1784,7 @@
             document.body.style.overflow = '';
             stopScanner(); // This is now the only place that calls stopScanner after a scan
             // Re-allow peer init *only if* no scan was successful (and we are not reloading)
-            if (!hasScanned && !IS_RELOADING) { // <<<--- FIXED: This check now works
+            if (!hasScanned && !IS_RELOADING) { 
                 ALLOW_PEER_INIT = true;
                 console.log('✅ RE-ENABLED peer auto-init');
             }
@@ -1874,7 +1862,6 @@
          * UPDATED: This function now sets the URL hash and reloads the page.
          */
         function processQRCode(decodedText) {
-            // <<<--- FIXED: REVERTED TO RELOAD LOGIC ---
             if (IS_RELOADING) {
                 console.log('⚠ Already processing QR and reloading. Ignoring.');
                 return;
@@ -1904,7 +1891,6 @@
                 
                 console.log('✓ Peer ID is valid');
                 
-                // --- REVERTED TO RELOAD ---
                 console.log('🔄 Setting hash and reloading to switch to CLIENT mode...');
                 window.location.hash = scannedPeerId;
                 window.location.reload();
@@ -1917,7 +1903,6 @@
                 ALLOW_PEER_INIT = true; // Allow peer init to recover
                 IS_RELOADING = false; // RESET FLAG on error
             }
-            // <<<--- END FIX ---
         }
 
         function stopScanner() {
@@ -1960,6 +1945,7 @@
             const label = isSender ? `Sending: ${fileName}` : `Receiving: ${fileName}`;
             const cancelButtonHTML = `<button class="cancel-button" data-file-id="${fileId}">❌</button>`; // Always add
 
+            // --- UPDATED HTML STRUCTURE ---
             el.innerHTML = `
                 <div class="progress-top-row">
                     <div class="progress-bar-wrapper">
@@ -1968,7 +1954,7 @@
                             <span class="progress-percentage">0%</span>
                         </div>
                         <div class="progress-bar-background">
-                            <div class="progress-bar"></div>
+                            <div class="progress-bar" style="width: 0%"></div>
                         </div>
                     </div>
                     ${cancelButtonHTML}
@@ -1978,6 +1964,7 @@
                     <span class="progress-eta">ETA: --:--</span>
                 </div>
             `;
+            // --- END UPDATED HTML ---
 
             container.appendChild(el);
             
@@ -2280,11 +2267,13 @@
                             fileType: file.type,
                             size: file.size,
                             data: base64data,
-                            msgId: msgId
+                            msgId: msgId,
+                            replyContext: replyingTo // --- NEW: Send reply context with image
                         });
-                        addMessageToDOM('image', base64data, 'sender', metadata, msgId);
+                        addMessageToDOM('image', base64data, 'sender', metadata, msgId, replyingTo); // --- NEW: Pass context
                         pruneChat();
                         updateChatLimitsUI();
+                        cancelReply(); // --- NEW: Clear reply state
                     } catch (e) {
                         console.error("Image send error:", e);
                         showChatStatus('Image send error', true);
@@ -2316,6 +2305,21 @@
             }
             
             // --- END CHAT HELPER FUNCTIONS ---
+            
+            // --- NEW: Download Notification Function ---
+            /**
+             * @param {string} msgId
+             */
+            function sendImageDownloadNotification(msgId) {
+                if (currentConnection && currentConnection.open && msgId) {
+                    try {
+                        currentConnection.send({ type: 'chat-img-download', msgId: msgId });
+                    } catch (e) {
+                        console.error("Failed to send download notification:", e);
+                    }
+                }
+            }
+            // --- END NEW ---
 
             // --- NEW REPLY FUNCTIONS ---
             /**
@@ -2374,13 +2378,20 @@
                         localVideo.srcObject = localStream;
                         localVideo.style.display = 'block';
                         toggleVideoButton.classList.add('active');
+                        toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
+                        toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
                         callAvatar.style.display = 'none';
                     } else {
                         localVideo.style.display = 'none';
                         toggleVideoButton.classList.remove('active');
+                        toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
+                        toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
                         callAvatar.style.display = 'flex';
                     }
                     toggleMicButton.classList.add('active'); // Mic is on by default
+                    toggleMicButton.querySelector('.icon-mic-on').style.display = 'block';
+                    toggleMicButton.querySelector('.icon-mic-off').style.display = 'none';
+
                     
                     // INSTEAD: Directly make the call
                     console.log('Initiating peer.call()...');
@@ -2430,13 +2441,19 @@
                         localVideo.srcObject = localStream;
                         localVideo.style.display = 'block';
                         toggleVideoButton.classList.add('active');
+                        toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
+                        toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
                         callAvatar.style.display = 'none';
                     } else {
                         localVideo.style.display = 'none';
                         toggleVideoButton.classList.remove('active');
+                        toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
+                        toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
                         callAvatar.style.display = 'flex';
                     }
                     toggleMicButton.classList.add('active');
+                    toggleMicButton.querySelector('.icon-mic-on').style.display = 'block';
+                    toggleMicButton.querySelector('.icon-mic-off').style.display = 'none';
                     
                     // Answer the call and send our stream
                     currentCall.answer(localStream);
@@ -2588,7 +2605,7 @@
                     // Show/hide video button based on call type
                     toggleVideoButton.style.display = isVideo ? 'flex' : 'none';
                     localVideo.style.display = isVideo ? 'block' : 'none';
-                    // remoteVideo.style.display = isVideo ? 'block' : 'none'; // Only show remote when stream received
+                    remoteVideo.style.display = 'none'; // Hide remote until stream arrives
                     callAvatar.style.display = isVideo ? 'none' : 'flex';
                 } else {
                     callModalOverlay.classList.remove('active');
@@ -2768,20 +2785,6 @@
                 }
             });
 
-            // This function is no longer needed, but we keep it in case
-            // any other part of the code relies on it.
-            function clearHashFromUrl() {
-                const uri = window.location.toString();
-                if (uri.indexOf("#") > 0) {
-                    const cleanUri = uri.substring(0, uri.indexOf("#"));
-                    try {
-                        window.history.replaceState({}, document.title, cleanUri);
-                    } catch (e) {
-                        console.warn('Could not clear hash from URL:', e);
-                    }
-                }
-            }
-
             function initializePeer() {
                 if (!ALLOW_PEER_INIT) {
                     console.log('🚫 Peer init BLOCKED (scanner active)');
@@ -2819,7 +2822,6 @@
                 peer.on('open', (id) => {
                     myId = id;
                     console.log('✓ Peer ID:', id);
-                    // <<<--- FIXED: REVERTED TO HASH-ONLY ---
                     const peerToConnect = window.location.hash.substring(1);
 
                     if (peerToConnect) {
@@ -2901,7 +2903,6 @@
                             connectionRetryCount++;
                             statusEl.textContent = `🔄 Retry ${connectionRetryCount}`;
                             setTimeout(() => {
-                                // <<<--- FIXED: REVERTED TO HASH ---
                                 const targetId = window.location.hash.substring(1);
                                 if (targetId) attemptConnection(targetId);
                             }, 2000);
@@ -2909,7 +2910,6 @@
                             statusEl.textContent = '❌ Peer not found';
                             showSwitchButton(); 
                         }
-                    // <<<--- MODIFIED/FIXED BLOCK ---
                     } else if (!isHost && (err.type === 'network' || err.type === 'webrtc' || err.type === 'server-error')) { 
                         // This reload logic is ONLY for the CLIENT
                         statusEl.textContent = '❌ Connection Error. Reloading...';
@@ -2936,7 +2936,6 @@
                             statusEl.textContent = '⚠️ Network Error';
                         }
                     }
-                    // <<<--- END MODIFIED/FIXED BLOCK ---
                 });
             }
 
@@ -3072,14 +3071,7 @@
                         return;
                     }
                     if (data.type === 'chat-image') {
-                        addMessageToDOM('image', data.data, 'receiver', { size: data.size, name: data.name }, data.msgId, data.replyContext); // --- NEW: Pass context (though unlikely for img)
-                        conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
-                        pruneChat();
-                        updateChatLimitsUI();
-                        return;
-                    }
-                    if (data.type === 'chat-image') {
-                        addMessageToDOM('image', data.data, 'receiver', { size: data.size, name: data.name }, data.msgId);
+                        addMessageToDOM('image', data.data, 'receiver', { size: data.size, name: data.name }, data.msgId, data.replyContext); // --- NEW: Pass context
                         conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
                         pruneChat();
                         updateChatLimitsUI();
@@ -3277,36 +3269,62 @@
             }
             
             /**
-             * UPDATED: This function now clears the hash and reloads the page.
+             * --- CRITICAL FIX: handleDisconnect ---
+             * This function now behaves differently for Host vs Client.
              */
             function handleDisconnect(message) {
-                // <<<--- FIXED: REVERTED TO RELOAD LOGIC ---
                 console.log('⚠ Disconnect:', message);
                 stopHeartbeat();
                 
-                // --- HIDE CHAT ---
+                // --- HIDE CHAT & CALL UI ---
                 chatContainer.style.display = 'none';
                 chatPlaceholder.style.display = 'flex';
-
-                // Set a flag to prevent multiple reloads
-                if (IS_RELOADING) return;
-                IS_RELOADING = true;
-
-                statusEl.textContent = '⚠️ Disconnected... Reloading...';
+                cleanupCall(); // End any active call
                 
                 if (currentConnection) {
                     try { currentConnection.close(); } catch (e) {}
                     currentConnection = null;
                 }
-                if (peer && !peer.destroyed) {
-                    try { peer.destroy(); } catch (e) {}
-                    peer = null;
+
+                if (isHost) {
+                    // --- HOST LOGIC ---
+                    // The Host does NOT reload. It resets its state.
+                    console.log('Host reset: waiting for new connection.');
+                    statusEl.textContent = '⚠️ Disconnected. Ready...';
+                    
+                    // Reset UI to QR code state
+                    qrCodeContainer.style.display = 'block';
+                    shareButtonsContainer.style.display = 'flex';
+                    scanInstructions.style.display = 'none';
+                    fileInput.disabled = true;
+                    transferStatusEl.textContent = 'Waiting...';
+                    
+                    // Cancel any pending transfers
+                    isSending = false;
+                    activeSend = null;
+                    fileQueue = [];
+                    receivingFiles.clear();
+                    transferListContainer.innerHTML = ''; // Clear UI
+                    
+                    // Peer itself is still valid and listening, so we don't destroy it.
+
+                } else {
+                    // --- CLIENT LOGIC ---
+                    // The Client MUST reload to go back to Host mode.
+                    if (IS_RELOADING) return;
+                    IS_RELOADING = true;
+
+                    statusEl.textContent = '⚠️ Disconnected... Reloading...';
+                    
+                    if (peer && !peer.destroyed) {
+                        try { peer.destroy(); } catch (e) {}
+                        peer = null;
+                    }
+                    
+                    console.log('🔄 Client disconnected, reloading to host mode...');
+                    window.location.hash = '';
+                    window.location.reload();
                 }
-                
-                console.log('🔄 Reverting to host mode by reloading...');
-                window.location.hash = '';
-                window.location.reload();
-                // <<<--- END FIX ---
             }
 
             fileInput.addEventListener('change', (event) => {
@@ -3633,27 +3651,21 @@
                 } catch (e) {}
             }
 
+            copyLinkButton.addEventListener('click', () => {
+                if (connectUrl) copyToClipboard(connectUrl, copyLinkButton);
+            });
+            
+            downloadQrButton.addEventListener('click', downloadQRCode);
+
             // Start the app
             initializePeer();
-            
-            // --- NEW: Add global click listener for image modal download ---
-            const imageModalDownload = document.getElementById('image-modal-download');
-            if (imageModalDownload) {
-                imageModalDownload.addEventListener('click', (e) => {
-                    // The msgId must be attached dynamically in openImageModal
-                    // This is just a fallback, the real logic is in openImageModal
-                    e.stopPropagation();
-                    console.log('Download button clicked');
-                });
-            }
-            // --- END ---
             
             // --- NEW: Add click listener for closing image modal (on overlay) ---
             const imageModalOverlay = document.getElementById('image-modal-overlay');
             if (imageModalOverlay) {
                 imageModalOverlay.addEventListener('click', () => closeImageModal());
             }
-            const imageModalCloseBtn = document.querySelector('.image-modal-close');
+            const imageModalCloseBtn = document.getElementById('image-modal-close-btn');
             if(imageModalCloseBtn) {
                 imageModalCloseBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
