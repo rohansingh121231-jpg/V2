@@ -621,56 +621,47 @@
             margin-top: 15px;
             display: flex;
             flex-direction: column;
-            gap: 10px; /* Increased gap */
+            gap: 8px;
             max-height: 190px; /* Approx 3 bars */
             overflow-y: auto;
             overflow-x: hidden;
             scroll-behavior: smooth;
         }
 
-        /* --- UPDATED PROFESSIONAL PROGRESS BAR STYLES --- */
+        /* --- COMPACT DYNAMIC PROGRESS BAR STYLES --- */
         .progress-container {
-            padding: 10px;
+            padding: 10px; /* More padding */
             background: var(--bg-card);
             border-radius: 10px;
             box-shadow: 0 2px 8px var(--shadow);
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 6px; /* Spacing */
         }
         
         .progress-top-row {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 10px; /* More gap */
             width: 100%;
         }
 
-        .progress-bar-wrapper {
-            flex-grow: 1;
-            min-width: 0; /* Important for flex shrink */
-        }
-        
         .progress-label {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             font-size: 13px;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 4px; /* Space between label and bar */
-        }
-        
-        .progress-label-text {
+            margin-bottom: 0;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            flex-grow: 1; /* Take up space */
             flex-shrink: 1;
+            min-width: 0;
         }
         
         .progress-percentage {
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 11px;
+            font-weight: 600;
             color: var(--text-secondary);
             flex-shrink: 0;
             margin-left: 8px;
@@ -713,10 +704,15 @@
             to { background-position: 0 0; }
         }
 
+
         .progress-bar.pending {
             background: var(--border);
             width: 100% !important;
             animation: none; /* No animation for pending */
+        }
+
+        .delivery-boy {
+            display: none;
         }
 
         .progress-stats {
@@ -726,13 +722,20 @@
             font-size: 10px;
             color: var(--text-secondary);
         }
+        
+        .progress-bottom-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-        .cancel-button {
+        .cancel-button { /* Changed to class */
             margin-top: 0;
             width: auto;
-            padding: 4px 8px;
-            font-size: 11px;
+            padding: 4px 8px; /* More compact */
+            font-size: 11px; /* More compact */
             flex-shrink: 0;
+            
             background: var(--error);
             color: white;
             border: none;
@@ -747,7 +750,8 @@
              transform: translateY(-2px);
              box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
         }
-        /* --- END UPDATED PROGRESS BAR STYLES --- */
+        
+        /* --- END COMPACT PROGRESS BAR STYLES --- */
 
 
         .switch-mode-button {
@@ -772,7 +776,7 @@
 
         /* --- CHAT STYLES --- */
         .chat-container {
-            padding: 20px;
+            padding: 0; /* No padding on container */
             border-top: 1px solid var(--border);
             
             /* New layout properties */
@@ -782,21 +786,63 @@
             overflow: hidden; /* Ensure it doesn't overflow */
         }
 
-        .chat-container h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: var(--text-primary);
+        /* --- NEW: Chat Header --- */
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
+        
+        .chat-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0;
+        }
+
+        .chat-call-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .call-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+        .call-button:hover {
+            color: var(--accent);
+            transform: scale(1.1);
+        }
+        .call-button svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
+        
+        .call-button#end-call-button {
+            display: none;
+            color: var(--error);
+        }
+        .call-button#end-call-button:hover {
+            color: #c82333;
+        }
+        /* --- END Chat Header --- */
 
         .chat-messages {
             background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 10px;
+            /* border: 1px solid var(--border); */ /* Removed border */
+            /* border-radius: 10px; */ /* Removed radius */
             padding: 10px;
             overflow-y: auto;
-            margin-bottom: 10px;
+            margin-bottom: 0; /* Removed margin */
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -938,21 +984,20 @@
             display: flex;
             gap: 8px;
             flex-shrink: 0;
+            padding: 10px 15px; /* Add padding to input area */
+            background: var(--bg-card);
         }
-
+        
         /* --- NEW: Reply Context Bar --- */
         .reply-context-bar {
             display: none; /* Hidden by default */
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-bottom: none; /* Attach to input */
-            padding: 8px 12px;
-            border-radius: 10px 10px 0 0;
-            margin-bottom: -8px; /* Overlap with input area */
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            padding: 8px 12px 0 12px; /* Padding */
             position: relative;
         }
         .reply-context-content {
-            background: var(--bg-card);
+            background: var(--bg-secondary);
             border-left: 3px solid var(--accent);
             padding: 6px 10px;
             border-radius: 4px;
@@ -1039,62 +1084,133 @@
             color: var(--success);
             text-align: center;
             height: 18px;
-            margin-top: 8px;
+            /* margin-top: 8px; */ /* Removed margin */
             opacity: 0;
             transition: opacity 0.3s ease;
             flex-shrink: 0;
+            background: var(--bg-card);
+            line-height: 18px;
         }
 
         .chat-limits-info {
             font-size: 11px;
             color: var(--text-secondary);
             text-align: center;
-            margin-top: 8px;
+            padding: 5px;
             flex-shrink: 0;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
         }
         /* --- END CHAT STYLES --- */
-
-        /* --- NEW CHAT HEADER STYLES --- */
-        .chat-header {
-            display: flex;
-            justify-content: space-between;
+        
+        /* --- NEW IMAGE MODAL STYLES --- */
+        .image-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
             align-items: center;
-            margin-bottom: 12px;
-            flex-shrink: 0;
+            justify-content: center;
+            z-index: 11000;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.3s ease;
         }
-        .chat-header h3 {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0; /* Removed margin */
-        }
-        .chat-header-icons {
+        .image-modal-overlay.active {
             display: flex;
-            gap: 8px;
         }
-        .chat-header-button {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border: 2px solid var(--border);
-            width: 36px;
-            height: 36px;
+        .image-modal-content {
+            max-width: 90vw;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .image-modal-toolbar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .image-modal-btn {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
+            border: none;
+            background: rgba(30, 30, 30, 0.8);
+            color: white;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            font-size: 20px;
+            font-weight: bold;
+            transition: all 0.2s ease;
         }
-        .chat-header-button:hover {
-            background: var(--border);
-            border-color: var(--text-secondary);
+        .image-modal-btn:hover {
+            background: rgba(0,0,0,1);
+            transform: scale(1.1);
         }
-        .chat-header-button svg {
-            fill: none;
-            stroke: var(--text-primary);
+        .image-modal-btn svg {
+            width: 22px;
+            height: 22px;
+            stroke: white;
         }
-        /* --- END CHAT HEADER STYLES --- */
-
+        .image-modal-close {
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            line-height: 1;
+        }
+        #image-modal-download {
+            display: none; /* Hide by default */
+        }
+        /* --- END IMAGE MODAL STYLES --- */
+        
+        /* --- NEW VIDEO CALL STYLES --- */
+        .video-call-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 10;
+            display: none; /* Hidden by default */
+            flex-direction: column;
+        }
+        
+        .video-grid {
+            flex-grow: 1;
+            position: relative;
+        }
+        
+        #local-video {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            width: 25%;
+            max-width: 200px;
+            min-width: 100px;
+            border: 2px solid var(--accent);
+            border-radius: 10px;
+            z-index: 12;
+        }
+        
+        #remote-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 11;
+        }
+        
+        video {
+            transform: scaleX(-1); /* Mirror effect */
+            background: #111;
+        }
+        /* --- END VIDEO CALL STYLES --- */
 
         /* --- DESKTOP LAYOUT (WHATSAPP-STYLE) --- */
         @media (min-width: 768px) {
@@ -1108,10 +1224,11 @@
                 max-height: 95vh;
                 border-radius: 20px;
                 box-shadow: 0 10px 40px var(--shadow), 0 0 0 1px var(--border);
+                transition: all 0.3s ease; /* Added transition */
             }
             
             .container:hover {
-                transform: translateY(-5px);
+                /* transform: translateY(-5px); */ /* Removed hover transform */
                 box-shadow: 
                     0 20px 60px var(--shadow),
                     0 0 0 1px var(--border);
@@ -1130,7 +1247,15 @@
             }
 
             .chat-container {
-                padding: 20px; /* Restore padding */
+                padding: 0; /* No padding */
+            }
+            
+            .chat-input-area {
+                padding: 10px 20px; /* More padding on desktop */
+            }
+            
+            .chat-messages {
+                padding: 20px; /* More padding on desktop */
             }
         }
         /* --- END DESKTOP LAYOUT --- */
@@ -1155,288 +1280,43 @@
             /* Adjust padding for mobile full-screen */
             main { padding: 15px; }
             .transfer-area { padding: 15px; }
-            .chat-container { padding: 15px; }
-        }
-
-        /* --- IMAGE MODAL STYLES --- */
-        .image-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: none; /* Hidden by default */
-            align-items: center;
-            justify-content: center;
-            z-index: 10001;
-            backdrop-filter: blur(8px);
-            animation: fadeIn 0.3s ease;
-        }
-        .image-modal-overlay.active {
-            display: flex;
-        }
-        #image-modal-content {
-            max-width: 90vw;
-            max-height: 85vh;
-            object-fit: contain;
-            border-radius: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }
-        .image-modal-close {
-            position: absolute;
-            top: 15px;
-            left: 15px; /* Changed from right to left */
-            background: var(--error);
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            font-weight: bold;
-            z-index: 10002;
-        }
-        .image-modal-close:hover {
-            background: #c82333;
-            transform: scale(1.1);
-        }
-        .image-modal-download {
-            position: absolute;
-            bottom: 15px;
-            right: 15px; /* Changed position */
-            background: var(--success);
-            color: white;
-            border: none;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: none; /* Hidden by default, shown for receiver */
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            z-index: 10002;
-        }
-        .image-modal-download.active {
-            display: flex;
-        }
-        .image-modal-download:hover {
-            background: #2d8e47;
-            transform: scale(1.1);
-        }
-        .image-modal-download svg {
-            width: 22px;
-            height: 22px;
-        }
-        /* --- END IMAGE MODAL STYLES --- */
-
-        /* --- CALL UI STYLES --- */
-        .call-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--bg-primary);
-            z-index: 10002;
-            display: none;
-            flex-direction: column;
-            animation: fadeIn 0.3s ease;
-        }
-        .call-modal-overlay.active {
-            display: flex;
-        }
-        .call-container {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
-        }
-        .call-header {
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-        .call-header h3 {
-            color: var(--text-primary);
-            font-size: 18px;
-            font-weight: 600;
-        }
-        #call-timer {
-            font-size: 16px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            background: var(--bg-card);
-            padding: 5px 10px;
-            border-radius: 8px;
-        }
-        .video-grid {
-            flex-grow: 1;
-            position: relative;
-            background: var(--bg-secondary);
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        #remote-video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: none; /* Hidden until call connects */
-            transform: scaleX(-1); /* Mirror remote video */
-        }
-        #local-video {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 100px;
-            height: 150px;
-            object-fit: cover;
-            border-radius: 10px;
-            border: 2px solid var(--border);
-            box-shadow: 0 4px 12px var(--shadow);
-            z-index: 10;
-            display: none; /* Hidden until call starts */
-            transform: scaleX(-1); /* Mirror local video */
-        }
-        .call-avatar {
-            display: flex; /* Shown for voice calls or before video starts */
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-secondary);
-        }
-        .call-avatar svg {
-            width: 100px;
-            height: 100px;
-            padding: 20px;
-            background: var(--bg-card);
-            border-radius: 50%;
-            stroke: var(--text-secondary);
-        }
-        .call-controls {
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-        .call-control-button {
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-card);
-            color: var(--text-primary);
-            border: 2px solid var(--border);
-            transition: all 0.3s ease;
-        }
-        .call-control-button svg {
-            stroke: var(--text-primary);
-        }
-        .call-control-button.active {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: white;
-        }
-        .call-control-button.active svg {
-            stroke: white;
-        }
-        .call-control-button.end-call {
-            background: var(--error);
-            border-color: var(--error);
-            color: white;
-        }
-        .call-control-button.end-call svg {
-            stroke: white;
-        }
-        
-        /* INCOMING CALL TOAST */
-        .incoming-call-toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: 0 8px 30px var(--shadow);
-            z-index: 10003;
-            display: none;
-            align-items: center;
-            padding: 15px 20px;
-            gap: 20px;
-            animation: slideDown 0.5s ease;
-        }
-        .incoming-call-toast.active {
-            display: flex;
-        }
-        @keyframes slideDown {
-            from { top: -100px; opacity: 0; }
-            to { top: 20px; opacity: 1; }
-        }
-        .call-toast-info {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        .call-toast-buttons {
-            display: flex;
-            gap: 10px;
-        }
-        .call-toast-button {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .call-toast-button.accept {
-            background: var(--success);
-            color: white;
-        }
-        .call-toast-button.accept:hover {
-            background: #2d8e47;
-        }
-        .call-toast-button.reject {
-            background: var(--error);
-            color: white;
-        }
-        .call-toast-button.reject:hover {
-            background: #c82333;
-        }
-        
-        @media (max-width: 768px) {
+            /* .chat-container { padding: 15px; } */ /* Handled by sub-elements */
+            
+            .chat-header { padding: 10px 12px; }
+            .chat-call-buttons { gap: 10px; }
+            .call-button svg { width: 20px; height: 20px; }
+            
+            .chat-input-area { padding: 8px; }
+            #chat-input { padding: 8px 10px; }
+            #chat-send-button, #chat-attach-button { height: 40px; padding: 0 12px; }
+            #chat-attach-button { font-size: 16px; padding: 0 12px; }
+            
+            .chat-message-reply-btn {
+                display: flex; /* Always show on mobile? No, keep hover */
+                right: 2px;
+                top: 2px;
+                opacity: 0.3;
+                background: none;
+                border: none;
+                width: 20px;
+                height: 20px;
+            }
+            .chat-message.sender:hover .chat-message-reply-btn {
+                right: auto;
+                left: 2px;
+            }
+            .chat-message:hover .chat-message-reply-btn {
+                opacity: 0.6;
+            }
+            
+            /* Video call mobile */
             #local-video {
-                width: 80px;
-                height: 120px;
-                bottom: 15px;
-                right: 15px;
+                width: 30%;
+                min-width: 80px;
+                bottom: 10px;
+                right: 10px;
             }
         }
-        /* --- END CALL UI STYLES --- */
 
     </style>
 </head>
@@ -1453,71 +1333,6 @@
 
     <!-- WATERMARK REMOVED -->
 
-    <!-- NEW IMAGE MODAL -->
-    <div class="image-modal-overlay" id="image-modal-overlay"> <!-- Removed onclick -->
-        <button class="image-modal-close" id="image-modal-close-btn">✕</button> <!-- Added ID -->
-        <a class="image-modal-download" id="image-modal-download" download="image.png">
-            <!-- Download SVG Icon -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        </a>
-        <img src="" alt="Image Preview" id="image-modal-content" onclick="event.stopPropagation()">
-    </div>
-    
-    <!-- NEW VIDEO/VOICE CALL MODAL -->
-    <div class="call-modal-overlay" id="call-modal-overlay">
-        <div class="call-container" id="call-container">
-            <div class="call-header">
-                <h3 id="call-status">Calling...</h3>
-                <span id="call-timer">00:00</span>
-            </div>
-            <div class="video-grid">
-                <!-- Local video (small) -->
-                <video id="local-video" autoplay muted playsinline></video>
-                <!-- Remote video (large) -->
-                <video id="remote-video" autoplay playsinline></video>
-                <div class="call-avatar" id="call-avatar">
-                    <!-- Call Avatar SVG -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                </div>
-            </div>
-            <div class="call-controls">
-                <button id="toggle-mic-button" class="call-control-button active">
-                    <!-- Mic On SVG -->
-                    <svg class="icon-mic-on" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-                    <!-- Mic Off SVG -->
-                    <svg class="icon-mic-off" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
-                </button>
-                <button id="toggle-video-button" class="call-control-button active">
-                    <!-- Video On SVG -->
-                    <svg class="icon-video-on" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-                    <!-- Video Off SVG -->
-                    <svg class="icon-video-off" style="display:none;" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                </button>
-                <button id="end-call-button" class="call-control-button end-call">
-                    <!-- End Call SVG -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 3.41l3.17-3.17a2 2 0 0 1 2.83 2.83l-3.17 3.17a16 16 0 0 1-3.41 3.41 16 16 0 0 1-3.41-3.41l-3.17-3.17a2 2 0 0 1 2.83-2.83l3.17 3.17z"></path><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- INCOMING CALL TOAST -->
-    <div class="incoming-call-toast" id="incoming-call-toast">
-        <div class="call-toast-info">
-            <span id="incoming-call-type">Incoming Video Call...</span>
-        </div>
-        <div class="call-toast-buttons">
-            <button id="accept-call-button" class="call-toast-button accept">
-                <!-- Accept Call SVG -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-            </button>
-            <button id="reject-call-button" class="call-toast-button reject">
-                <!-- Reject Call SVG -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 3.41l3.17-3.17a2 2 0 0 1 2.83 2.83l-3.17 3.17a16 16 0 0 1-3.41 3.41 16 16 0 0 1-3.41-3.41l-3.17-3.17a2 2 0 0 1 2.83-2.83l3.17 3.17z"></path><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-            </button>
-        </div>
-    </div>
-    
     <div class="connection-overlay" id="connection-overlay">
         <div class="lock-animation">
             <svg class="lock-svg" viewBox="0 0 100 100">
@@ -1564,6 +1379,21 @@
             📱 Point camera at QR code
         </div>
     </div>
+    
+    <!-- NEW IMAGE MODAL -->
+    <div class="image-modal-overlay" id="image-modal-overlay">
+        <div class="image-modal-toolbar">
+             <button class="image-modal-btn" id="image-modal-download" title="Download">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+             </button>
+             <button class="image-modal-btn image-modal-close" title="Close">
+                ✕
+             </button>
+        </div>
+        <img src="" alt="Image Preview" class="image-modal-content" id="image-modal-content">
+    </div>
+    <!-- END IMAGE MODAL -->
+
 
     <!-- NEW LAYOUT STRUCTURE -->
     <div class="container">
@@ -1610,34 +1440,44 @@
         <div class="chat-main">
             <!-- CHAT UI -->
             <div class="chat-container" id="chat-container">
-                <!-- NEW CHAT HEADER -->
+                
+                <!-- NEW: Chat Header -->
                 <div class="chat-header">
                     <h3>💬 E2E Chat</h3>
-                    <div class="chat-header-icons">
-                        <button class="chat-header-button" id="start-video-call" title="Video Call">
-                            <!-- Video Call SVG -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                    <div class="chat-call-buttons">
+                        <button class="call-button" id="voice-call-button" title="Start Voice Call">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
                         </button>
-                        <button class="chat-header-button" id="start-voice-call" title="Voice Call">
-                            <!-- Voice Call SVG -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                        <button class="call-button" id="video-call-button" title="Start Video Call">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                        </button>
+                        <button class="call-button" id="end-call-button" title="End Call">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.36 8.78 7.43 7 12 7s8.64 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
                         </button>
                     </div>
                 </div>
-                <!-- END NEW CHAT HEADER -->
+                
+                <!-- NEW: Video Call Container (overlays chat) -->
+                <div class="video-call-container" id="video-call-container">
+                    <div class="video-grid">
+                        <video id="remote-video" autoplay playsinline></video>
+                        <video id="local-video" autoplay playsinline muted></video>
+                    </div>
+                </div>
+
                 <div class="chat-messages" id="chat-messages">
                     <!-- Messages will go here -->
                 </div>
+                
                 <div class="chat-status" id="chat-status"></div>
                 
-                <!-- NEW: Reply Context Bar HTML -->
+                <!-- NEW: Reply Context Bar -->
                 <div class="reply-context-bar" id="reply-context-bar">
                     <div class="reply-context-content" id="reply-context-content">
                         Replying to...
                     </div>
                     <button class="reply-context-close" id="reply-context-close">✕</button>
                 </div>
-                <!-- END NEW HTML -->
                 
                 <div class="chat-input-area">
                     <input type="text" id="chat-input" placeholder="Type a message...">
@@ -1677,66 +1517,6 @@
             toggleTheme();
         }
 
-        // --- NEW IMAGE MODAL FUNCTIONS ---
-        /**
-         * @param {string} src - The full-size image src
-         * @param {string} filename - The original filename for download
-         * @param {string} sender - 'sender' or 'receiver'
-         * @param {string} msgId - The unique message ID (for download notification)
-         */
-        function openImageModal(src, filename, sender, msgId) { // Added msgId
-            const imageModalOverlay = document.getElementById('image-modal-overlay');
-            const imageModalContent = document.getElementById('image-modal-content');
-            const imageModalDownload = document.getElementById('image-modal-download');
-            
-            if (!imageModalOverlay || !imageModalContent || !imageModalDownload) return;
-            
-            console.log(`Opening modal for ${sender}, msgId: ${msgId}`);
-            
-            // Set image source
-            imageModalContent.src = src;
-            
-            // Set download button properties
-            if (sender === 'receiver') {
-                imageModalDownload.href = src;
-                imageModalDownload.download = filename;
-                imageModalDownload.classList.add('active'); // Show download button
-                
-                // --- NEW: Add dynamic onclick for download notification ---
-                imageModalDownload.onclick = (e) => {
-                    e.stopPropagation(); // Prevent modal from closing
-                    console.log('Download button clicked, sending notification...');
-                    sendImageDownloadNotification(msgId);
-                    // The 'a' tag will handle the download itself
-                };
-                // --- END NEW ---
-                
-            } else {
-                imageModalDownload.classList.remove('active'); // Hide for sender
-                imageModalDownload.onclick = null; // Clear any previous listener
-            }
-            
-            // Show modal
-            imageModalOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
-        }
-
-        function closeImageModal() {
-            const imageModalOverlay = document.getElementById('image-modal-overlay');
-            const imageModalContent = document.getElementById('image-modal-content');
-            if (!imageModalOverlay) return;
-            imageModalOverlay.classList.remove('active');
-            imageModalContent.src = ''; // Clear src
-            
-            // --- NEW: Clear download onclick ---
-            const imageModalDownload = document.getElementById('image-modal-download');
-            imageModalDownload.onclick = null;
-            // --- END ---
-            document.body.style.overflow = ''; // Restore scrolling
-        }
-        // --- END NEW IMAGE MODAL FUNCTIONS ---
-
-
         let html5QrCode = null;
         let isScanning = false;
         let hasScanned = false;
@@ -1744,15 +1524,6 @@
         let ALLOW_PEER_INIT = true;
         // This flag prevents reload loops on disconnect
         let IS_RELOADING = false; 
-
-        // --- NEW CALL STATE VARS ---
-        let localStream = null;
-        let remoteStream = null;
-        let currentCall = null;
-        let isCallActive = false;
-        let callTimerInterval = null;
-        let callStartTime = 0;
-        // --- END NEW CALL STATE VARS ---
 
         window.APP_PEER = null;
         window.APP_CONNECTION = null;
@@ -1784,7 +1555,7 @@
             document.body.style.overflow = '';
             stopScanner(); // This is now the only place that calls stopScanner after a scan
             // Re-allow peer init *only if* no scan was successful (and we are not reloading)
-            if (!hasScanned && !IS_RELOADING) { 
+            if (!hasScanned && !IS_RELOADING) {
                 ALLOW_PEER_INIT = true;
                 console.log('✅ RE-ENABLED peer auto-init');
             }
@@ -1862,6 +1633,7 @@
          * UPDATED: This function now sets the URL hash and reloads the page.
          */
         function processQRCode(decodedText) {
+            // ADDED GUARD: Prevent multiple reloads
             if (IS_RELOADING) {
                 console.log('⚠ Already processing QR and reloading. Ignoring.');
                 return;
@@ -1885,12 +1657,14 @@
                     showChatStatus('QR code has no peer ID', true);
                     hasScanned = false; // Allow re-scan
                     ALLOW_PEER_INIT = true; // Allow peer init to recover
-                    IS_RELOADING = false; // Reset flag on error
                     return;
                 }
                 
                 console.log('✓ Peer ID is valid');
                 
+                // --- NEW LOGIC ---
+                // Set the hash to the scanned ID and reload.
+                // The app will re-initialize in client mode.
                 console.log('🔄 Setting hash and reloading to switch to CLIENT mode...');
                 window.location.hash = scannedPeerId;
                 window.location.reload();
@@ -1928,6 +1702,31 @@
                 overlay.classList.remove('active');
             }, 2000);
         }
+        
+        // --- NEW: Cancel Receive Function (MOVED UP) ---
+        /**
+         * @param {string} fileId
+         */
+        function cancelReceive(fileId) {
+            console.log(`[DEBUG] [cancelReceive] called for ${fileId}`); // DEBUG
+            // 1. Remove from map
+            receivingFiles.delete(fileId);
+            
+            // 2. Remove UI
+            document.getElementById(`transfer-${fileId}`)?.remove();
+            
+            // 3. Send cancellation to sender
+            if (currentConnection && currentConnection.open) {
+                try {
+                    currentConnection.send({ type: 'cancel', fileId: fileId });
+                } catch (err) {}
+            }
+            
+            // 4. Update status if no more files
+            if (receivingFiles.size === 0 && !isSending) {
+                transferStatusEl.textContent = '❌ Receive cancelled';
+            }
+        }
 
         // --- NEW: Helper to create HTML for a progress bar ---
         /**
@@ -1943,28 +1742,26 @@
             el.id = `transfer-${fileId}`;
 
             const label = isSender ? `Sending: ${fileName}` : `Receiving: ${fileName}`;
-            const cancelButtonHTML = `<button class="cancel-button" data-file-id="${fileId}">❌</button>`; // Always add
+            const cancelButtonHTML = `<button class="cancel-button" data-file-id="${fileId}">❌ Cancel</button>`; // Always add
 
-            // --- UPDATED HTML STRUCTURE ---
             el.innerHTML = `
                 <div class="progress-top-row">
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-label">
-                            <span class="progress-label-text">${label}</span>
-                            <span class="progress-percentage">0%</span>
-                        </div>
-                        <div class="progress-bar-background">
-                            <div class="progress-bar" style="width: 0%"></div>
-                        </div>
+                    <div class="progress-label">
+                        <span class="progress-label-text">${label}</span>
                     </div>
                     ${cancelButtonHTML}
                 </div>
-                <div class="progress-stats">
-                    <span class="progress-size">-- MB / -- MB</span>
-                    <span class="progress-eta">ETA: --:--</span>
+                <div class="progress-bar-background">
+                    <div class="progress-bar" style="width: 0%;"></div>
+                </div>
+                <div class="progress-bottom-row">
+                    <div class="progress-stats">
+                        <span class="progress-size">-- MB / -- MB</span>
+                        <span class="progress-eta">ETA: --:--</span>
+                    </div>
+                    <div class="progress-percentage">0%</div>
                 </div>
             `;
-            // --- END UPDATED HTML ---
 
             container.appendChild(el);
             
@@ -1974,7 +1771,7 @@
                 if (isSender) {
                     cancelTransfer(fileId);
                 } else {
-                    cancelReceive(fileId); // New function
+                    cancelReceive(fileId); // Now defined above
                 }
             });
         }
@@ -2033,6 +1830,12 @@
 
             // --- NEW: Reply State ---
             let replyingTo = null;
+            
+            // --- NEW: Call State ---
+            let localStream = null;
+            let remoteStream = null;
+            let currentCall = null;
+            let isCallActive = false;
 
 
             // --- CHAT HELPER FUNCTIONS ---
@@ -2111,6 +1914,73 @@
                 if (!chatLimitsInfo) return;
                 const { wordCount, imageCount, imageSize } = getChatLimits();
                 chatLimitsInfo.textContent = `Words: ${wordCount}/${MAX_WORDS} | Images: ${imageCount}/${MAX_IMAGES} (${formatBytes(imageSize)}/10 MB)`;
+            }
+            
+            // --- NEW: IMAGE MODAL FUNCTIONS (MOVED INSIDE) ---
+            /**
+             * @param {string} src
+             * @param {string} filename
+             * @param {string} sender ('sender' or 'receiver')
+             * @param {string} msgId
+             */
+            function openImageModal(src, filename, sender, msgId) {
+                console.log(`Opening modal for ${sender}, msgId: ${msgId}`); // DEBUG
+                const imageModalOverlay = document.getElementById('image-modal-overlay');
+                const imageModalContent = document.getElementById('image-modal-content');
+                const imageModalDownload = document.getElementById('image-modal-download');
+                if (!imageModalOverlay || !imageModalContent || !imageModalDownload) return;
+                
+                imageModalContent.src = src;
+                
+                if (sender === 'receiver') {
+                    imageModalDownload.style.display = 'flex';
+                    // Attach the download and notification logic directly
+                    imageModalDownload.onclick = (e) => {
+                        e.stopPropagation();
+                        try {
+                            const a = document.createElement('a');
+                            a.href = src;
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            
+                            // Send download notification
+                            console.log('Download button clicked, sending notification...'); // DEBUG
+                            sendImageDownloadNotification(msgId); // Call function
+                        } catch (err) {
+                            console.error("Download error:", err);
+                        }
+                    };
+                } else {
+                    imageModalDownload.style.display = 'none';
+                    imageModalDownload.onclick = null; // Clear any previous handler
+                }
+                
+                imageModalOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            }
+
+            function closeImageModal() {
+                const imageModalOverlay = document.getElementById('image-modal-overlay');
+                const imageModalContent = document.getElementById('image-modal-content');
+                if (!imageModalOverlay) return;
+                imageModalOverlay.classList.remove('active');
+                imageModalContent.src = ''; // Clear src
+                // --- NEW: Clear download onclick ---
+                const imageModalDownload = document.getElementById('image-modal-download');
+                imageModalDownload.onclick = null;
+                // --- END ---
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+            // --- END NEW IMAGE MODAL FUNCTIONS ---
+            
+            // --- NEW: Image Download Notification Function ---
+            function sendImageDownloadNotification(msgId) {
+                 if (currentConnection && currentConnection.open) {
+                    console.log(`[DEBUG] Sending chat-img-download for ${msgId}`); // DEBUG
+                    currentConnection.send({ type: 'chat-img-download', msgId: msgId });
+                }
             }
 
             /**
@@ -2269,7 +2139,7 @@
                             size: file.size,
                             data: base64data,
                             msgId: msgId,
-                            replyContext: replyingTo // --- NEW: Send reply context with image
+                            replyContext: replyingTo // --- NEW: Send reply context
                         });
                         addMessageToDOM('image', base64data, 'sender', metadata, msgId, replyingTo); // --- NEW: Pass context
                         pruneChat();
@@ -2306,21 +2176,6 @@
             }
             
             // --- END CHAT HELPER FUNCTIONS ---
-            
-            // --- NEW: Download Notification Function ---
-            /**
-             * @param {string} msgId
-             */
-            function sendImageDownloadNotification(msgId) {
-                if (currentConnection && currentConnection.open && msgId) {
-                    try {
-                        currentConnection.send({ type: 'chat-img-download', msgId: msgId });
-                    } catch (e) {
-                        console.error("Failed to send download notification:", e);
-                    }
-                }
-            }
-            // --- END NEW ---
 
             // --- NEW REPLY FUNCTIONS ---
             /**
@@ -2354,15 +2209,39 @@
 
             // --- NEW CALL LOGIC FUNCTIONS ---
             
-            /**
-             * Starts a call (video or voice)
-             * @param {boolean} isVideo - True for video call, false for voice
-             */
-            async function startCall(isVideo) {
-                if (!currentConnection || !currentConnection.open || isCallActive) {
-                    showChatStatus('❌ Not connected or already in call', true);
-                    return;
+            function toggleCallUI(isCalling) {
+                const videoContainer = document.getElementById('video-call-container');
+                const chatMessagesEl = document.getElementById('chat-messages');
+                const chatInputArea = document.querySelector('.chat-input-area'); // Need parent
+                const replyContextBar = document.getElementById('reply-context-bar');
+                
+                const voiceCallBtn = document.getElementById('voice-call-button');
+                const videoCallBtn = document.getElementById('video-call-button');
+                const endCallBtn = document.getElementById('end-call-button');
+
+                if (isCalling) {
+                    videoContainer.style.display = 'flex';
+                    chatMessagesEl.style.display = 'none';
+                    chatInputArea.style.display = 'none';
+                    replyContextBar.style.display = 'none';
+                    
+                    voiceCallBtn.style.display = 'none';
+                    videoCallBtn.style.display = 'none';
+                    endCallBtn.style.display = 'block';
+                } else {
+                    videoContainer.style.display = 'none';
+                    chatMessagesEl.style.display = 'flex';
+                    chatInputArea.style.display = 'flex';
+                    replyContextBar.style.display = replyingTo ? 'block' : 'none'; // Restore reply bar
+                    
+                    voiceCallBtn.style.display = 'block';
+                    videoCallBtn.style.display = 'block';
+                    endCallBtn.style.display = 'none';
                 }
+            }
+            
+            async function startCall(isVideo) {
+                if (isCallActive || !currentConnection || !currentConnection.open) return;
                 
                 console.log(`Starting ${isVideo ? 'video' : 'voice'} call...`);
                 
@@ -2372,279 +2251,110 @@
                         audio: true
                     });
                     
-                    showCallUI(true, isVideo); // Show our own UI
+                    document.getElementById('local-video').srcObject = localStream;
+                    toggleCallUI(true); // Show video container
+                    isCallActive = true;
                     
-                    // Show local video if enabled
-                    if (isVideo) {
-                        localVideo.srcObject = localStream;
-                        localVideo.style.display = 'block';
-                        toggleVideoButton.classList.add('active');
-                        toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
-                        toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
-                        callAvatar.style.display = 'none';
-                    } else {
-                        localVideo.style.display = 'none';
-                        toggleVideoButton.classList.remove('active');
-                        toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
-                        toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
-                        callAvatar.style.display = 'flex';
-                    }
-                    toggleMicButton.classList.add('active'); // Mic is on by default
-                    toggleMicButton.querySelector('.icon-mic-on').style.display = 'block';
-                    toggleMicButton.querySelector('.icon-mic-off').style.display = 'none';
-
+                    // Send call request
+                    currentConnection.send({ type: 'call-request', isVideo: isVideo });
                     
-                    // INSTEAD: Directly make the call
-                    console.log('Initiating peer.call()...');
-                    currentCall = peer.call(currentConnection.peer, localStream, {
-                        metadata: { isVideo: isVideo }
-                    });
-                    
-                    currentCall.on('stream', setupRemoteStream);
-                    currentCall.on('close', endCall);
-                    currentCall.on('error', (err) => {
-                        console.error('Call error:', err);
-                        endCall();
-                    });
-                    
-                    callStatus.textContent = 'Ringing...';
-                    isCallActive = true; // Mark call as active *now*
+                    // Set up the call
+                    const call = peer.call(currentConnection.peer, localStream);
+                    setupCallListeners(call);
                     
                 } catch (err) {
-                    console.error('getUserMedia error:', err);
-                    showChatStatus(`❌ ${err.name}`, true);
-                    cleanupCall();
-                }
-            }
-
-            /**
-             * Answers an incoming call
-             */
-            async function answerCall() {
-                if (!currentCall || isCallActive) return;
-                
-                console.log('Answering call...');
-                hideIncomingCallToast();
-                
-                isCallActive = true;
-                
-                const isVideo = currentCall.metadata.isVideo;
-                
-                try {
-                    localStream = await navigator.mediaDevices.getUserMedia({
-                        video: isVideo,
-                        audio: true
-                    });
-                    
-                    showCallUI(true, isVideo); // Show call UI
-                    
-                    if (isVideo) {
-                        localVideo.srcObject = localStream;
-                        localVideo.style.display = 'block';
-                        toggleVideoButton.classList.add('active');
-                        toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
-                        toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
-                        callAvatar.style.display = 'none';
-                    } else {
-                        localVideo.style.display = 'none';
-                        toggleVideoButton.classList.remove('active');
-                        toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
-                        toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
-                        callAvatar.style.display = 'flex';
-                    }
-                    toggleMicButton.classList.add('active');
-                    toggleMicButton.querySelector('.icon-mic-on').style.display = 'block';
-                    toggleMicButton.querySelector('.icon-mic-off').style.display = 'none';
-                    
-                    // Answer the call and send our stream
-                    currentCall.answer(localStream);
-                    
-                    currentCall.on('stream', setupRemoteStream);
-                    currentCall.on('close', endCall);
-                    currentCall.on('error', (err) => {
-                        console.error('Call error:', err);
-                        endCall();
-                    });
-                    
-                    callStatus.textContent = 'Connected';
-                    startCallTimer();
-                    
-                } catch (err) {
-                    console.error('getUserMedia error:', err);
-                    showChatStatus(`❌ ${err.name}`, true);
-                    rejectCall(); // Reject if we can't get media
-                }
-            }
-
-            /**
-             * Rejects an incoming call
-             */
-            function rejectCall() {
-                console.log('Rejecting call...');
-                
-                if (currentCall) {
-                    currentCall.close(); // This *is* the rejection
-                    currentCall = null;
-                }
-                hideIncomingCallToast();
-                cleanupCall();
-            }
-
-            /**
-             * Toggles the microphone on/off
-             */
-            function toggleMic() {
-                if (!localStream) return;
-                const audioTrack = localStream.getAudioTracks()[0];
-                if (audioTrack) {
-                    audioTrack.enabled = !audioTrack.enabled;
-                    toggleMicButton.classList.toggle('active');
-                    // Toggle icons
-                    toggleMicButton.querySelector('.icon-mic-on').style.display = audioTrack.enabled ? 'block' : 'none';
-                    toggleMicButton.querySelector('.icon-mic-off').style.display = audioTrack.enabled ? 'none' : 'block';
+                    console.error('Failed to get media:', err);
+                    showChatStatus('❌ Failed to access camera/mic', true);
+                    cleanUpCall();
                 }
             }
             
-            /**
-             * Toggles the video on/off
-             */
-            function toggleVideo() {
-                if (!localStream) return;
-                const videoTrack = localStream.getVideoTracks()[0];
-                if (videoTrack) {
-                    videoTrack.enabled = !videoTrack.enabled;
-                    toggleVideoButton.classList.toggle('active');
-                    // Toggle icons
-                    toggleVideoButton.querySelector('.icon-video-on').style.display = videoTrack.enabled ? 'block' : 'none';
-                    toggleVideoButton.querySelector('.icon-video-off').style.display = videoTrack.enabled ? 'none' : 'block';
-                    
-                    // Show/hide avatar
-                    callAvatar.style.display = videoTrack.enabled ? 'none' : 'flex';
-                    localVideo.style.display = videoTrack.enabled ? 'block' : 'none';
-                    
-                    // Tell peer we toggled video
-                    if (currentConnection && currentConnection.open) {
-                        currentConnection.send({ type: 'call-toggle-video', isVideoOn: videoTrack.enabled });
-                    }
-                }
-            }
-
-            /**
-             * Ends the current call (initiated by us)
-             */
             function endCall() {
+                if (!isCallActive) return;
                 console.log('Ending call...');
-                if (currentCall) {
-                    currentCall.close();
-                    currentCall = null; // Set to null *after* closing
-                }
-                // Send data message as a fallback
+                
+                // Send end-call signal
                 if (currentConnection && currentConnection.open) {
                     currentConnection.send({ type: 'call-end' });
                 }
-                cleanupCall();
+                
+                cleanUpCall();
             }
-
-            /**
-             * Cleans up all call-related state and UI
-             */
-            function cleanupCall() {
+            
+            function cleanUpCall() {
                 console.log('Cleaning up call...');
+                
+                if (currentCall) {
+                    currentCall.close();
+                    currentCall = null;
+                }
                 
                 if (localStream) {
                     localStream.getTracks().forEach(track => track.stop());
                     localStream = null;
                 }
+                
                 if (remoteStream) {
-                    remoteStream.getTracks().forEach(track => track.stop());
                     remoteStream = null;
                 }
-                
-                localVideo.srcObject = null;
-                remoteVideo.srcObject = null;
+
+                document.getElementById('local-video').srcObject = null;
+                document.getElementById('remote-video').srcObject = null;
                 
                 isCallActive = false;
-                
-                stopCallTimer();
-                showCallUI(false);
-                hideIncomingCallToast();
+                toggleCallUI(false); // Hide video container
             }
             
-            /**
-             * @param {MediaStream} stream
-             */
-            function setupRemoteStream(stream) {
-                console.log('Received remote stream');
-                remoteStream = stream;
-                remoteVideo.srcObject = stream;
-                remoteVideo.style.display = 'block';
-                
-                // If this is a voice call, hide avatar
-                if (stream.getVideoTracks().length > 0) {
-                    callAvatar.style.display = 'none';
-                } else {
-                    callAvatar.style.display = 'flex';
+            function setupCallListeners(call) {
+                if (currentCall) {
+                    currentCall.close();
                 }
                 
-                callStatus.textContent = 'Connected';
-                startCallTimer();
+                currentCall = call;
+                isCallActive = true;
+                
+                call.on('stream', (stream) => {
+                    console.log('Received remote stream');
+                    remoteStream = stream;
+                    document.getElementById('remote-video').srcObject = stream;
+                    toggleCallUI(true); // Ensure UI is active
+                });
+                
+                call.on('close', () => {
+                    console.log('Call closed by peer');
+                    cleanUpCall();
+                });
+                
+                call.on('error', (err) => {
+                    console.error('Call error:', err);
+                    cleanUpCall();
+                });
             }
             
-            /**
-             * @param {boolean} show
-             * @param {boolean} [isVideo=false]
-             */
-            function showCallUI(show, isVideo = false) {
-                const callModalOverlay = document.getElementById('call-modal-overlay');
-                const toggleVideoButton = document.getElementById('toggle-video-button');
-                const localVideo = document.getElementById('local-video');
-                const remoteVideo = document.getElementById('remote-video');
-                const callAvatar = document.getElementById('call-avatar');
-
-                if (show) {
-                    callModalOverlay.classList.add('active');
-                    // Show/hide video button based on call type
-                    toggleVideoButton.style.display = isVideo ? 'flex' : 'none';
-                    localVideo.style.display = isVideo ? 'block' : 'none';
-                    remoteVideo.style.display = 'none'; // Hide remote until stream arrives
-                    callAvatar.style.display = isVideo ? 'none' : 'flex';
-                } else {
-                    callModalOverlay.classList.remove('active');
+            function answerCall(call, isVideo) {
+                 if (isCallActive) {
+                    console.warn('Already in a call, rejecting new call');
+                    // This scenario needs a 'busy' signal, but for now we just log
+                    return; 
                 }
+                
+                console.log(`Answering ${isVideo ? 'video' : 'voice'} call...`);
+                
+                navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true })
+                    .then(stream => {
+                        localStream = stream;
+                        document.getElementById('local-video').srcObject = localStream;
+                        
+                        call.answer(localStream);
+                        setupCallListeners(call);
+                    })
+                    .catch(err => {
+                        console.error('Failed to get media for answer:', err);
+                        showChatStatus('❌ Failed to access camera/mic', true);
+                        // Reject the call? 
+                    });
             }
-            
-            function showIncomingCallToast(isVideo) {
-                const incomingCallToast = document.getElementById('incoming-call-toast');
-                const incomingCallType = document.getElementById('incoming-call-type');
-                incomingCallType.textContent = `Incoming ${isVideo ? 'Video' : 'Voice'} Call...`;
-                incomingCallToast.classList.add('active');
-            }
-            
-            function hideIncomingCallToast() {
-                const incomingCallToast = document.getElementById('incoming-call-toast');
-                incomingCallToast.classList.remove('active');
-            }
-            
-            function startCallTimer() {
-                stopCallTimer();
-                callStartTime = Date.now();
-                callTimerInterval = setInterval(() => {
-                    const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
-                    const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
-                    const seconds = String(elapsed % 60).padStart(2, '0');
-                    document.getElementById('call-timer').textContent = `${minutes}:${seconds}`;
-                }, 1000);
-            }
-            
-            function stopCallTimer() {
-                if (callTimerInterval) {
-                    clearInterval(callTimerInterval);
-                    callTimerInterval = null;
-                }
-                document.getElementById('call-timer').textContent = '00:00';
-            }
-            
-            // --- END NEW CALL LOGIC FUNCTIONS ---
+            // --- END CALL LOGIC FUNCTIONS ---
 
 
             const statusEl = document.getElementById('status');
@@ -2679,26 +2389,17 @@
             const replyContextClose = document.getElementById('reply-context-close');
 
             // --- NEW MODAL & CALL ELEMENTS ---
-            const callModalOverlay = document.getElementById('call-modal-overlay');
+            const imageModalOverlay = document.getElementById('image-modal-overlay');
+            const imageModalContent = document.getElementById('image-modal-content');
+            const imageModalDownload = document.getElementById('image-modal-download');
+            const imageModalCloseBtn = document.querySelector('.image-modal-close');
+            
+            const voiceCallButton = document.getElementById('voice-call-button');
+            const videoCallButton = document.getElementById('video-call-button');
+            const endCallButton = document.getElementById('end-call-button');
             const localVideo = document.getElementById('local-video');
             const remoteVideo = document.getElementById('remote-video');
-            const callStatus = document.getElementById('call-status');
-            const callTimer = document.getElementById('call-timer');
-            const callAvatar = document.getElementById('call-avatar');
-            
-            const startVideoCallButton = document.getElementById('start-video-call');
-            const startVoiceCallButton = document.getElementById('start-voice-call');
-            
-            const toggleMicButton = document.getElementById('toggle-mic-button');
-            const toggleVideoButton = document.getElementById('toggle-video-button');
-            const endCallButton = document.getElementById('end-call-button');
-            
-            const incomingCallToast = document.getElementById('incoming-call-toast');
-            const incomingCallType = document.getElementById('incoming-call-type');
-            const acceptCallButton = document.getElementById('accept-call-button');
-            const rejectCallButton = document.getElementById('reject-call-button');
-            // --- END NEW ELEMENTS ---
-
+            // --- END ---
 
             // --- CHAT LISTENERS ---
             chatSendButton.addEventListener('click', sendTextMessage);
@@ -2731,7 +2432,7 @@
             
             chatInput.addEventListener('blur', () => {
                  if (currentConnection && currentConnection.open) {
-                    currentConnection.send({ type: 'chat-stop-typing' });
+                     currentConnection.send({ type: 'chat-stop-typing' });
                  }
             });
 
@@ -2744,16 +2445,9 @@
             }
 
             // --- NEW CALL LISTENERS ---
-            startVideoCallButton.addEventListener('click', () => startCall(true));
-            startVoiceCallButton.addEventListener('click', () => startCall(false));
-            
-            toggleMicButton.addEventListener('click', toggleMic);
-            toggleVideoButton.addEventListener('click', toggleVideo);
+            voiceCallButton.addEventListener('click', () => startCall(false));
+            videoCallButton.addEventListener('click', () => startCall(true));
             endCallButton.addEventListener('click', endCall);
-            
-            acceptCallButton.addEventListener('click', answerCall);
-            rejectCallButton.addEventListener('click', rejectCall);
-            // --- END NEW CALL LISTENERS ---
 
 
             const CHUNK_SIZE = 64 * 1024;
@@ -2779,6 +2473,7 @@
             window.addEventListener('beforeunload', (event) => {
                 // --- UPDATED WARNING LOGIC ---
                 hasActiveTransfer = isSending || receivingFiles.size > 0;
+                // Check for active connection *or* active transfer
                 if (hasActiveTransfer || (currentConnection && currentConnection.open)) {
                     
                     // --- NEW LOGIC as requested ---
@@ -2838,9 +2533,9 @@
                 peer.on('open', (id) => {
                     myId = id;
                     console.log('✓ Peer ID:', id);
-                    const peerToConnect = window.location.hash.substring(1);
+                    const targetId = window.location.hash.substring(1);
 
-                    if (peerToConnect) {
+                    if (targetId) {
                         // --- CLIENT MODE ---
                         console.log('→ CLIENT MODE');
                         isHost = false;
@@ -2848,7 +2543,7 @@
                         qrCodeContainer.style.display = 'none'; // Hide QR
                         shareButtonsContainer.style.display = 'none'; // Hide buttons
                         scanInstructions.style.display = 'none';
-                        attemptConnection(peerToConnect); // Use peerToConnect
+                        attemptConnection(targetId);
                     } else {
                         // --- HOST MODE ---
                         console.log('→ HOST MODE');
@@ -2892,29 +2587,20 @@
                         conn.on('open', () => setupConnection(conn));
                     }
                 });
-
-                // --- NEW: HANDLE INCOMING CALLS ---
+                
+                // --- NEW: Listen for incoming calls ---
                 peer.on('call', (call) => {
                     console.log('Incoming call...');
-                    
-                    if (currentCall || isCallActive) {
-                        console.log('⚠ Already in call, rejecting new one.');
-                        // Caller will time out.
-                        return;
-                    }
-                    
-                    // Store the call object
-                    currentCall = call;
-                    const isVideo = call.metadata.isVideo;
-                    
-                    // Show toast
-                    showIncomingCallToast(isVideo);
+                    // For now, auto-answer. In future, you could add a prompt.
+                    // We need to know if it's video or voice.
+                    // The 'call-request' signal will arrive first.
+                    // We'll handle the answer in the 'call-request' data handler.
                 });
-                // --- END NEW CALL HANDLER ---
+                // --- END ---
 
                 peer.on('error', (err) => {
                     console.error('❌ Peer error:', err.type);
-                    if (err.type === 'peer-unavailable') { // This is CLIENT logic
+                    if (err.type === 'peer-unavailable') {
                         if (!isHost && connectionRetryCount < MAX_RETRY) {
                             connectionRetryCount++;
                             statusEl.textContent = `🔄 Retry ${connectionRetryCount}`;
@@ -2924,33 +2610,29 @@
                             }, 2000);
                         } else if (!isHost) {
                             statusEl.textContent = '❌ Peer not found';
-                            showSwitchButton(); 
+                            showSwitchButton(); // Show button to go back to host mode
                         }
-                    } else if (!isHost && (err.type === 'network' || err.type === 'webrtc' || err.type === 'server-error')) { 
-                        // This reload logic is ONLY for the CLIENT
-                        statusEl.textContent = '❌ Connection Error. Reloading...';
-                        if (IS_RELOADING) return;
-                        IS_RELOADING = true;
-                        // Reload the page to reset
-                        window.location.hash = '';
-                        window.location.reload();
-                    } else if (isHost) {
-                        // The HOST should NOT reload. It should just wait.
-                        console.error('Host peer error:', err.type);
-                        if (err.type === 'disconnected') {
-                            // If disconnected from peer server, try to reconnect.
-                            console.log('Host disconnected from server, attempting to reconnect...');
-                            statusEl.textContent = 'Reconnecting...';
-                            try {
-                                peer.reconnect();
-                            } catch (e) {
-                                console.error('Host reconnect failed', e);
-                                statusEl.textContent = '⚠️ Connection Lost';
+                    } else if (err.type === 'network' || err.type === 'webrtc' || err.type === 'server-error') {
+                        // --- MODIFIED ERROR HANDLING ---
+                        if (isHost) {
+                            // Host: Don't reload. Just log it and wait.
+                            console.error('Host peer error. Holding steady.', err);
+                            statusEl.textContent = '⚠️ Network issue. Waiting...';
+                        } else {
+                            // Client: Try to reconnect.
+                            statusEl.textContent = '❌ Network Error. Retrying...';
+                            if (connectionRetryCount < MAX_RETRY) {
+                                connectionRetryCount++;
+                                setTimeout(() => {
+                                    const targetId = window.location.hash.substring(1);
+                                    if (targetId) attemptConnection(targetId);
+                                }, 3000);
+                            } else {
+                                statusEl.textContent = '❌ Connection failed.';
+                                showSwitchButton();
                             }
-                        } else if (err.type === 'network' || err.type === 'server-error') {
-                            // On other errors, just show status but don't reload.
-                            statusEl.textContent = '⚠️ Network Error';
                         }
+                        // --- END MODIFIED ---
                     }
                 });
             }
@@ -3087,7 +2769,7 @@
                         return;
                     }
                     if (data.type === 'chat-image') {
-                        addMessageToDOM('image', data.data, 'receiver', { size: data.size, name: data.name }, data.msgId, data.replyContext); // --- NEW: Pass context
+                        addMessageToDOM('image', data.data, 'receiver', { size: data.size, name: data.name }, data.msgId, data.replyContext); // --- NEW: Pass context (though unlikely for img)
                         conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
                         pruneChat();
                         updateChatLimitsUI();
@@ -3132,25 +2814,19 @@
 
 
                     // --- CLEANED UP CALL SIGNALING ---
+                    if (data.type === 'call-request') {
+                        console.log('Receiving call request...');
+                        // Auto-answer logic
+                        const incomingCall = peer.call(conn.peer, null); // Call with null stream first
+                        answerCall(incomingCall, data.isVideo);
+                        return;
+                    }
                     if (data.type === 'call-end') {
-                        // Peer ended the call
-                        console.log('Peer ended the call');
-                        cleanupCall();
+                        console.log('Receiving call end signal');
+                        cleanUpCall();
                         return;
                     }
-                    
-                    if (data.type === 'call-toggle-video') {
-                        // Peer toggled their video
-                        console.log('Peer toggled video:', data.isVideoOn);
-                        if (remoteVideo) {
-                            remoteVideo.style.display = data.isVideoOn ? 'block' : 'none';
-                        }
-                        if (callAvatar) {
-                            callAvatar.style.display = data.isVideoOn ? 'none' : 'flex';
-                        }
-                        return;
-                    }
-                    // --- END CLEANED UP CALL SIGNALING ---
+                    // --- END CALL SIGNALING ---
 
 
                     // --- FILE TRANSFER LOGIC ---
@@ -3288,51 +2964,49 @@
             }
             
             /**
-             * --- CRITICAL FIX: handleDisconnect ---
-             * This function now behaves differently for Host vs Client.
+             * UPDATED: This function now handles host/client disconnects differently.
              */
             function handleDisconnect(message) {
                 console.log('⚠ Disconnect:', message);
                 stopHeartbeat();
+                cleanUpCall(); // End any active call
                 
-                // --- HIDE CHAT & CALL UI ---
+                // --- HIDE CHAT ---
                 chatContainer.style.display = 'none';
                 chatPlaceholder.style.display = 'flex';
-                cleanupCall(); // End any active call
+
+                // Set a flag to prevent multiple reloads
+                if (IS_RELOADING) return;
                 
                 if (currentConnection) {
                     try { currentConnection.close(); } catch (e) {}
                     currentConnection = null;
                 }
-
+                
+                // --- NEW LOGIC for Host vs Client ---
                 if (isHost) {
-                    // --- HOST LOGIC ---
-                    // The Host does NOT reload. It resets its state.
+                    // I am the Host. My peer disconnected.
+                    // I should NOT reload. I should destroy my peer and create a NEW one.
+                    // This generates a new QR code.
                     console.log('Host reset: waiting for new connection.');
-                    statusEl.textContent = '⚠️ Disconnected. Ready...';
-                    
-                    // Reset UI to QR code state
-                    qrCodeContainer.style.display = 'block';
-                    shareButtonsContainer.style.display = 'flex';
+                    statusEl.textContent = '⚠️ Peer disconnected. Ready for new connection...';
                     scanInstructions.style.display = 'none';
-                    fileInput.disabled = true;
-                    transferStatusEl.textContent = 'Waiting...';
                     
-                    // Cancel any pending transfers
-                    isSending = false;
-                    activeSend = null;
-                    fileQueue = [];
-                    receivingFiles.clear();
-                    transferListContainer.innerHTML = ''; // Clear UI
+                    if (peer && !peer.destroyed) {
+                        try { peer.destroy(); } catch (e) {}
+                        peer = null;
+                    }
                     
-                    // Peer itself is still valid and listening, so we don't destroy it.
+                    // Re-init as host
+                    ALLOW_PEER_INIT = true;
+                    isHost = false; // Will be set back to true by initializePeer
+                    initializePeer();
 
                 } else {
-                    // --- CLIENT LOGIC ---
-                    // The Client MUST reload to go back to Host mode.
-                    if (IS_RELOADING) return;
+                    // I am the Client. The host disconnected.
+                    // I SHOULD reload to become a host.
                     IS_RELOADING = true;
-
+                    console.log('Client disconnected: Reloading as host...');
                     statusEl.textContent = '⚠️ Disconnected... Reloading...';
                     
                     if (peer && !peer.destroyed) {
@@ -3340,10 +3014,11 @@
                         peer = null;
                     }
                     
-                    console.log('🔄 Client disconnected, reloading to host mode...');
+                    // Reload without hash to become host
                     window.location.hash = '';
                     window.location.reload();
                 }
+                // --- END NEW LOGIC ---
             }
 
             fileInput.addEventListener('change', (event) => {
@@ -3537,6 +3212,9 @@
 
             /**
              * @param {string} fileId
+             * @param {number} sentBytes
+             * @param {number} totalBytes
+             * @param {number} startTime
              */
             function updateProgress(fileId, sentBytes, totalBytes, startTime) {
                 const percent = Math.round((sentBytes / totalBytes) * 100);
@@ -3556,28 +3234,6 @@
                     sizeText: sizeText,
                     etaText: etaText
                 });
-            }
-
-            // --- NEW: Cancel Receive Function ---
-            function cancelReceive(fileId) {
-                console.log(`[DEBUG] [cancelReceive] called for ${fileId}`); // DEBUG
-                // 1. Remove from map
-                receivingFiles.delete(fileId);
-                
-                // 2. Remove UI
-                document.getElementById(`transfer-${fileId}`)?.remove();
-                
-                // 3. Send cancellation to sender
-                if (currentConnection && currentConnection.open) {
-                    try {
-                        currentConnection.send({ type: 'cancel', fileId: fileId });
-                    } catch (err) {}
-                }
-                
-                // 4. Update status if no more files
-                if (receivingFiles.size === 0 && !isSending) {
-                    transferStatusEl.textContent = '❌ Receive cancelled';
-                }
             }
 
             function formatBytes(bytes, decimals = 2) {
@@ -3680,12 +3336,21 @@
             // Start the app
             initializePeer();
             
+            // --- NEW: Add global click listener for image modal download ---
+            if (imageModalDownload) {
+                imageModalDownload.addEventListener('click', (e) => {
+                    // The msgId must be attached dynamically in openImageModal
+                    // This is just a fallback, the real logic is in openImageModal
+                    e.stopPropagation();
+                    console.log('Download button clicked');
+                });
+            }
+            // --- END ---
+            
             // --- NEW: Add click listener for closing image modal (on overlay) ---
-            const imageModalOverlay = document.getElementById('image-modal-overlay');
             if (imageModalOverlay) {
                 imageModalOverlay.addEventListener('click', () => closeImageModal());
             }
-            const imageModalCloseBtn = document.getElementById('image-modal-close-btn');
             if(imageModalCloseBtn) {
                 imageModalCloseBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -3693,10 +3358,6 @@
                 });
             }
             // --- END ---
-            
-            // --- REMOVED BUGGY GLOBAL LISTENER ---
-            // The faulty global listener for 'image-modal-download' has been removed.
-            // The correct, dynamic 'onclick' listener is now set inside openImageModal().
 
         });
     </script>
