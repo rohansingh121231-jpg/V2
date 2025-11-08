@@ -630,20 +630,81 @@
 
         /* --- COMPACT DYNAMIC PROGRESS BAR STYLES --- */
         .progress-container {
-            padding: 8px; /* More compact */
+            padding: 10px; /* More padding */
             background: var(--bg-card);
             border-radius: 10px;
             box-shadow: 0 2px 8px var(--shadow);
             display: flex;
             flex-direction: column;
-            gap: 4px; /* More compact */
+            gap: 6px; /* Spacing */
         }
         
         .progress-top-row {
             display: flex;
             align-items: center;
-            gap: 8px; /* More compact */
+            gap: 10px; /* More gap */
             width: 100%;
+        }
+
+        .progress-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-grow: 1; /* Take up space */
+            flex-shrink: 1;
+            min-width: 0;
+        }
+
+        .progress-bar-wrapper {
+            /* This is no longer a wrapper, combining with top row */
+        }
+
+        .progress-bar-background {
+            position: relative;
+            width: 100%;
+            height: 10px; /* Thicker bar */
+            background: var(--bg-secondary);
+            border-radius: 5px; /* Fully rounded */
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px var(--shadow);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent); /* Solid accent color */
+            border-radius: 5px;
+            transition: width 0.3s ease;
+            position: relative;
+            
+            /* Animated stripes */
+            background-image: linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.15) 25%,
+                transparent 25%,
+                transparent 50%,
+                rgba(255, 255, 255, 0.15) 50%,
+                rgba(255, 255, 255, 0.15) 75%,
+                transparent 75%,
+                transparent
+            );
+            background-size: 20px 20px;
+            animation: progress-bar-stripes 1s linear infinite;
+        }
+
+        @keyframes progress-bar-stripes {
+            from { background-position: 20px 0; }
+            to { background-position: 0 0; }
+        }
+
+
+        .progress-bar.pending {
+            background: var(--border);
+            width: 100% !important;
+            animation: none; /* No animation for pending */
         }
 
         .progress-label {
@@ -788,7 +849,45 @@
             font-size: 14px;
             display: flex;
             flex-direction: column;
+            position: relative; /* For reply button */
         }
+        
+        /* --- NEW: Reply Button --- */
+        .chat-message-reply-btn {
+            position: absolute;
+            top: 2px;
+            right: -30px; /* Position outside the bubble */
+            width: 24px;
+            height: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            display: none; /* Hide by default */
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all 0.2s ease;
+            z-index: 5;
+        }
+        .chat-message:hover .chat-message-reply-btn {
+            display: flex;
+        }
+        .chat-message-reply-btn:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+        .chat-message.sender:hover .chat-message-reply-btn {
+            right: auto;
+            left: -30px; /* Position on the left for sender */
+        }
+        .chat-message-reply-btn svg {
+            width: 14px;
+            height: 14px;
+            stroke: var(--text-primary);
+        }
+        /* --- END Reply Button --- */
+
 
         .chat-message.sender {
             background: var(--bg-sender); /* Changed */
@@ -804,6 +903,28 @@
             align-self: flex-start;
             border-bottom-left-radius: 3px;
         }
+
+        /* --- NEW: Reply Context Block --- */
+        .message-reply-context {
+            background: rgba(0,0,0,0.05);
+            border-left: 3px solid var(--accent);
+            padding: 6px 10px;
+            margin: -2px -6px 8px -6px; /* Adjust padding alignment */
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        body.dark-mode .message-reply-context {
+            background: rgba(255,255,255,0.05);
+        }
+        .chat-message.receiver .message-reply-context {
+            border-left-color: var(--success);
+        }
+        /* --- END Reply Context Block --- */
+
 
         .chat-message img {
             max-width: 200px;
@@ -853,6 +974,51 @@
             gap: 8px;
             flex-shrink: 0;
         }
+
+        /* --- NEW: Reply Context Bar --- */
+        .reply-context-bar {
+            display: none; /* Hidden by default */
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-bottom: none; /* Attach to input */
+            padding: 8px 12px;
+            border-radius: 10px 10px 0 0;
+            margin-bottom: -8px; /* Overlap with input area */
+            position: relative;
+        }
+        .reply-context-content {
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .reply-context-close {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--border);
+            color: var(--text-primary);
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .reply-context-close:hover {
+            background: var(--error);
+            color: white;
+        }
+        /* --- END Reply Context Bar --- */
 
         #chat-input {
             flex-grow: 1;
@@ -1574,6 +1740,10 @@
             if (!imageModalOverlay) return;
             imageModalOverlay.classList.remove('active');
             imageModalContent.src = ''; // Clear src
+            // --- NEW: Clear download onclick ---
+            const imageModalDownload = document.getElementById('image-modal-download');
+            imageModalDownload.onclick = null;
+            // --- END ---
             document.body.style.overflow = ''; // Restore scrolling
         }
         // --- END NEW IMAGE MODAL FUNCTIONS ---
@@ -1873,6 +2043,9 @@
             let isTypingSent = false;
             let peerTypingTimer;
 
+            // --- NEW: Reply State ---
+            let replyingTo = null;
+
 
             // --- CHAT HELPER FUNCTIONS ---
             
@@ -1959,8 +2132,9 @@
              * @param {string} sender - 'sender' or 'receiver'
              * @param {object} metadata - { words: number } or { size: number, name: string }
              * @param {string} msgId - The unique message ID
+             * @param {object} replyContext - Optional: { text: string }
              */
-            function addMessageToDOM(type, content, sender, metadata, msgId) {
+            function addMessageToDOM(type, content, sender, metadata, msgId, replyContext = null) {
                 const msgEl = document.createElement('div');
                 msgEl.className = `chat-message ${sender}`;
                 msgEl.dataset.type = type;
@@ -1969,17 +2143,30 @@
                 const contentEl = document.createElement('div');
                 contentEl.className = 'message-content';
 
+                // --- NEW: Add Reply Context ---
+                if (replyContext && replyContext.text) {
+                    const replyEl = document.createElement('div');
+                    replyEl.className = 'message-reply-context';
+                    replyEl.textContent = replyContext.text;
+                    msgEl.appendChild(replyEl);
+                }
+                // --- END NEW ---
+
+                let textContentForReply = ''; // Store text for reply function
+
                 if (type === 'text') {
                     contentEl.textContent = content;
                     msgEl.dataset.words = metadata.words;
+                    textContentForReply = content; // Store text
                 } else if (type === 'image') {
                     const img = document.createElement('img');
                     img.src = content; // 'content' is Base64 data
                     img.dataset.filename = metadata.name; // Store filename for download
+                    textContentForReply = `Image: ${metadata.name}`; // Store image name
                     
-                    // --- MODIFIED CLICK HANDLER ---
+                    // --- MODIFIED CLICK HANDLER (passes msgId) ---
                     img.onclick = () => {
-                        openImageModal(img.src, img.dataset.filename, sender);
+                        openImageModal(img.src, img.dataset.filename, sender, msgId);
                     };
                     // --- END MODIFIED HANDLER ---
                     
@@ -1991,6 +2178,18 @@
                 }
                 
                 msgEl.appendChild(contentEl);
+
+                // --- NEW: Add Reply Button ---
+                const replyBtn = document.createElement('button');
+                replyBtn.className = 'chat-message-reply-btn';
+                replyBtn.title = 'Reply';
+                replyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>';
+                replyBtn.onclick = () => {
+                    setReplyContext(msgId, textContentForReply);
+                };
+                msgEl.appendChild(replyBtn);
+                // --- END NEW ---
+
 
                 // Add status bar (for sender only)
                 if (sender === 'sender') {
@@ -2027,11 +2226,17 @@
                 const msgId = crypto.randomUUID();
                 
                 try {
-                    currentConnection.send({ type: 'chat-text', message: message, msgId: msgId });
-                    addMessageToDOM('text', message, 'sender', { words: wordCount }, msgId);
+                    currentConnection.send({ 
+                        type: 'chat-text', 
+                        message: message, 
+                        msgId: msgId,
+                        replyContext: replyingTo // --- NEW: Send reply context
+                    });
+                    addMessageToDOM('text', message, 'sender', { words: wordCount }, msgId, replyingTo); // --- NEW: Pass context
                     pruneChat();
                     updateChatLimitsUI();
                     chatInput.value = '';
+                    cancelReply(); // --- NEW: Clear reply state
                     
                     // Stop typing indicator after send
                     clearTimeout(typingTimer);
@@ -2111,6 +2316,35 @@
             }
             
             // --- END CHAT HELPER FUNCTIONS ---
+
+            // --- NEW REPLY FUNCTIONS ---
+            /**
+             * @param {string} msgId
+             * @param {string} text
+             */
+            function setReplyContext(msgId, text) {
+                const replyBar = document.getElementById('reply-context-bar');
+                const replyContent = document.getElementById('reply-context-content');
+                if (!replyBar || !replyContent) return;
+                
+                const truncatedText = text.length > 70 ? text.substring(0, 70) + '...' : text;
+                
+                replyingTo = { msgId, text: truncatedText };
+                
+                replyContent.textContent = truncatedText;
+                replyBar.style.display = 'block';
+                
+                chatInput.focus();
+            }
+
+            function cancelReply() {
+                const replyBar = document.getElementById('reply-context-bar');
+                if (!replyBar) return;
+
+                replyingTo = null;
+                replyBar.style.display = 'none';
+            }
+            // --- END NEW REPLY FUNCTIONS ---
 
 
             // --- NEW CALL LOGIC FUNCTIONS ---
@@ -2422,6 +2656,10 @@
             const chatLimitsInfo = document.getElementById('chat-limits-info');
             const chatStatus = document.getElementById('chat-status');
 
+            // --- NEW: Reply Bar Elements ---
+            const replyContextBar = document.getElementById('reply-context-bar');
+            const replyContextClose = document.getElementById('reply-context-close');
+
             // --- NEW MODAL & CALL ELEMENTS ---
             const callModalOverlay = document.getElementById('call-modal-overlay');
             const localVideo = document.getElementById('local-video');
@@ -2481,6 +2719,11 @@
 
             chatAttachButton.addEventListener('click', () => chatImageInput.click());
             chatImageInput.addEventListener('change', handleImageUpload);
+
+            // --- NEW: Reply Close Listener ---
+            if (replyContextClose) {
+                replyContextClose.addEventListener('click', cancelReply);
+            }
 
             // --- NEW CALL LISTENERS ---
             startVideoCallButton.addEventListener('click', () => startCall(true));
@@ -2822,7 +3065,14 @@
 
                     // --- CHAT LOGIC ---
                     if (data.type === 'chat-text') {
-                        addMessageToDOM('text', data.message, 'receiver', { words: data.message.split(/\s+/).length }, data.msgId);
+                        addMessageToDOM('text', data.message, 'receiver', { words: data.message.split(/\s+/).length }, data.msgId, data.replyContext); // --- NEW: Pass context
+                        conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
+                        pruneChat();
+                        updateChatLimitsUI();
+                        return;
+                    }
+                    if (data.type === 'chat-image') {
+                        addMessageToDOM('image', data.data, 'receiver', { size: data.size, name: data.name }, data.msgId, data.replyContext); // --- NEW: Pass context (though unlikely for img)
                         conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
                         pruneChat();
                         updateChatLimitsUI();
@@ -3383,14 +3633,35 @@
                 } catch (e) {}
             }
 
-            copyLinkButton.addEventListener('click', () => {
-                if (connectUrl) copyToClipboard(connectUrl, copyLinkButton);
-            });
-            
-            downloadQrButton.addEventListener('click', downloadQRCode);
-
             // Start the app
             initializePeer();
+            
+            // --- NEW: Add global click listener for image modal download ---
+            const imageModalDownload = document.getElementById('image-modal-download');
+            if (imageModalDownload) {
+                imageModalDownload.addEventListener('click', (e) => {
+                    // The msgId must be attached dynamically in openImageModal
+                    // This is just a fallback, the real logic is in openImageModal
+                    e.stopPropagation();
+                    console.log('Download button clicked');
+                });
+            }
+            // --- END ---
+            
+            // --- NEW: Add click listener for closing image modal (on overlay) ---
+            const imageModalOverlay = document.getElementById('image-modal-overlay');
+            if (imageModalOverlay) {
+                imageModalOverlay.addEventListener('click', () => closeImageModal());
+            }
+            const imageModalCloseBtn = document.querySelector('.image-modal-close');
+            if(imageModalCloseBtn) {
+                imageModalCloseBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    closeImageModal();
+                });
+            }
+            // --- END ---
+
         });
     </script>
 </body>
