@@ -1970,6 +1970,7 @@
             
             // Add click listener
             el.querySelector('.cancel-button').addEventListener('click', () => {
+                console.log(`[DEBUG] Cancel button clicked for fileId: ${fileId}, isSender: ${isSender}`); // DEBUG
                 if (isSender) {
                     cancelTransfer(fileId);
                 } else {
@@ -2777,15 +2778,27 @@
             
             window.addEventListener('beforeunload', (event) => {
                 // --- UPDATED WARNING LOGIC ---
-                // Show a warning if a transfer is active OR if a peer is connected.
                 hasActiveTransfer = isSending || receivingFiles.size > 0;
                 if (hasActiveTransfer || (currentConnection && currentConnection.open)) {
+                    
+                    // --- NEW LOGIC as requested ---
+                    // Clear the hash on the client side *before* the reload confirmation.
+                    // This ensures that if they *do* reload, they come back as a Host.
+                    if (!isHost) {
+                        console.log('Client is reloading, clearing hash to become host.');
+                        const uri = window.location.toString();
+                        if (uri.indexOf("#") > 0) {
+                            const cleanUri = uri.substring(0, uri.indexOf("#"));
+                            window.history.replaceState({}, document.title, cleanUri);
+                        }
+                    }
+                    // --- END NEW LOGIC ---
+
                     const warningText = 'Changes you made may not be saved.';
                     event.preventDefault();
                     event.returnValue = warningText;
                     return warningText;
                 }
-                // --- END UPDATED LOGIC ---
             });
 
             function initializePeer() {
@@ -3104,10 +3117,13 @@
                         return;
                     }
                     if (data.type === 'chat-img-download') {
+                        console.log(`[DEBUG] Received chat-img-download for msgId: ${data.msgId}`); // DEBUG
                         const msgEl = document.querySelector(`.chat-message[data-msg-id="${data.msgId}"]`);
                         if (msgEl) {
+                            console.log(`[DEBUG] Found message element for download status.`); // DEBUG
                             const statusEl = msgEl.querySelector('.download-status');
                             if (statusEl) {
+                                console.log(`[DEBUG] Setting download status to 'inline'.`); // DEBUG
                                 statusEl.style.display = 'inline';
                             }
                         }
@@ -3483,6 +3499,7 @@
              * @param {string} fileId
              */
             function cancelTransfer(fileId) {
+                console.log(`[DEBUG] [cancelTransfer] called for ${fileId}`); // DEBUG
                 // Is it the active transfer?
                 if (activeSend && activeSend.id === fileId) {
                     console.log(`Cancelling active transfer: ${fileId}`);
@@ -3543,7 +3560,7 @@
 
             // --- NEW: Cancel Receive Function ---
             function cancelReceive(fileId) {
-                console.log(`Cancelling receive: ${fileId}`);
+                console.log(`[DEBUG] [cancelReceive] called for ${fileId}`); // DEBUG
                 // 1. Remove from map
                 receivingFiles.delete(fileId);
                 
