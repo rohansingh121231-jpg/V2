@@ -2776,13 +2776,16 @@
             let heartbeatInterval = null;
             
             window.addEventListener('beforeunload', (event) => {
+                // --- UPDATED WARNING LOGIC ---
+                // Show a warning if a transfer is active OR if a peer is connected.
                 hasActiveTransfer = isSending || receivingFiles.size > 0;
-                if (hasActiveTransfer) {
-                    const warningText = 'Transfer active!';
+                if (hasActiveTransfer || (currentConnection && currentConnection.open)) {
+                    const warningText = 'Changes you made may not be saved.';
                     event.preventDefault();
                     event.returnValue = warningText;
                     return warningText;
                 }
+                // --- END UPDATED LOGIC ---
             });
 
             function initializePeer() {
@@ -3673,6 +3676,10 @@
                 });
             }
             // --- END ---
+            
+            // --- REMOVED BUGGY GLOBAL LISTENER ---
+            // The faulty global listener for 'image-modal-download' has been removed.
+            // The correct, dynamic 'onclick' listener is now set inside openImageModal().
 
         });
     </script>
