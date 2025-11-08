@@ -1585,8 +1585,7 @@
         // This flag blocks peer init *while scanning* to prevent race conditions
         let ALLOW_PEER_INIT = true;
         // This flag prevents reload loops on disconnect
-        // let IS_RELOADING = false; // REPLACED
-        let targetPeerId = null; // NEW: To store scanned ID without reloading
+        let IS_RELOADING = false; // <<<--- RE-ADDED THIS FLAG
 
         // --- NEW CALL STATE VARS ---
         let localStream = null;
@@ -1627,7 +1626,7 @@
             document.body.style.overflow = '';
             stopScanner(); // This is now the only place that calls stopScanner after a scan
             // Re-allow peer init *only if* no scan was successful (and we are not reloading)
-            if (!hasScanned && !IS_RELOADING) {
+            if (!hasScanned && !IS_RELOADING) { // <<<--- FIXED: This check now works
                 ALLOW_PEER_INIT = true;
                 console.log('✅ RE-ENABLED peer auto-init');
             }
@@ -1705,12 +1704,12 @@
          * UPDATED: This function now sets the URL hash and reloads the page.
          */
         function processQRCode(decodedText) {
-            // ADDED GUARD: Prevent multiple reloads
-            // if (IS_RELOADING) { // OLD
-            //     console.log('⚠ Already processing QR and reloading. Ignoring.');
-            //     return;
-            // }
-            // IS_RELOADING = true; // Set flag immediately // OLD
+            // <<<--- FIXED: REVERTED TO RELOAD LOGIC ---
+            if (IS_RELOADING) {
+                console.log('⚠ Already processing QR and reloading. Ignoring.');
+                return;
+            }
+            IS_RELOADING = true; // Set flag immediately
 
             console.log('=== PROCESSING QR CODE ===');
             console.log('URL:', decodedText);
@@ -1729,38 +1728,16 @@
                     showChatStatus('QR code has no peer ID', true);
                     hasScanned = false; // Allow re-scan
                     ALLOW_PEER_INIT = true; // Allow peer init to recover
-                    // IS_RELOADING = false; // OLD
+                    IS_RELOADING = false; // Reset flag on error
                     return;
                 }
                 
                 console.log('✓ Peer ID is valid');
                 
-                // --- NEW LOGIC ---
-                // Set the hash to the scanned ID and reload.
-                // The app will re-initialize in client mode.
-                // console.log('🔄 Setting hash and reloading to switch to CLIENT mode...'); // OLD
-                // window.location.hash = scannedPeerId; // OLD
-                // window.location.reload(); // OLD
-                
-                // --- NEW LOGIC (NO RELOAD) ---
-                console.log('🔄 Switching to CLIENT mode without reload...');
-                targetPeerId = scannedPeerId; // Set the global var
-                
-                // Clean up existing peer if it exists
-                if (peer && !peer.destroyed) {
-                    try { peer.destroy(); } catch (e) {}
-                    peer = null;
-                }
-                if (currentConnection) {
-                    try { currentConnection.close(); } catch (e) {}
-                    currentConnection = null;
-                }
-                
-                // Re-initialize peer. It will now run in client mode.
-                // ALLOW_PEER_INIT is already false, but we're done scanning, so set to true
-                ALLOW_PEER_INIT = true;
-                initializePeer();
-                // --- END NEW LOGIC ---
+                // --- REVERTED TO RELOAD ---
+                console.log('🔄 Setting hash and reloading to switch to CLIENT mode...');
+                window.location.hash = scannedPeerId;
+                window.location.reload();
 
             } catch (e) {
                 console.error('❌❌❌ QR parse FAILED:', e);
@@ -1768,8 +1745,9 @@
                 showChatStatus('Invalid QR code: ' + e.message, true);
                 hasScanned = false; // Allow re-scan
                 ALLOW_PEER_INIT = true; // Allow peer init to recover
-                // IS_RELOADING = false; // RESET FLAG on error // OLD
+                IS_RELOADING = false; // RESET FLAG on error
             }
+            // <<<--- END FIX ---
         }
 
         function stopScanner() {
@@ -2598,15 +2576,8 @@
                 peer.on('open', (id) => {
                     myId = id;
                     console.log('✓ Peer ID:', id);
-                    // UPDATED LOGIC: Check targetPeerId first, then hash
-                    const peerToConnect = targetPeerId || window.location.hash.substring(1);
-                    
-                    // Clear targetPeerId after using it
-                    if (targetPeerId) {
-                        targetPeerId = null;
-                        // Also clear the hash in URL bar just in case
-                        clearHashFromUrl(); 
-                    }
+                    // <<<--- FIXED: REVERTED TO HASH-ONLY ---
+                    const peerToConnect = window.location.hash.substring(1);
 
                     if (peerToConnect) {
                         // --- CLIENT MODE ---
@@ -2644,6 +2615,23 @@
                     }
                 });
 
+                peer.on('connection', (conn) => {
+                    console.log('📡 Incoming connection');
+                    if (currentConnection) {
+                        console.log('⚠ Already connected, rejecting new connection.');
+                        conn.close();
+                        return;
+                    }
+                    
+                    statusEl.textContent = '📡 Incoming...';
+                    
+                    if (conn.open) {
+                        setupConnection(conn);
+                    } else {
+                        conn.on('open', () => setupConnection(conn));
+                    }
+                });
+
                 // --- NEW: HANDLE INCOMING CALLS ---
                 peer.on('call', (call) => {
                     console.log('Incoming call...');
@@ -2665,22 +2653,47 @@
 
                 peer.on('error', (err) => {
                     console.error('❌ Peer error:', err.type);
-                    if (err.type === 'peer-unavailable') {
+                    if (err.type === 'peer-unavailable') { // This is CLIENT logic
                         if (!isHost && connectionRetryCount < MAX_RETRY) {
                             connectionRetryCount++;
                             statusEl.textContent = `🔄 Retry ${connectionRetryCount}`;
                             setTimeout(() => {
+                                // <<<--- FIXED: REVERTED TO HASH ---
                                 const targetId = window.location.hash.substring(1);
                                 if (targetId) attemptConnection(targetId);
                             }, 2000);
                         } else if (!isHost) {
                             statusEl.textContent = '❌ Peer not found';
-                            showSwitchButton(); // Show button to go back to host mode
+                            showSwitchButton(); 
                         }
-                    } else if (err.type === 'network') {
-                        statusEl.textContent = '❌ Network Error. Retrying...';
-                        setTimeout(initializePeer, 3000); // Retry init
+                    // <<<--- MODIFIED/FIXED BLOCK ---
+                    } else if (!isHost && (err.type === 'network' || err.type === 'webrtc' || err.type === 'server-error')) { 
+                        // This reload logic is ONLY for the CLIENT
+                        statusEl.textContent = '❌ Connection Error. Reloading...';
+                        if (IS_RELOADING) return;
+                        IS_RELOADING = true;
+                        // Reload the page to reset
+                        window.location.hash = '';
+                        window.location.reload();
+                    } else if (isHost) {
+                        // The HOST should NOT reload. It should just wait.
+                        console.error('Host peer error:', err.type);
+                        if (err.type === 'disconnected') {
+                            // If disconnected from peer server, try to reconnect.
+                            console.log('Host disconnected from server, attempting to reconnect...');
+                            statusEl.textContent = 'Reconnecting...';
+                            try {
+                                peer.reconnect();
+                            } catch (e) {
+                                console.error('Host reconnect failed', e);
+                                statusEl.textContent = '⚠️ Connection Lost';
+                            }
+                        } else if (err.type === 'network' || err.type === 'server-error') {
+                            // On other errors, just show status but don't reload.
+                            statusEl.textContent = '⚠️ Network Error';
+                        }
                     }
+                    // <<<--- END MODIFIED/FIXED BLOCK ---
                 });
             }
 
@@ -3017,6 +3030,7 @@
              * UPDATED: This function now clears the hash and reloads the page.
              */
             function handleDisconnect(message) {
+                // <<<--- FIXED: REVERTED TO RELOAD LOGIC ---
                 console.log('⚠ Disconnect:', message);
                 stopHeartbeat();
                 
@@ -3025,10 +3039,10 @@
                 chatPlaceholder.style.display = 'flex';
 
                 // Set a flag to prevent multiple reloads
-                // if (IS_RELOADING) return; // OLD
-                // IS_RELOADING = true; // OLD
+                if (IS_RELOADING) return;
+                IS_RELOADING = true;
 
-                statusEl.textContent = '⚠️ Disconnected... Resetting...';
+                statusEl.textContent = '⚠️ Disconnected... Reloading...';
                 
                 if (currentConnection) {
                     try { currentConnection.close(); } catch (e) {}
@@ -3039,33 +3053,10 @@
                     peer = null;
                 }
                 
-                // --- NEW LOGIC ---
-                // Disconnected. Clear the hash and reload.
-                // The app will re-initialize in HOST mode.
-                // console.log('🔄 Reverting to host mode by reloading...'); // OLD
-                // window.location.hash = ''; // OLD
-                // window.location.reload(); // OLD
-                // --- END NEW LOGIC ---
-                
-                // --- NEW LOGIC (NO RELOAD) ---
-                console.log('🔄 Reverting to HOST mode without reload...');
-                
-                // Clear any target ID and hash
-                targetPeerId = null;
-                clearHashFromUrl();
-
-                // Reset all call and file states
-                cleanupCall();
-                fileQueue = [];
-                isSending = false;
-                activeSend = null;
-                receivingFiles.clear();
-                document.getElementById('transfer-list-container').innerHTML = ''; // Clear progress bars
-                
-                // Re-initialize peer. It will now run in host mode.
-                ALLOW_PEER_INIT = true;
-                initializePeer();
-                // --- END NEW LOGIC ---
+                console.log('🔄 Reverting to host mode by reloading...');
+                window.location.hash = '';
+                window.location.reload();
+                // <<<--- END FIX ---
             }
 
             fileInput.addEventListener('change', (event) => {
