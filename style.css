@@ -1,4 +1,8 @@
- * {
+ /*
+  QR Send - style.css
+  Yeh file poori website ki styling (colors, layout, buttons) ko control karti hai.
+*/
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -17,7 +21,7 @@
     --success: #34a853;
     --error: #ea4335;
     
-    /* New sender bubble colors for tick visibility */
+    /* Sender bubble ka naya color taaki ticks saaf dikhein */
     --bg-sender: #dcf8c6;
     --text-sender: #1a1a1a;
 }
@@ -31,7 +35,7 @@ body.dark-mode {
     --border: #333333;
     --shadow: rgba(255, 255, 255, 0.05);
 
-    /* New sender bubble colors for tick visibility */
+    /* Dark mode mein sender bubble ka color */
     --bg-sender: #224838;
     --text-sender: #e8e8e8;
 }
@@ -44,12 +48,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 0; /* Changed for full-screen mobile */
+    padding: 0; /* Mobile par full-screen ke liye */
     transition: all 0.3s ease;
     position: relative;
     overflow-x: hidden;
 }
 
+/* Background mein dot grid animation */
 body::before {
     content: '';
     position: fixed;
@@ -69,6 +74,7 @@ body::before {
     100% { transform: translate(50px, 50px); }
 }
 
+/* Dark/Light mode toggle button */
 .theme-toggle {
     position: fixed;
     top: 15px;
@@ -99,38 +105,40 @@ body::before {
     transition: all 0.3s ease;
 }
 
-/* --- NEW LAYOUT --- */
+/* --- App ka main layout --- */
 .container {
     position: relative;
-    max-width: 100%; /* Changed */
+    max-width: 100%;
     width: 100%;
     background: var(--bg-card);
     overflow: hidden;
     z-index: 1;
     
-    /* Full-screen mobile layout */
+    /* Mobile par full-screen */
     height: 100vh;
     max-height: 100vh;
     border-radius: 0;
     box-shadow: none;
     
     display: flex;
-    flex-direction: column; /* Mobile-first: stacked layout */
+    flex-direction: column; /* Mobile-first: Upar-neeche */
 }
 
+/* Sidebar (jahaan QR code aur file transfer hai) */
 .sidebar {
     flex-shrink: 0;
-    /* On mobile, this is just a stack of content */
 }
 
+/* Chat ka area */
 .chat-main {
-    flex-grow: 1; /* Takes remaining height */
+    flex-grow: 1; /* Bachi hui poori jagah le lega */
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* CRITICAL for scrolling */
+    overflow: hidden; /* Scrolling ke liye zaroori */
     background: var(--bg-secondary);
 }
 
+/* Jab connection na ho tab yeh dikhega */
 .chat-placeholder {
     display: flex;
     flex-direction: column;
@@ -152,30 +160,31 @@ body::before {
     font-size: 16px;
     font-weight: 500;
 }
-/* --- END NEW LAYOUT --- */
+/* --- End Layout --- */
 
+/* Scrollbar styling */
 .container::-webkit-scrollbar {
     width: 6px;
 }
-
 .container::-webkit-scrollbar-track {
     background: var(--bg-secondary);
 }
-
 .container::-webkit-scrollbar-thumb {
     background: var(--accent);
     border-radius: 3px;
 }
 
+/* App ka header */
 header {
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
     padding: 20px;
     text-align: center;
     position: relative;
     overflow: hidden;
-    flex-shrink: 0; /* Header should not shrink */
+    flex-shrink: 0;
 }
 
+/* Header par chamak wali animation */
 header::before {
     content: '';
     position: absolute;
@@ -200,12 +209,14 @@ h1 {
     letter-spacing: -0.5px;
 }
 
+/* Status text (e.g., "Connected") */
 #status {
     font-size: 13px;
     color: rgba(255,255,255,0.9);
     font-weight: 500;
 }
 
+/* Connection lock animation overlay */
 .connection-overlay {
     position: fixed;
     top: 0;
@@ -281,6 +292,7 @@ main {
     text-align: center;
 }
 
+/* QR Code ka box */
 #qrcode {
     display: inline-block;
     padding: 15px;
@@ -355,6 +367,7 @@ main {
     border-color: #2d8e47;
 }
 
+/* --- QR Scanner Modal --- */
 .scanner-modal {
     position: fixed;
     top: 0;
@@ -409,6 +422,7 @@ main {
     transform: scale(1.1);
 }
 
+/* Scanner ka video feed */
 #qr-reader {
     width: 100% !important;
     height: calc(100vh - 70px) !important;
@@ -425,18 +439,20 @@ main {
     left: 0 !important;
 }
 
+/* Scanner library ka default UI chupayein */
 #qr-reader__dashboard,
 #qr-reader__dashboard_section {
     display: none !important;
 }
-
 #qr-reader__scan_region {
     width: 100% !important;
     height: 100% !important;
     position: relative !important;
     border: none !important;
 }
+/* --- End Scanner --- */
 
+/* Scanner ka frame (box) */
 .scan-indicator {
     position: absolute;
     top: 50%;
@@ -451,7 +467,7 @@ main {
     z-index: 10000;
     pointer-events: none;
     box-shadow: 
-        0 0 0 2000px rgba(0, 0, 0, 0.5),
+        0 0 0 2000px rgba(0, 0, 0, 0.5), /* Peeche ka overlay */
         inset 0 0 30px rgba(52, 168, 83, 0.3);
 }
 
@@ -480,36 +496,24 @@ main {
     height: 30px;
     border: 4px solid var(--success);
 }
-
 .corner.top-left {
-    top: -3px;
-    left: -3px;
-    border-right: none;
-    border-bottom: none;
+    top: -3px; left: -3px;
+    border-right: none; border-bottom: none;
     border-radius: 20px 0 0 0;
 }
-
 .corner.top-right {
-    top: -3px;
-    right: -3px;
-    border-left: none;
-    border-bottom: none;
+    top: -3px; right: -3px;
+    border-left: none; border-bottom: none;
     border-radius: 0 20px 0 0;
 }
-
 .corner.bottom-left {
-    bottom: -3px;
-    left: -3px;
-    border-right: none;
-    border-top: none;
+    bottom: -3px; left: -3px;
+    border-right: none; border-top: none;
     border-radius: 0 0 0 20px;
 }
-
 .corner.bottom-right {
-    bottom: -3px;
-    right: -3px;
-    border-left: none;
-    border-top: none;
+    bottom: -3px; right: -3px;
+    border-left: none; border-top: none;
     border-radius: 0 0 20px 0;
 }
 
@@ -529,6 +533,7 @@ main {
     backdrop-filter: blur(10px);
 }
 
+/* "Connected Securely!" text */
 #scan-instructions {
     text-align: center;
     animation: slideUp 0.5s ease;
@@ -549,17 +554,7 @@ main {
     gap: 8px;
 }
 
-#scan-instructions p::before {
-    content: '🔒';
-    font-size: 20px;
-    animation: rotate 2s linear infinite;
-}
-
-@keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
+/* --- File Transfer Area --- */
 .transfer-area {
     padding: 20px;
     background: var(--bg-secondary);
@@ -600,19 +595,19 @@ main {
     text-align: center;
 }
 
-/* --- NEW: Transfer List Container --- */
+/* Progress bar list ke liye container */
 #transfer-list-container {
     margin-top: 15px;
     display: flex;
     flex-direction: column;
-    gap: 10px; /* Increased gap */
-    max-height: 190px; /* Approx 3 bars */
+    gap: 10px;
+    max-height: 190px; /* 3 progress bar tak dikhenge */
     overflow-y: auto;
     overflow-x: hidden;
     scroll-behavior: smooth;
 }
 
-/* --- UPDATED PROFESSIONAL PROGRESS BAR STYLES --- */
+/* --- Progress Bar --- */
 .progress-container {
     padding: 10px;
     background: var(--bg-card);
@@ -632,7 +627,7 @@ main {
 
 .progress-bar-wrapper {
     flex-grow: 1;
-    min-width: 0; /* Important for flex shrink */
+    min-width: 0; /* Flexbox shrink ke liye zaroori */
 }
 
 .progress-label {
@@ -642,13 +637,14 @@ main {
     font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 4px; /* Space between label and bar */
+    margin-bottom: 4px;
 }
 
+/* File ka naam */
 .progress-label-text {
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    text-overflow: ellipsis; /* Bada naam hone par ... */
     flex-shrink: 1;
 }
 
@@ -663,16 +659,16 @@ main {
 .progress-bar-background {
     position: relative;
     width: 100%;
-    height: 10px; /* Thicker bar */
+    height: 10px;
     background: var(--bg-secondary);
-    border-radius: 5px; /* Fully rounded */
+    border-radius: 5px;
     overflow: hidden;
     box-shadow: inset 0 1px 2px var(--shadow);
 }
 
 .progress-bar {
     height: 100%;
-    background: var(--accent); /* Solid accent color */
+    background: var(--accent);
     border-radius: 5px;
     transition: width 0.3s ease;
     position: relative;
@@ -680,12 +676,9 @@ main {
     /* Animated stripes */
     background-image: linear-gradient(
         45deg,
-        rgba(255, 255, 255, 0.15) 25%,
-        transparent 25%,
-        transparent 50%,
-        rgba(255, 255, 255, 0.15) 50%,
-        rgba(255, 255, 255, 0.15) 75%,
-        transparent 75%,
+        rgba(255, 255, 255, 0.15) 25%, transparent 25%,
+        transparent 50%, rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.15) 75%, transparent 75%,
         transparent
     );
     background-size: 20px 20px;
@@ -697,12 +690,14 @@ main {
     to { background-position: 0 0; }
 }
 
+/* Pending state */
 .progress-bar.pending {
     background: var(--border);
     width: 100% !important;
-    animation: none; /* No animation for pending */
+    animation: none;
 }
 
+/* Progress stats (Size, ETA) */
 .progress-stats {
     display: flex;
     justify-content: space-between;
@@ -711,11 +706,11 @@ main {
     color: var(--text-secondary);
 }
 
+/* --- CANCEL BUTTON FIX --- */
 .cancel-button {
     margin-top: 0;
-    width: auto;
-    padding: 4px 8px;
-    font-size: 11px;
+    padding: 0; /* Padding hatayein */
+    font-size: 14px; /* Icon size */
     flex-shrink: 0;
     background: var(--error);
     color: white;
@@ -724,15 +719,14 @@ main {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    /* FIX: Add explicit icon style */
+    
+    /* Icon ko center karne ke liye */
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px; /* Fixed width */
-    height: 28px; /* Fixed height */
-    padding: 0; /* Remove padding */
-    font-size: 14px; /* Increase icon size */
-    line-height: 1; /* Ensure icon is centered */
+    width: 28px;
+    height: 28px;
+    line-height: 1; /* Icon ko vertically center karein */
 }
 
 .cancel-button:hover {
@@ -740,9 +734,10 @@ main {
      transform: translateY(-2px);
      box-shadow: 0 4px 12px rgba(234, 67, 53, 0.3);
 }
-/* --- END UPDATED PROGRESS BAR STYLES --- */
+/* --- END CANCEL BUTTON FIX --- */
 
 
+/* "Host mode mein jaayein" button */
 .switch-mode-button {
     margin-top: 12px;
     width: 100%;
@@ -767,12 +762,10 @@ main {
 .chat-container {
     padding: 20px;
     border-top: 1px solid var(--border);
-    
-    /* New layout properties */
-    display: none; /* Hidden by default */
+    display: none; /* Shuru mein chupa hua */
     flex-direction: column;
-    flex-grow: 1; /* Fill the .chat-main area */
-    overflow: hidden; /* Ensure it doesn't overflow */
+    flex-grow: 1;
+    overflow: hidden;
 }
 
 .chat-container h3 {
@@ -783,6 +776,7 @@ main {
     flex-shrink: 0;
 }
 
+/* Message list */
 .chat-messages {
     background: var(--bg-secondary);
     border: 1px solid var(--border);
@@ -793,12 +787,11 @@ main {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    
-    /* New layout */
-    flex-grow: 1; /* Fill all available space */
-    height: auto; /* Remove fixed height */
+    flex-grow: 1;
+    height: auto;
 }
 
+/* Har ek message bubble */
 .chat-message {
     padding: 8px 12px;
     border-radius: 15px;
@@ -807,20 +800,20 @@ main {
     font-size: 14px;
     display: flex;
     flex-direction: column;
-    position: relative; /* For reply button */
+    position: relative;
 }
 
-/* --- NEW: Reply Button --- */
+/* Reply button (Hover par dikhega) */
 .chat-message-reply-btn {
     position: absolute;
     top: 2px;
-    right: -30px; /* Position outside the bubble */
+    right: -30px; /* Bubble ke bahar */
     width: 24px;
     height: 24px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 50%;
-    display: none; /* Hide by default */
+    display: none; /* Shuru mein chupa hua */
     align-items: center;
     justify-content: center;
     cursor: pointer;
@@ -837,23 +830,25 @@ main {
 }
 .chat-message.sender:hover .chat-message-reply-btn {
     right: auto;
-    left: -30px; /* Position on the left for sender */
+    left: -30px; /* Sender ke liye left mein */
 }
 .chat-message-reply-btn svg {
     width: 14px;
     height: 14px;
     stroke: var(--text-primary);
 }
-/* --- END Reply Button --- */
+/* --- End Reply Button --- */
 
 
+/* Sender (Humara) message */
 .chat-message.sender {
-    background: var(--bg-sender); /* Changed */
-    color: var(--text-sender); /* Changed */
+    background: var(--bg-sender);
+    color: var(--text-sender);
     align-self: flex-end;
     border-bottom-right-radius: 3px;
 }
 
+/* Receiver (Doosre user) ka message */
 .chat-message.receiver {
     background: var(--bg-card);
     color: var(--text-primary);
@@ -862,12 +857,12 @@ main {
     border-bottom-left-radius: 3px;
 }
 
-/* --- NEW: Reply Context Block --- */
+/* Message ke andar reply context */
 .message-reply-context {
     background: rgba(0,0,0,0.05);
     border-left: 3px solid var(--accent);
     padding: 6px 10px;
-    margin: -2px -6px 8px -6px; /* Adjust padding alignment */
+    margin: -2px -6px 8px -6px;
     border-radius: 4px;
     font-size: 13px;
     color: var(--text-secondary);
@@ -881,7 +876,7 @@ body.dark-mode .message-reply-context {
 .chat-message.receiver .message-reply-context {
     border-left-color: var(--success);
 }
-/* --- END Reply Context Block --- */
+/* --- End Reply Context --- */
 
 
 .chat-message img {
@@ -893,9 +888,10 @@ body.dark-mode .message-reply-context {
 }
 
 .message-content {
-    /* This will hold the text or image */
+    /* Text ya image yahaan rehta hai */
 }
 
+/* Ticks (✓) aur Download status ke liye */
 .message-status-bar {
     font-size: 10px;
     margin-top: 2px;
@@ -907,41 +903,44 @@ body.dark-mode .message-reply-context {
     gap: 4px;
 }
 
+/* Ticks (✓✓) */
 .msg-status {
     font-weight: 600;
     transition: color 0.3s ease;
-    color: var(--text-secondary); /* Changed: Default tick color */
+    color: var(--text-secondary);
 }
 
 .msg-status.seen {
-    color: var(--accent); /* Changed: Blue tick for seen */
+    color: var(--accent); /* Blue tick */
 }
 
+/* "Downloaded by peer" text */
 .download-status {
     font-style: italic;
     font-size: 9px;
-    display: none;
+    display: none; /* Shuru mein chupa hua */
 }
 
 .chat-message.receiver .message-status-bar {
-     display: none;
+     display: none; /* Receiver ke message par nahi dikhega */
 }
 
+/* Chat input area */
 .chat-input-area {
     display: flex;
     gap: 8px;
     flex-shrink: 0;
 }
 
-/* --- NEW: Reply Context Bar --- */
+/* Reply bar (Input ke upar) */
 .reply-context-bar {
-    display: none; /* Hidden by default */
+    display: none; /* Shuru mein chupa hua */
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-bottom: none; /* Attach to input */
+    border-bottom: none;
     padding: 8px 12px;
     border-radius: 10px 10px 0 0;
-    margin-bottom: -8px; /* Overlap with input area */
+    margin-bottom: -8px; /* Input se chipka hua */
     position: relative;
 }
 .reply-context-content {
@@ -976,7 +975,7 @@ body.dark-mode .message-reply-context {
     background: var(--error);
     color: white;
 }
-/* --- END Reply Context Bar --- */
+/* --- End Reply Bar --- */
 
 #chat-input {
     flex-grow: 1;
@@ -1027,6 +1026,7 @@ body.dark-mode .message-reply-context {
     background: var(--border);
 }
 
+/* "Typing..." text */
 .chat-status {
     font-size: 12px;
     color: var(--success);
@@ -1038,6 +1038,7 @@ body.dark-mode .message-reply-context {
     flex-shrink: 0;
 }
 
+/* Chat limits text (Words: 0/1000...) */
 .chat-limits-info {
     font-size: 11px;
     color: var(--text-secondary);
@@ -1047,7 +1048,7 @@ body.dark-mode .message-reply-context {
 }
 /* --- END CHAT STYLES --- */
 
-/* --- NEW CHAT HEADER STYLES --- */
+/* --- Chat Header (Video/Voice call buttons) --- */
 .chat-header {
     display: flex;
     justify-content: space-between;
@@ -1059,7 +1060,7 @@ body.dark-mode .message-reply-context {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 0; /* Removed margin */
+    margin-bottom: 0;
 }
 .chat-header-icons {
     display: flex;
@@ -1086,18 +1087,19 @@ body.dark-mode .message-reply-context {
     fill: none;
     stroke: var(--text-primary);
 }
-/* --- END CHAT HEADER STYLES --- */
+/* --- END CHAT HEADER --- */
 
 
-/* --- DESKTOP LAYOUT (WHATSAPP-STYLE) --- */
+/* --- DESKTOP LAYOUT (768px se upar) --- */
 @media (min-width: 768px) {
     body {
-        padding: 15px; /* Add padding back for desktop */
+        padding: 15px; /* Desktop par padding */
     }
 
+    /* WhatsApp jaisa layout */
     .container {
-        flex-direction: row; /* Side-by-side layout */
-        max-width: 1100px; /* Wider */
+        flex-direction: row; /* Side-by-side */
+        max-width: 1100px;
         max-height: 95vh;
         border-radius: 20px;
         box-shadow: 0 10px 40px var(--shadow), 0 0 0 1px var(--border);
@@ -1114,20 +1116,21 @@ body.dark-mode .message-reply-context {
         width: 350px;
         flex-shrink: 0;
         border-right: 1px solid var(--border);
-        overflow-y: auto; /* Make sidebar scrollable */
+        overflow-y: auto; /* Sidebar scrollable */
     }
 
     .chat-main {
-        width: 100%; /* Takes rest of space */
+        width: 100%;
         border-left: 1px solid var(--border);
     }
 
     .chat-container {
-        padding: 20px; /* Restore padding */
+        padding: 20px;
     }
 }
 /* --- END DESKTOP LAYOUT --- */
 
+/* Chhote mobile screen ke liye adjustments */
 @media (max-width: 600px) {
     .theme-toggle {
         width: 40px;
@@ -1145,13 +1148,13 @@ body.dark-mode .message-reply-context {
         padding: 12px 20px;
     }
     
-    /* Adjust padding for mobile full-screen */
+    /* Mobile par padding adjust karein */
     main { padding: 15px; }
     .transfer-area { padding: 15px; }
     .chat-container { padding: 15px; }
 }
 
-/* --- IMAGE MODAL STYLES --- */
+/* --- IMAGE MODAL (Fullscreen image) --- */
 .image-modal-overlay {
     position: fixed;
     top: 0;
@@ -1159,7 +1162,7 @@ body.dark-mode .message-reply-context {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.85);
-    display: none; /* Hidden by default */
+    display: none;
     align-items: center;
     justify-content: center;
     z-index: 10001;
@@ -1179,7 +1182,7 @@ body.dark-mode .message-reply-context {
 .image-modal-close {
     position: absolute;
     top: 15px;
-    left: 15px; /* Changed from right to left */
+    left: 15px;
     background: var(--error);
     color: white;
     border: none;
@@ -1202,7 +1205,7 @@ body.dark-mode .message-reply-context {
 .image-modal-download {
     position: absolute;
     bottom: 15px;
-    right: 15px; /* Changed position */
+    right: 15px;
     background: var(--success);
     color: white;
     border: none;
@@ -1210,7 +1213,7 @@ body.dark-mode .message-reply-context {
     height: 45px;
     border-radius: 50%;
     cursor: pointer;
-    display: none; /* Hidden by default, shown for receiver */
+    display: none; /* Receiver ke liye JS se active hoga */
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
@@ -1227,7 +1230,7 @@ body.dark-mode .message-reply-context {
     width: 22px;
     height: 22px;
 }
-/* --- END IMAGE MODAL STYLES --- */
+/* --- END IMAGE MODAL --- */
 
 /* --- CALL UI STYLES --- */
 .call-modal-overlay {
@@ -1286,8 +1289,8 @@ body.dark-mode .message-reply-context {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: none; /* Hidden until call connects */
-    transform: scaleX(-1); /* Mirror remote video */
+    display: none;
+    transform: scaleX(-1); /* Mirror */
 }
 #local-video {
     position: absolute;
@@ -1300,11 +1303,11 @@ body.dark-mode .message-reply-context {
     border: 2px solid var(--border);
     box-shadow: 0 4px 12px var(--shadow);
     z-index: 10;
-    display: none; /* Hidden until call starts */
-    transform: scaleX(-1); /* Mirror local video */
+    display: none;
+    transform: scaleX(-1); /* Mirror */
 }
 .call-avatar {
-    display: flex; /* Shown for voice calls or before video starts */
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -1362,7 +1365,7 @@ body.dark-mode .message-reply-context {
     stroke: white;
 }
 
-/* INCOMING CALL TOAST */
+/* Call aane par notification */
 .incoming-call-toast {
     position: fixed;
     top: 20px;
