@@ -67,7 +67,7 @@ function closeImageModal() {
     const imageModalContent = document.getElementById('image-modal-content');
     if (!imageModalOverlay) return;
     imageModalOverlay.classList.remove('active');
-    imageModalContent.src = ''; // Clear src
+    if (imageModalContent) imageModalContent.src = ''; // Clear src
     
     // --- NEW: Clear download onclick ---
     const imageModalDownload = document.getElementById('image-modal-download');
@@ -90,7 +90,8 @@ let ALLOW_PEER_INIT = true;
 let IS_RELOADING = false; 
 
 function openScanner() {
-    if (isScanning || document.getElementById('scanner-modal').classList.contains('active')) {
+    const scannerModal = document.getElementById('scanner-modal');
+    if (isScanning || (scannerModal && scannerModal.classList.contains('active'))) {
         console.log('⚠ openScanner called but scanner is already active. Ignoring.');
         return;
     }
@@ -98,18 +99,19 @@ function openScanner() {
     hasScanned = false;
     ALLOW_PEER_INIT = false; 
     console.log('🚫 BLOCKED peer auto-init');
-    document.getElementById('scanner-modal').classList.add('active');
+    if (scannerModal) scannerModal.classList.add('active');
     document.body.style.overflow = 'hidden';
     startScanner();
 }
 
 function closeScanner() {
-    if (!document.getElementById('scanner-modal').classList.contains('active')) {
+    const scannerModal = document.getElementById('scanner-modal');
+    if (!scannerModal || !scannerModal.classList.contains('active')) {
         console.log('⚠ closeScanner called but modal is already closed.');
         return;
     }
     console.log('❌ Closing scanner...');
-    document.getElementById('scanner-modal').classList.remove('active');
+    scannerModal.classList.remove('active');
     document.body.style.overflow = '';
     stopScanner();
     if (!hasScanned && !IS_RELOADING) { 
@@ -332,10 +334,14 @@ function assignDOMElements() {
         acceptCallButton = document.getElementById('accept-call-button');
         rejectCallButton = document.getElementById('reject-call-button');
         
+        // --- DOM ELEMENT FIX ---
         // Check if essential elements exist
-        if (!statusEl || !qrCodeContainer || !chatContainer || !peer) {
+        // 'peer' ko check karne se error aa raha tha, kyonki woh baad mein initialize hota hai.
+        if (!statusEl || !qrCodeContainer || !chatContainer) {
             console.error("Essential DOM elements are missing!");
         }
+        // --- END DOM ELEMENT FIX ---
+
     } catch (e) {
         console.error("Error assigning DOM elements:", e);
     }
@@ -1525,7 +1531,7 @@ function setupConnection(conn) {
             
             const elapsedTime = (Date.now() - fileData.startTime) / 1000;
             let etaText = 'ETA: --:--';
-            if (elapsedTime > 0.5) {
+            if (elapsedTime > 0.5 && fileData.receivedBytes > 0) { // Avoid division by zero
                 const speed = fileData.receivedBytes / elapsedTime;
                 const remainingBytes = fileData.size - fileData.receivedBytes;
                 const remainingTime = remainingBytes / speed;
