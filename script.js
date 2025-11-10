@@ -993,10 +993,8 @@ function stopCallTimer() {
 
 // ----- PEERJS CONNECTION LOGIC -----
 
-// --- ZAROORI! Yahaan RENDER.COM ka URL daalein ---
-// Jab aap Step 2 (Render deploy) poora kar lein, to Render se mila URL
-// (e.g., 'my-server-123.onrender.com') yahaan paste karein.
-const RENDER_HOST = 'qr-send-server.onrender.com'; // <--- YEH SIRF PLACEHOLDER HAI
+// --- YEH AAPKA NAYA RENDER.COM URL HAI ---
+const RENDER_HOST = 'qr-send-server.onrender.com'; // <--- YEH AB AAPKA ASLI URL HAI
 
 const CHUNK_SIZE = 64 * 1024; // 64KB
 
