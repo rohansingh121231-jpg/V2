@@ -15,20 +15,13 @@ app.get('/', (req, res) => {
 });
 
 // CORS Options
-// Yeh zaroori hai taaki aapki Netlify website (alag domain)
-// aapke Render server (alag domain) se baat kar sake.
 const corsOptions = {
-  // '*' ka matlab hai 'kisi bhi domain se request ko allow karo'
-  // Yeh setup ke liye aasaan hai.
-  origin: '*'
+  origin: '*' // Sabhi domains ko allow karein
 };
 
-// --- YEH ZAROORI FIX HAI ---
 // CORS ko Express app par apply karein
-// Yeh 'OPTIONS' request ko handle karega jo browser bhejta hai
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Sabhi routes ke liye OPTIONS allow karein
-// --- END FIX ---
 
 // HTTP server banayein
 const server = app.listen(port, () => {
@@ -37,13 +30,17 @@ const server = app.listen(port, () => {
 
 // PeerJS server ko configure karein
 const peerServer = ExpressPeerServer(server, {
-  path: '/peerjs', // Humara custom path
+  // --- BADLAAV 1 YAHAN ---
+  // Path ko '/' (root) par set karein
+  path: '/',
   allow_discovery: true,
-  corsOptions: corsOptions // PeerServer ko bhi CORS options dein
+  corsOptions: corsOptions
 });
 
-// PeerJS server ko '/peerjs' path par use karein
-app.use('/peerjs', peerServer);
+// --- BADLAAV 2 YAHAN ---
+// PeerJS server ko '/mypeer' (ek naya, unique path) par use karein
+// Ab aapka server ...onrender.com/mypeer par request ka intezaar karega
+app.use('/mypeer', peerServer);
 
 peerServer.on('connection', (client) => {
   console.log(`Client connected: ${client.getId()}`);
