@@ -23,8 +23,12 @@ const corsOptions = {
   origin: '*'
 };
 
+// --- YEH ZAROORI FIX HAI ---
 // CORS ko Express app par apply karein
+// Yeh 'OPTIONS' request ko handle karega jo browser bhejta hai
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Sabhi routes ke liye OPTIONS allow karein
+// --- END FIX ---
 
 // HTTP server banayein
 const server = app.listen(port, () => {
