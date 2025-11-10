@@ -71,7 +71,9 @@ function closeImageModal() {
     
     // --- NEW: Clear download onclick ---
     const imageModalDownload = document.getElementById('image-modal-download');
-    imageModalDownload.onclick = null;
+    if (imageModalDownload) {
+        imageModalDownload.onclick = null;
+    }
     // --- END ---
     document.body.style.overflow = ''; // Restore scrolling
 }
@@ -124,53 +126,61 @@ function startScanner() {
     isScanning = true;
     console.log('🎥 Starting camera...');
 
-    html5QrCode = new Html5Qrcode("qr-reader");
-    
-    const config = {
-        fps: 30,
-        qrbox: function(viewfinderWidth, viewfinderHeight) {
-            let minDimension = Math.min(viewfinderWidth, viewfinderHeight);
-            let qrboxSize = Math.floor(minDimension * 0.8);
-            return { width: qrboxSize, height: qrboxSize };
-        },
-        aspectRatio: 1.0,
-        disableFlip: false
-    };
-    
-    html5QrCode.start(
-        { facingMode: "environment" },
-        config,
-        (decodedText) => {
-            if (hasScanned) {
-                console.log('⚠ Already processed, ignoring...');
-                return;
-            }
-            hasScanned = true;
-            
-            console.log('✓✓✓ QR SCANNED:', decodedText);
-            
-            if (navigator.vibrate) {
-                navigator.vibrate(200);
-            }
-            
-            setTimeout(() => {
-                console.log('→ Calling processQRCode NOW (from timeout)...');
-                processQRCode(decodedText);
+    try {
+        html5QrCode = new Html5Qrcode("qr-reader");
+        
+        const config = {
+            fps: 30,
+            qrbox: function(viewfinderWidth, viewfinderHeight) {
+                let minDimension = Math.min(viewfinderWidth, viewfinderHeight);
+                let qrboxSize = Math.floor(minDimension * 0.8);
+                return { width: qrboxSize, height: qrboxSize };
+            },
+            aspectRatio: 1.0,
+            disableFlip: false
+        };
+        
+        html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText) => {
+                if (hasScanned) {
+                    console.log('⚠ Already processed, ignoring...');
+                    return;
+                }
+                hasScanned = true;
+                
+                console.log('✓✓✓ QR SCANNED:', decodedText);
+                
+                if (navigator.vibrate) {
+                    navigator.vibrate(200);
+                }
+                
+                setTimeout(() => {
+                    console.log('→ Calling processQRCode NOW (from timeout)...');
+                    processQRCode(decodedText);
 
-                console.log('→ Calling closeScanner NOW (from timeout)...');
-                closeScanner();
-            }, 0); 
-        },
-        (errorMessage) => {
-            // Silent
-        }
-    ).catch((err) => {
-        console.error('❌ Scanner error:', err);
+                    console.log('→ Calling closeScanner NOW (from timeout)...');
+                    closeScanner();
+                }, 0); 
+            },
+            (errorMessage) => {
+                // Silent
+            }
+        ).catch((err) => {
+            console.error('❌ Scanner error:', err);
+            isScanning = false;
+            ALLOW_PEER_INIT = true; 
+            showChatStatus('❌ Camera error: ' + err.name, true);
+            closeScanner();
+        });
+    } catch (e) {
+        console.error("Html5Qrcode init error:", e);
         isScanning = false;
         ALLOW_PEER_INIT = true; 
-        showChatStatus('❌ Camera error: ' + err.name, true);
+        showChatStatus('❌ Scanner init error', true);
         closeScanner();
-    });
+    }
 }
 
 /**
@@ -277,49 +287,58 @@ let statusEl, qrCodeContainer, qrEl, scanInstructions, fileInput, transferStatus
 
 // Helper function to assign all DOM elements
 function assignDOMElements() {
-    statusEl = document.getElementById('status');
-    qrCodeContainer = document.getElementById('qr-code-container');
-    qrEl = document.getElementById('qrcode');
-    scanInstructions = document.getElementById('scan-instructions');
-    fileInput = document.getElementById('file-input');
-    transferStatusEl = document.getElementById('transfer-status');
-    shareButtonsContainer = document.getElementById('share-buttons-container');
-    nativeShareButton = document.getElementById('native-share-button');
-    copyLinkButton = document.getElementById('copy-link-button');
-    downloadQrButton = document.getElementById('download-qr-button');
-    transferListContainer = document.getElementById('transfer-list-container');
-    
-    // CHAT ELEMENTS
-    chatContainer = document.getElementById('chat-container');
-    chatPlaceholder = document.getElementById('chat-placeholder');
-    chatMessages = document.getElementById('chat-messages');
-    chatInput = document.getElementById('chat-input');
-    chatSendButton = document.getElementById('chat-send-button');
-    chatAttachButton = document.getElementById('chat-attach-button');
-    chatImageInput = document.getElementById('chat-image-input');
-    chatLimitsInfo = document.getElementById('chat-limits-info');
-    chatStatus = document.getElementById('chat-status');
+    try {
+        statusEl = document.getElementById('status');
+        qrCodeContainer = document.getElementById('qr-code-container');
+        qrEl = document.getElementById('qrcode');
+        scanInstructions = document.getElementById('scan-instructions');
+        fileInput = document.getElementById('file-input');
+        transferStatusEl = document.getElementById('transfer-status');
+        shareButtonsContainer = document.getElementById('share-buttons-container');
+        nativeShareButton = document.getElementById('native-share-button');
+        copyLinkButton = document.getElementById('copy-link-button');
+        downloadQrButton = document.getElementById('download-qr-button');
+        transferListContainer = document.getElementById('transfer-list-container');
+        
+        // CHAT ELEMENTS
+        chatContainer = document.getElementById('chat-container');
+        chatPlaceholder = document.getElementById('chat-placeholder');
+        chatMessages = document.getElementById('chat-messages');
+        chatInput = document.getElementById('chat-input');
+        chatSendButton = document.getElementById('chat-send-button');
+        chatAttachButton = document.getElementById('chat-attach-button');
+        chatImageInput = document.getElementById('chat-image-input');
+        chatLimitsInfo = document.getElementById('chat-limits-info');
+        chatStatus = document.getElementById('chat-status');
 
-    // REPLY BAR ELEMENTS
-    replyContextBar = document.getElementById('reply-context-bar');
-    replyContextClose = document.getElementById('reply-context-close');
+        // REPLY BAR ELEMENTS
+        replyContextBar = document.getElementById('reply-context-bar');
+        replyContextClose = document.getElementById('reply-context-close');
 
-    // MODAL & CALL ELEMENTS
-    callModalOverlay = document.getElementById('call-modal-overlay');
-    localVideo = document.getElementById('local-video');
-    remoteVideo = document.getElementById('remote-video');
-    callStatus = document.getElementById('call-status');
-    callTimer = document.getElementById('call-timer');
-    callAvatar = document.getElementById('call-avatar');
-    startVideoCallButton = document.getElementById('start-video-call');
-    startVoiceCallButton = document.getElementById('start-voice-call');
-    toggleMicButton = document.getElementById('toggle-mic-button');
-    toggleVideoButton = document.getElementById('toggle-video-button');
-    endCallButton = document.getElementById('end-call-button');
-    incomingCallToast = document.getElementById('incoming-call-toast');
-    incomingCallType = document.getElementById('incoming-call-type');
-    acceptCallButton = document.getElementById('accept-call-button');
-    rejectCallButton = document.getElementById('reject-call-button');
+        // MODAL & CALL ELEMENTS
+        callModalOverlay = document.getElementById('call-modal-overlay');
+        localVideo = document.getElementById('local-video');
+        remoteVideo = document.getElementById('remote-video');
+        callStatus = document.getElementById('call-status');
+        callTimer = document.getElementById('call-timer');
+        callAvatar = document.getElementById('call-avatar');
+        startVideoCallButton = document.getElementById('start-video-call');
+        startVoiceCallButton = document.getElementById('start-voice-call');
+        toggleMicButton = document.getElementById('toggle-mic-button');
+        toggleVideoButton = document.getElementById('toggle-video-button');
+        endCallButton = document.getElementById('end-call-button');
+        incomingCallToast = document.getElementById('incoming-call-toast');
+        incomingCallType = document.getElementById('incoming-call-type');
+        acceptCallButton = document.getElementById('accept-call-button');
+        rejectCallButton = document.getElementById('reject-call-button');
+        
+        // Check if essential elements exist
+        if (!statusEl || !qrCodeContainer || !chatContainer || !peer) {
+            console.error("Essential DOM elements are missing!");
+        }
+    } catch (e) {
+        console.error("Error assigning DOM elements:", e);
+    }
 }
 // ----- END APP STATE & DOM -----
 
@@ -328,9 +347,9 @@ function assignDOMElements() {
 
 function showConnectionAnimation() {
     const overlay = document.getElementById('connection-overlay');
-    overlay.classList.add('active');
+    if (overlay) overlay.classList.add('active');
     setTimeout(() => {
-        overlay.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
     }, 2000);
 }
 
@@ -372,14 +391,17 @@ function createTransferUI(fileId, fileName, isSender) {
     container.appendChild(el);
     
     // Add click listener
-    el.querySelector('.cancel-button').addEventListener('click', () => {
-        console.log(`[DEBUG] Cancel button clicked for fileId: ${fileId}, isSender: ${isSender}`); 
-        if (isSender) {
-            cancelTransfer(fileId);
-        } else {
-            cancelReceive(fileId); 
-        }
-    });
+    const cancelButton = el.querySelector('.cancel-button');
+    if (cancelButton) {
+        cancelButton.addEventListener('click', () => {
+            console.log(`[DEBUG] Cancel button clicked for fileId: ${fileId}, isSender: ${isSender}`); 
+            if (isSender) {
+                cancelTransfer(fileId);
+            } else {
+                cancelReceive(fileId); 
+            }
+        });
+    }
 }
 
 /**
@@ -432,7 +454,7 @@ function showChatStatus(message, isError = false) {
     
     // Hide after 3 seconds
     peerTypingTimer = setTimeout(() => {
-        chatStatus.style.opacity = 0;
+        if (chatStatus) chatStatus.style.opacity = 0;
     }, 3000);
 }
 
@@ -575,7 +597,7 @@ function addMessageToDOM(type, content, sender, metadata, msgId, replyContext = 
         // --- END MODIFIED HANDLER ---
         
         img.onload = () => {
-            chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll on image load
+            if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll on image load
         };
         contentEl.appendChild(img);
         msgEl.dataset.size = metadata.size;
@@ -620,6 +642,7 @@ function addMessageToDOM(type, content, sender, metadata, msgId, replyContext = 
 }
 
 function sendTextMessage() {
+    if (!chatInput) return;
     const message = chatInput.value.trim();
     if (message === '' || !currentConnection || !currentConnection.open) return;
 
@@ -694,7 +717,7 @@ function handleImageUpload(event) {
         showChatStatus('Could not read image', true);
     });
     
-    event.target.value = null; // Clear input
+    if (event.target) event.target.value = null; // Clear input
 }
 
 /**
@@ -721,10 +744,11 @@ function setReplyContext(msgId, text) {
     
     replyingTo = { msgId, text: truncatedText };
     
-    document.getElementById('reply-context-content').textContent = truncatedText;
+    const replyContent = document.getElementById('reply-context-content');
+    if(replyContent) replyContent.textContent = truncatedText;
     replyContextBar.style.display = 'block';
     
-    chatInput.focus();
+    if (chatInput) chatInput.focus();
 }
 
 function cancelReply() {
@@ -756,25 +780,37 @@ async function startCall(isVideo) {
         showCallUI(true, isVideo); // Show our own UI
         
         if (isVideo) {
-            localVideo.srcObject = localStream;
-            localVideo.style.display = 'block';
-            toggleVideoButton.classList.add('active');
-            toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
-            toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
-            callAvatar.style.display = 'none';
+            if (localVideo) {
+                localVideo.srcObject = localStream;
+                localVideo.style.display = 'block';
+            }
+            if (toggleVideoButton) {
+                toggleVideoButton.classList.add('active');
+                if (toggleVideoButton.querySelector('.icon-video-on')) toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
+                if (toggleVideoButton.querySelector('.icon-video-off')) toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
+            }
+            if (callAvatar) callAvatar.style.display = 'none';
         } else {
-            localVideo.style.display = 'none';
-            toggleVideoButton.classList.remove('active');
-            toggleVideoButton.querySelector('.icon-video-on').style.display = 'none';
-            toggleVideoButton.querySelector('.icon-video-off').style.display = 'block';
-            callAvatar.style.display = 'flex';
+            if (localVideo) localVideo.style.display = 'none';
+            if (toggleVideoButton) {
+                toggleVideoButton.classList.remove('active');
+                if (toggleVideoButton.querySelector('.icon-video-on')) toggleVideoButton.querySelector('.icon-video-on').style.display = 'none';
+                if (toggleVideoButton.querySelector('.icon-video-off')) toggleVideoButton.querySelector('.icon-video-off').style.display = 'block';
+            }
+            if (callAvatar) callAvatar.style.display = 'flex';
         }
-        toggleMicButton.classList.add('active'); // Mic is on by default
-        toggleMicButton.querySelector('.icon-mic-on').style.display = 'block';
-        toggleMicButton.querySelector('.icon-mic-off').style.display = 'none';
-
+        if (toggleMicButton) {
+            toggleMicButton.classList.add('active'); // Mic is on by default
+            if(toggleMicButton.querySelector('.icon-mic-on')) toggleMicButton.querySelector('.icon-mic-on').style.display = 'block';
+            if(toggleMicButton.querySelector('.icon-mic-off')) toggleMicButton.querySelector('.icon-mic-off').style.display = 'none';
+        }
         
         console.log('Initiating peer.call()...');
+        if (!peer) {
+            console.error("Peer object is not initialized!");
+            cleanupCall();
+            return;
+        }
         currentCall = peer.call(currentConnection.peer, localStream, {
             metadata: { isVideo: isVideo }
         });
@@ -786,7 +822,7 @@ async function startCall(isVideo) {
             endCall();
         });
         
-        callStatus.textContent = 'Ringing...';
+        if (callStatus) callStatus.textContent = 'Ringing...';
         isCallActive = true; 
         
     } catch (err) {
@@ -815,22 +851,30 @@ async function answerCall() {
         showCallUI(true, isVideo); // Show call UI
         
         if (isVideo) {
-            localVideo.srcObject = localStream;
-            localVideo.style.display = 'block';
-            toggleVideoButton.classList.add('active');
-            toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
-            toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
-            callAvatar.style.display = 'none';
+            if (localVideo) {
+                localVideo.srcObject = localStream;
+                localVideo.style.display = 'block';
+            }
+            if (toggleVideoButton) {
+                toggleVideoButton.classList.add('active');
+                if(toggleVideoButton.querySelector('.icon-video-on')) toggleVideoButton.querySelector('.icon-video-on').style.display = 'block';
+                if(toggleVideoButton.querySelector('.icon-video-off')) toggleVideoButton.querySelector('.icon-video-off').style.display = 'none';
+            }
+            if (callAvatar) callAvatar.style.display = 'none';
         } else {
-            localVideo.style.display = 'none';
-            toggleVideoButton.classList.remove('active');
-            toggleVideoButton.querySelector('.icon-video-on').style.display = 'none';
-            toggleVideoButton.querySelector('.icon-video-off').style.display = 'block';
-            callAvatar.style.display = 'flex';
+            if (localVideo) localVideo.style.display = 'none';
+            if (toggleVideoButton) {
+                toggleVideoButton.classList.remove('active');
+                if(toggleVideoButton.querySelector('.icon-video-on')) toggleVideoButton.querySelector('.icon-video-on').style.display = 'none';
+                if(toggleVideoButton.querySelector('.icon-video-off')) toggleVideoButton.querySelector('.icon-video-off').style.display = 'block';
+            }
+            if (callAvatar) callAvatar.style.display = 'flex';
         }
-        toggleMicButton.classList.add('active');
-        toggleMicButton.querySelector('.icon-mic-on').style.display = 'block';
-        toggleMicButton.querySelector('.icon-mic-off').style.display = 'none';
+        if (toggleMicButton) {
+            toggleMicButton.classList.add('active');
+            if(toggleMicButton.querySelector('.icon-mic-on')) toggleMicButton.querySelector('.icon-mic-on').style.display = 'block';
+            if(toggleMicButton.querySelector('.icon-mic-off')) toggleMicButton.querySelector('.icon-mic-off').style.display = 'none';
+        }
         
         // Answer the call and send our stream
         currentCall.answer(localStream);
@@ -842,7 +886,7 @@ async function answerCall() {
             endCall();
         });
         
-        callStatus.textContent = 'Connected';
+        if (callStatus) callStatus.textContent = 'Connected';
         startCallTimer();
         
     } catch (err) {
@@ -866,25 +910,25 @@ function rejectCall() {
 function toggleMic() {
     if (!localStream) return;
     const audioTrack = localStream.getAudioTracks()[0];
-    if (audioTrack) {
+    if (audioTrack && toggleMicButton) {
         audioTrack.enabled = !audioTrack.enabled;
         toggleMicButton.classList.toggle('active');
-        toggleMicButton.querySelector('.icon-mic-on').style.display = audioTrack.enabled ? 'block' : 'none';
-        toggleMicButton.querySelector('.icon-mic-off').style.display = audioTrack.enabled ? 'none' : 'block';
+        if(toggleMicButton.querySelector('.icon-mic-on')) toggleMicButton.querySelector('.icon-mic-on').style.display = audioTrack.enabled ? 'block' : 'none';
+        if(toggleMicButton.querySelector('.icon-mic-off')) toggleMicButton.querySelector('.icon-mic-off').style.display = audioTrack.enabled ? 'none' : 'block';
     }
 }
 
 function toggleVideo() {
     if (!localStream) return;
     const videoTrack = localStream.getVideoTracks()[0];
-    if (videoTrack) {
+    if (videoTrack && toggleVideoButton) {
         videoTrack.enabled = !videoTrack.enabled;
         toggleVideoButton.classList.toggle('active');
-        toggleVideoButton.querySelector('.icon-video-on').style.display = videoTrack.enabled ? 'block' : 'none';
-        toggleVideoButton.querySelector('.icon-video-off').style.display = videoTrack.enabled ? 'none' : 'block';
+        if(toggleVideoButton.querySelector('.icon-video-on')) toggleVideoButton.querySelector('.icon-video-on').style.display = videoTrack.enabled ? 'block' : 'none';
+        if(toggleVideoButton.querySelector('.icon-video-off')) toggleVideoButton.querySelector('.icon-video-off').style.display = videoTrack.enabled ? 'none' : 'block';
         
-        callAvatar.style.display = videoTrack.enabled ? 'none' : 'flex';
-        localVideo.style.display = videoTrack.enabled ? 'block' : 'none';
+        if (callAvatar) callAvatar.style.display = videoTrack.enabled ? 'none' : 'flex';
+        if (localVideo) localVideo.style.display = videoTrack.enabled ? 'block' : 'none';
         
         if (currentConnection && currentConnection.open) {
             currentConnection.send({ type: 'call-toggle-video', isVideoOn: videoTrack.enabled });
@@ -899,7 +943,9 @@ function endCall() {
         currentCall = null; 
     }
     if (currentConnection && currentConnection.open) {
-        currentConnection.send({ type: 'call-end' });
+        try {
+            currentConnection.send({ type: 'call-end' });
+        } catch(e) { console.error("Error sending call-end:", e); }
     }
     cleanupCall();
 }
@@ -916,8 +962,8 @@ function cleanupCall() {
         remoteStream = null;
     }
     
-    localVideo.srcObject = null;
-    remoteVideo.srcObject = null;
+    if (localVideo) localVideo.srcObject = null;
+    if (remoteVideo) remoteVideo.srcObject = null;
     
     isCallActive = false;
     
@@ -932,16 +978,18 @@ function cleanupCall() {
 function setupRemoteStream(stream) {
     console.log('Received remote stream');
     remoteStream = stream;
-    remoteVideo.srcObject = stream;
-    remoteVideo.style.display = 'block';
-    
-    if (stream.getVideoTracks().length > 0) {
-        callAvatar.style.display = 'none';
-    } else {
-        callAvatar.style.display = 'flex';
+    if (remoteVideo) {
+        remoteVideo.srcObject = stream;
+        remoteVideo.style.display = 'block';
     }
     
-    callStatus.textContent = 'Connected';
+    if (stream.getVideoTracks().length > 0) {
+        if (callAvatar) callAvatar.style.display = 'none';
+    } else {
+        if (callAvatar) callAvatar.style.display = 'flex';
+    }
+    
+    if (callStatus) callStatus.textContent = 'Connected';
     startCallTimer();
 }
 
@@ -950,24 +998,26 @@ function setupRemoteStream(stream) {
  * @param {boolean} [isVideo=false]
  */
 function showCallUI(show, isVideo = false) {
-    if (show) {
-        callModalOverlay.classList.add('active');
-        toggleVideoButton.style.display = isVideo ? 'flex' : 'none';
-        localVideo.style.display = isVideo ? 'block' : 'none';
-        remoteVideo.style.display = 'none'; // Hide remote until stream arrives
-        callAvatar.style.display = isVideo ? 'none' : 'flex';
-    } else {
-        callModalOverlay.classList.remove('active');
+    if (callModalOverlay) {
+        if (show) {
+            callModalOverlay.classList.add('active');
+            if (toggleVideoButton) toggleVideoButton.style.display = isVideo ? 'flex' : 'none';
+            if (localVideo) localVideo.style.display = isVideo ? 'block' : 'none';
+            if (remoteVideo) remoteVideo.style.display = 'none'; // Hide remote until stream arrives
+            if (callAvatar) callAvatar.style.display = isVideo ? 'none' : 'flex';
+        } else {
+            callModalOverlay.classList.remove('active');
+        }
     }
 }
 
 function showIncomingCallToast(isVideo) {
-    incomingCallType.textContent = `Incoming ${isVideo ? 'Video' : 'Voice'} Call...`;
-    incomingCallToast.classList.add('active');
+    if (incomingCallType) incomingCallType.textContent = `Incoming ${isVideo ? 'Video' : 'Voice'} Call...`;
+    if (incomingCallToast) incomingCallToast.classList.add('active');
 }
 
 function hideIncomingCallToast() {
-    incomingCallToast.classList.remove('active');
+    if (incomingCallToast) incomingCallToast.classList.remove('active');
 }
 
 function startCallTimer() {
@@ -977,7 +1027,7 @@ function startCallTimer() {
         const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
         const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
         const seconds = String(elapsed % 60).padStart(2, '0');
-        callTimer.textContent = `${minutes}:${seconds}`;
+        if (callTimer) callTimer.textContent = `${minutes}:${seconds}`;
     }, 1000);
 }
 
@@ -986,7 +1036,7 @@ function stopCallTimer() {
         clearInterval(callTimerInterval);
         callTimerInterval = null;
     }
-    callTimer.textContent = '00:00';
+    if (callTimer) callTimer.textContent = '00:00';
 }
 // ----- END CALL LOGIC -----
 
@@ -1000,7 +1050,7 @@ const CHUNK_SIZE = 64 * 1024; // 64KB
 
 // Reload Warning
 window.addEventListener('beforeunload', (event) => {
-    hasActiveTransfer = isSending || receivingFiles.size > 0;
+    hasActiveTransfer = isSending || (receivingFiles && receivingFiles.size > 0);
     if (hasActiveTransfer || (currentConnection && currentConnection.open)) {
         
         // --- CLIENT RELOAD FIX ---
@@ -1027,7 +1077,7 @@ function initializePeer() {
     }
     
     console.log('🔧 Initializing peer...');
-    statusEl.textContent = 'Initializing...';
+    if (statusEl) statusEl.textContent = 'Initializing...';
     
     try {
         // --- YEH BADLAAV ZAROORI HAI ---
@@ -1056,7 +1106,7 @@ function initializePeer() {
         
     } catch (e) {
         console.error('❌ Init error:', e);
-        statusEl.textContent = '❌ Error';
+        if (statusEl) statusEl.textContent = '❌ Error';
         return;
     }
 
@@ -1069,36 +1119,38 @@ function initializePeer() {
             // --- CLIENT MODE ---
             console.log('→ CLIENT MODE');
             isHost = false;
-            statusEl.textContent = '🔗 Connecting...';
-            qrCodeContainer.style.display = 'none'; 
-            shareButtonsContainer.style.display = 'none';
-            scanInstructions.style.display = 'none';
+            if (statusEl) statusEl.textContent = '🔗 Connecting...';
+            if (qrCodeContainer) qrCodeContainer.style.display = 'none'; 
+            if (shareButtonsContainer) shareButtonsContainer.style.display = 'none';
+            if (scanInstructions) scanInstructions.style.display = 'none';
             attemptConnection(peerToConnect); 
         } else {
             // --- HOST MODE ---
             console.log('→ HOST MODE');
             isHost = true;
-            qrCodeContainer.style.display = 'block';
-            scanInstructions.style.display = 'none';
+            if (qrCodeContainer) qrCodeContainer.style.display = 'block';
+            if (scanInstructions) scanInstructions.style.display = 'none';
             
-            statusEl.textContent = 'Generating QR...';
+            if (statusEl) statusEl.textContent = 'Generating QR...';
             
             // Yahaan hum Netlify URL ka istemaal karenge
             connectUrl = `${window.location.origin}${window.location.pathname}#${myId}`;
-            qrEl.innerHTML = '';
+            if (qrEl) qrEl.innerHTML = '';
             
-            new QRCode(qrEl, {
-                text: connectUrl,
-                width: 256,
-                height: 256,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
+            try {
+                new QRCode(qrEl, {
+                    text: connectUrl,
+                    width: 256,
+                    height: 256,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            } catch(e) { console.error("QRCode generation error:", e); }
             
-            shareButtonsContainer.style.display = 'flex';
+            if (shareButtonsContainer) shareButtonsContainer.style.display = 'flex';
             setTimeout(setupShareButton, 100);
-            statusEl.textContent = '✅ Ready';
+            if (statusEl) statusEl.textContent = '✅ Ready';
         }
     });
 
@@ -1110,7 +1162,7 @@ function initializePeer() {
             return;
         }
         
-        statusEl.textContent = '📡 Incoming...';
+        if (statusEl) statusEl.textContent = '📡 Incoming...';
         
         if (conn.open) {
             setupConnection(conn);
@@ -1129,54 +1181,58 @@ function initializePeer() {
         }
         
         currentCall = call;
-        const isVideo = call.metadata.isVideo;
+        const isVideo = call.metadata && call.metadata.isVideo;
         
         showIncomingCallToast(isVideo);
     });
     // --- END NEW CALL HANDLER ---
 
+    // ----- RELOAD LOOP FIX YAHAN HAI -----
     peer.on('error', (err) => {
         console.error('❌ Peer error:', err.type);
-        // Error handling logic (Retry, Reload)
         if (err.type === 'peer-unavailable') { 
             if (!isHost && connectionRetryCount < MAX_RETRY) {
                 connectionRetryCount++;
-                statusEl.textContent = `🔄 Retry ${connectionRetryCount}`;
+                if (statusEl) statusEl.textContent = `🔄 Retry ${connectionRetryCount}`;
                 setTimeout(() => {
                     const targetId = window.location.hash.substring(1);
                     if (targetId) attemptConnection(targetId);
                 }, 2000);
             } else if (!isHost) {
-                statusEl.textContent = '❌ Peer not found';
+                if (statusEl) statusEl.textContent = '❌ Peer not found';
                 showSwitchButton(); 
             }
-        } else if (!isHost && (err.type === 'network' || err.type === 'webrtc' || err.type === 'server-error' || err.type === 'socket-error')) { 
-            statusEl.textContent = '❌ Connection Error. Reloading...';
-            if (IS_RELOADING) return;
-            IS_RELOADING = true;
-            window.location.hash = '';
-            window.location.reload();
+        } else if (!isHost) { 
+            // CLIENT error (non-unavailable)
+            // Reload mat karo! Sirf button dikhao.
+            console.error('Client Peer Error:', err.type);
+            if (statusEl) statusEl.textContent = '❌ Connection Error. Try Host Mode.';
+            showSwitchButton(); 
         } else if (isHost) {
+            // HOST error
             console.error('Host peer error:', err.type);
             if (err.type === 'disconnected') {
                 console.log('Host disconnected from server, attempting to reconnect...');
-                statusEl.textContent = 'Reconnecting...';
+                if (statusEl) statusEl.textContent = 'Reconnecting...';
                 try {
-                    peer.reconnect();
+                    if (peer) peer.reconnect();
                 } catch (e) {
                     console.error('Host reconnect failed', e);
-                    statusEl.textContent = '⚠️ Connection Lost';
+                    if (statusEl) statusEl.textContent = '⚠️ Connection Lost';
                 }
             } else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
-                statusEl.textContent = '⚠️ Network Error. Reloading page...';
-                if (IS_RELOADING) return;
-                IS_RELOADING = true;
-                // Host ko bhi reload kar dena behtar hai
-                window.location.hash = '';
-                window.location.reload();
+                // Reload mat karo! Sirf reconnect karo.
+                if (statusEl) statusEl.textContent = '⚠️ Network Error. Reconnecting...';
+                try {
+                    if (peer) peer.reconnect();
+                } catch (e) {
+                    console.error('Host reconnect failed', e);
+                    if (statusEl) statusEl.textContent = '⚠️ Connection Lost';
+                }
             }
         }
     });
+    // ----- END RELOAD LOOP FIX -----
 }
 
 /**
@@ -1194,7 +1250,8 @@ function showSwitchButton() {
         window.location.hash = '';
         window.location.reload();
     };
-    document.querySelector('.transfer-area').appendChild(btn);
+    const transferArea = document.querySelector('.transfer-area');
+    if (transferArea) transferArea.appendChild(btn);
 }
 
 function attemptConnection(targetId) {
@@ -1210,15 +1267,20 @@ function attemptConnection(targetId) {
         
         if (connectionRetryCount < MAX_RETRY) {
             connectionRetryCount++;
-            statusEl.textContent = `🔄 Retry ${connectionRetryCount}`;
+            if (statusEl) statusEl.textContent = `🔄 Retry ${connectionRetryCount}`;
             setTimeout(() => attemptConnection(targetId), 2000);
         } else {
-            statusEl.textContent = '❌ Failed to connect';
+            if (statusEl) statusEl.textContent = '❌ Failed to connect';
             showSwitchButton(); // Show button to go back
         }
     };
 
     try {
+        if (!peer) {
+            console.error("Peer is not initialized, cannot connect.");
+            handleFailure("Peer not ready");
+            return;
+        }
         connectionTimer = setTimeout(() => handleFailure('Timeout'), 20000);
         
         const conn = peer.connect(targetId, { 
@@ -1256,17 +1318,17 @@ function setupConnection(conn) {
     window.APP_CONNECTION = conn;
     showConnectionAnimation();
     
-    statusEl.textContent = '🔐 Connected!';
-    fileInput.disabled = false;
-    transferStatusEl.textContent = '✅ Ready';
+    if (statusEl) statusEl.textContent = '🔐 Connected!';
+    if (fileInput) fileInput.disabled = false;
+    if (transferStatusEl) transferStatusEl.textContent = '✅ Ready';
     
-    qrCodeContainer.style.display = 'none';
-    shareButtonsContainer.style.display = 'none';
-    scanInstructions.style.display = 'block';
+    if (qrCodeContainer) qrCodeContainer.style.display = 'none';
+    if (shareButtonsContainer) shareButtonsContainer.style.display = 'none';
+    if (scanInstructions) scanInstructions.style.display = 'block';
 
     // --- SHOW CHAT ---
-    chatPlaceholder.style.display = 'none';
-    chatContainer.style.display = 'flex'; 
+    if (chatPlaceholder) chatPlaceholder.style.display = 'none';
+    if (chatContainer) chatContainer.style.display = 'flex'; 
     updateChatLimitsUI();
     
     const switchBtn = document.getElementById('switch-mode-btn');
@@ -1288,11 +1350,11 @@ function setupConnection(conn) {
         
         // --- HEARTBEAT & READY ---
         if (data.type === 'ready') {
-            statusEl.textContent = '✅ Ready!';
+            if (statusEl) statusEl.textContent = '✅ Ready!';
             return;
         }
         if (data.type === 'heartbeat-ping') {
-            conn.send({ type: 'heartbeat-pong' });
+            try { conn.send({ type: 'heartbeat-pong' }); } catch(e) {}
             return;
         }
         if (data.type === 'heartbeat-pong') return;
@@ -1300,28 +1362,30 @@ function setupConnection(conn) {
         // --- CHAT LOGIC ---
         if (data.type === 'chat-text') {
             addMessageToDOM('text', data.message, 'receiver', { words: data.message.split(/\s+/).length }, data.msgId, data.replyContext);
-            conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
+            try { conn.send({ type: 'chat-read', msgId: data.msgId }); } catch(e) {} // Send read receipt
             pruneChat();
             updateChatLimitsUI();
             return;
         }
         if (data.type === 'chat-image') {
             addMessageToDOM('image', data.data, 'receiver', { size: data.size, name: data.name }, data.msgId, data.replyContext);
-            conn.send({ type: 'chat-read', msgId: data.msgId }); // Send read receipt
+            try { conn.send({ type: 'chat-read', msgId: data.msgId }); } catch(e) {} // Send read receipt
             pruneChat();
             updateChatLimitsUI();
             return;
         }
         if (data.type === 'chat-typing') {
-            chatStatus.textContent = 'Typing...';
-            chatStatus.style.opacity = 1;
+            if (chatStatus) {
+                chatStatus.textContent = 'Typing...';
+                chatStatus.style.opacity = 1;
+            }
             clearTimeout(peerTypingTimer);
-            peerTypingTimer = setTimeout(() => { chatStatus.style.opacity = 0; }, 3500); // Auto-hide
+            peerTypingTimer = setTimeout(() => { if (chatStatus) chatStatus.style.opacity = 0; }, 3500); // Auto-hide
             return;
         }
         if (data.type === 'chat-stop-typing') {
             clearTimeout(peerTypingTimer);
-            chatStatus.style.opacity = 0;
+            if (chatStatus) chatStatus.style.opacity = 0;
             return;
         }
         if (data.type === 'chat-read') {
@@ -1390,28 +1454,31 @@ function setupConnection(conn) {
                 etaText: 'ETA: --:--'
             });
             
-            transferStatusEl.textContent = `Receiving...`;
+            if (transferStatusEl) transferStatusEl.textContent = `Receiving...`;
         } else if (data.type === 'end') {
             const fileId = data.fileId;
             const fileData = receivingFiles.get(fileId);
             
             if (!fileData) return; // Already cancelled or finished
 
-            const fileBlob = new Blob(fileData.data, { type: fileData.type });
-            const downloadUrl = URL.createObjectURL(fileBlob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = fileData.name;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
+            try {
+                const fileBlob = new Blob(fileData.data, { type: fileData.type });
+                const downloadUrl = URL.createObjectURL(fileBlob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = fileData.name;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
+            } catch(e) { console.error("Error creating download blob:", e); }
             
-            document.getElementById(`transfer-${fileId}`)?.remove();
+            const transferEl = document.getElementById(`transfer-${fileId}`);
+            if (transferEl) transferEl.remove();
             receivingFiles.delete(fileId);
             
             if (receivingFiles.size === 0 && !isSending) {
-                transferStatusEl.textContent = `✅ Received`;
+                if (transferStatusEl) transferStatusEl.textContent = `✅ Received`;
             }
         } else if (data.type === 'cancel') {
             const fileId = data.fileId;
@@ -1420,7 +1487,8 @@ function setupConnection(conn) {
             // 1. Is it our active send?
             if (activeSend && activeSend.id === fileId) {
                 activeSend.status = 'cancelled'; 
-                document.getElementById(`transfer-${fileId}`)?.remove();
+                const transferEl = document.getElementById(`transfer-${fileId}`);
+                if (transferEl) transferEl.remove();
                 
                 // We must manually stop and start the next file,
                 isSending = false;
@@ -1430,17 +1498,19 @@ function setupConnection(conn) {
             // 2. Is it in our pending send queue?
             else if (fileQueue.some(job => job.id === fileId)) {
                 fileQueue = fileQueue.filter(job => job.id !== fileId);
-                document.getElementById(`transfer-${fileId}`)?.remove();
+                const transferEl = document.getElementById(`transfer-${fileId}`);
+                if (transferEl) transferEl.remove();
             }
             // 3. Is it our active receive?
             else if (receivingFiles.has(fileId)) {
                 receivingFiles.delete(fileId);
-                document.getElementById(`transfer-${fileId}`)?.remove();
+                const transferEl = document.getElementById(`transfer-${fileId}`);
+                if (transferEl) transferEl.remove();
                 if (receivingFiles.size === 0 && !isSending) {
-                    transferStatusEl.textContent = '❌ Cancelled by peer';
+                    if (transferStatusEl) transferStatusEl.textContent = '❌ Cancelled by peer';
                 }
             }
-        } else {
+        } else if (data.chunk) { // Check if data.chunk exists
             // This is a file chunk (ArrayBuffer)
             const fileId = data.fileId; 
             const chunk = data.chunk;
@@ -1485,7 +1555,7 @@ function startHeartbeat() {
         if (currentConnection && currentConnection.open) {
             try {
                 currentConnection.send({ type: 'heartbeat-ping' });
-            } catch (e) {}
+            } catch (e) { console.error("Heartbeat send error:", e); }
         }
     }, 5000);
 }
@@ -1517,26 +1587,26 @@ function handleDisconnect(message) {
     if (isHost) {
         // --- HOST LOGIC ---
         console.log('Host reset: waiting for new connection.');
-        statusEl.textContent = '⚠️ Disconnected. Ready...';
+        if (statusEl) statusEl.textContent = '⚠️ Disconnected. Ready...';
         
-        qrCodeContainer.style.display = 'block';
-        shareButtonsContainer.style.display = 'flex';
-        scanInstructions.style.display = 'none';
-        fileInput.disabled = true;
-        transferStatusEl.textContent = 'Waiting...';
+        if (qrCodeContainer) qrCodeContainer.style.display = 'block';
+        if (shareButtonsContainer) shareButtonsContainer.style.display = 'flex';
+        if (scanInstructions) scanInstructions.style.display = 'none';
+        if (fileInput) fileInput.disabled = true;
+        if (transferStatusEl) transferStatusEl.textContent = 'Waiting...';
         
         isSending = false;
         activeSend = null;
         fileQueue = [];
         receivingFiles.clear();
-        transferListContainer.innerHTML = ''; 
+        if (transferListContainer) transferListContainer.innerHTML = ''; 
         
     } else {
         // --- CLIENT LOGIC ---
         if (IS_RELOADING) return;
         IS_RELOADING = true;
 
-        statusEl.textContent = '⚠️ Disconnected... Reloading...';
+        if (statusEl) statusEl.textContent = '⚠️ Disconnected... Reloading...';
         
         if (peer && !peer.destroyed) {
             try { peer.destroy(); } catch (e) {}
@@ -1553,6 +1623,7 @@ function handleDisconnect(message) {
 
 // ----- FILE TRANSFER LOGIC -----
 function setupFileInputListener() {
+    if (!fileInput) return;
     fileInput.addEventListener('change', (event) => {
         for (const file of event.target.files) {
             const fileId = crypto.randomUUID();
@@ -1570,7 +1641,7 @@ function setupFileInputListener() {
             });
         }
         event.target.value = null; // Clear input
-        transferStatusEl.textContent = `📁 ${fileQueue.length} files queued`;
+        if (transferStatusEl) transferStatusEl.textContent = `📁 ${fileQueue.length} files queued`;
         
         if (currentConnection && currentConnection.open && !isSending) {
             sendNextFileFromQueue();
@@ -1583,7 +1654,7 @@ function sendNextFileFromQueue() {
         isSending = false;
         activeSend = null;
         if (receivingFiles.size === 0) {
-            transferStatusEl.textContent = '✅ All sent!';
+            if (transferStatusEl) transferStatusEl.textContent = '✅ All sent!';
         }
         return;
     }
@@ -1597,7 +1668,7 @@ function sendNextFileFromQueue() {
     fileJob.status = 'sending';
     const file = fileJob.file;
     
-    transferStatusEl.textContent = `📤 Sending...`;
+    if (transferStatusEl) transferStatusEl.textContent = `📤 Sending...`;
     
     const startTime = Date.now();
 
@@ -1653,7 +1724,8 @@ function sendNextFileFromQueue() {
                 readSlice(offset);
             } else {
                 currentConnection.send({ type: 'end', fileId: fileJob.id });
-                document.getElementById(`transfer-${fileJob.id}`)?.remove();
+                const transferEl = document.getElementById(`transfer-${fileJob.id}`);
+                if (transferEl) transferEl.remove();
                 isSending = false;
                 activeSend = null;
                 sendNextFileFromQueue(); // Send next file
@@ -1668,8 +1740,9 @@ function sendNextFileFromQueue() {
     reader.onerror = (e) => {
         isSending = false;
         activeSend = null;
-        transferStatusEl.textContent = '❌ File Read error';
-        document.getElementById(`transfer-${fileJob.id}`)?.remove();
+        if (transferStatusEl) transferStatusEl.textContent = '❌ File Read error';
+        const transferEl = document.getElementById(`transfer-${fileJob.id}`);
+        if (transferEl) transferEl.remove();
         sendNextFileFromQueue(); // Try next file
     };
 
@@ -1685,8 +1758,13 @@ function sendNextFileFromQueue() {
             sendNextFileFromQueue();
             return;
         }
-        const slice = file.slice(o, o + CHUNK_SIZE);
-        reader.readAsArrayBuffer(slice);
+        try {
+            const slice = file.slice(o, o + CHUNK_SIZE);
+            reader.readAsArrayBuffer(slice);
+        } catch (e) {
+            console.error("File slice error:", e);
+            reader.onerror(e); // Trigger error handler
+        }
     }
     
     readSlice(0);
@@ -1702,7 +1780,8 @@ function cancelTransfer(fileId) {
         console.log(`Cancelling active transfer: ${fileId}`);
         activeSend.status = 'cancelled'; 
         
-        document.getElementById(`transfer-${fileId}`)?.remove();
+        const transferEl = document.getElementById(`transfer-${fileId}`);
+        if (transferEl) transferEl.remove();
         
         if (currentConnection && currentConnection.open) {
             try {
@@ -1718,11 +1797,12 @@ function cancelTransfer(fileId) {
         // It's in the queue, just remove it
         console.log(`Cancelling pending transfer: ${fileId}`);
         fileQueue = fileQueue.filter(job => job.id !== fileId);
-        document.getElementById(`transfer-${fileId}`)?.remove();
+        const transferEl = document.getElementById(`transfer-${fileId}`);
+        if (transferEl) transferEl.remove();
     }
     
     if (!isSending && fileQueue.length === 0) {
-         transferStatusEl.textContent = '❌ Cancelled';
+         if (transferStatusEl) transferStatusEl.textContent = '❌ Cancelled';
     }
 }
 
@@ -1735,7 +1815,7 @@ function updateProgress(fileId, sentBytes, totalBytes, startTime) {
     
     const elapsedTime = (Date.now() - startTime) / 1000;
     let etaText = 'ETA: --:--';
-    if (elapsedTime > 0.5) {
+    if (elapsedTime > 0.5 && sentBytes > 0) { // Avoid division by zero
         const speed = sentBytes / elapsedTime;
         const remainingBytes = totalBytes - sentBytes;
         const remainingTime = remainingBytes / speed;
@@ -1756,7 +1836,8 @@ function cancelReceive(fileId) {
     console.log(`[DEBUG] [cancelReceive] called for ${fileId}`);
     receivingFiles.delete(fileId);
     
-    document.getElementById(`transfer-${fileId}`)?.remove();
+    const transferEl = document.getElementById(`transfer-${fileId}`);
+    if (transferEl) transferEl.remove();
     
     if (currentConnection && currentConnection.open) {
         try {
@@ -1765,7 +1846,7 @@ function cancelReceive(fileId) {
     }
     
     if (receivingFiles.size === 0 && !isSending) {
-        transferStatusEl.textContent = '❌ Receive cancelled';
+        if (transferStatusEl) transferStatusEl.textContent = '❌ Receive cancelled';
     }
 }
 // ----- END FILE TRANSFER LOGIC -----
@@ -1773,6 +1854,7 @@ function cancelReceive(fileId) {
 
 // ----- SHARE & CLIPBOARD -----
 function setupShareButton() {
+    if (!qrEl || !nativeShareButton || !copyLinkButton || !downloadQrButton) return;
     const canvas = qrEl.querySelector('canvas');
     if (!canvas || typeof navigator.share === 'undefined') {
         nativeShareButton.style.display = 'none';
@@ -1781,37 +1863,46 @@ function setupShareButton() {
         return;
     }
 
-    canvas.toBlob((blob) => {
-        if (!blob) {
-            nativeShareButton.style.display = 'none';
-            copyLinkButton.style.display = 'inline-flex';
-            downloadQrButton.style.display = 'inline-flex';
-            return;
-        }
-        
-        const file = new File([blob], 'qr-code.png', { type: 'image/png' });
-        const shareData = {
-            title: 'QR Send',
-            text: 'Scan to connect',
-            url: connectUrl,
-            files: [file]
-        };
-
-        if (navigator.canShare && navigator.canShare(shareData)) {
-            nativeShareButton.style.display = 'inline-flex';
-            copyLinkButton.style.display = 'none';
-            downloadQrButton.style.display = 'none';
-            nativeShareButton.onclick = async () => {
-                try {
-                    await navigator.share(shareData);
-                } catch (err) {}
+    try {
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                nativeShareButton.style.display = 'none';
+                copyLinkButton.style.display = 'inline-flex';
+                downloadQrButton.style.display = 'inline-flex';
+                return;
+            }
+            
+            const file = new File([blob], 'qr-code.png', { type: 'image/png' });
+            const shareData = {
+                title: 'QR Send',
+                text: 'Scan to connect',
+                url: connectUrl,
+                files: [file]
             };
-        } else {
-            nativeShareButton.style.display = 'none';
-            copyLinkButton.style.display = 'inline-flex';
-            downloadQrButton.style.display = 'inline-flex';
-        }
-    }, 'image/png');
+
+            if (navigator.canShare && navigator.canShare(shareData)) {
+                nativeShareButton.style.display = 'inline-flex';
+                copyLinkButton.style.display = 'none';
+                downloadQrButton.style.display = 'none';
+                nativeShareButton.onclick = async () => {
+                    try {
+                        await navigator.share(shareData);
+                    } catch (err) {
+                        console.error("Share error:", err);
+                    }
+                };
+            } else {
+                nativeShareButton.style.display = 'none';
+                copyLinkButton.style.display = 'inline-flex';
+                downloadQrButton.style.display = 'inline-flex';
+            }
+        }, 'image/png');
+    } catch(e) {
+        console.error("Canvas toBlob error:", e);
+        nativeShareButton.style.display = 'none';
+        copyLinkButton.style.display = 'inline-flex';
+        downloadQrButton.style.display = 'inline-flex';
+    }
 }
 
 function copyToClipboard(text, element) {
@@ -1828,12 +1919,13 @@ function copyToClipboard(text, element) {
                 element.textContent = originalText;
             }, 1500);
         }
-    } catch (err) {}
+    } catch (err) { console.error("Clipboard copy failed:", err); }
     document.body.removeChild(textarea);
 }
 
 function downloadQRCode() {
     try {
+        if (!qrEl) return;
         const canvas = qrEl.querySelector('canvas');
         if (canvas) {
             const dataUrl = canvas.toDataURL('image/png');
@@ -1844,7 +1936,7 @@ function downloadQRCode() {
             a.click();
             a.remove();
         }
-    } catch (e) {}
+    } catch (e) { console.error("QR Download failed:", e); }
 }
 // ----- END SHARE & CLIPBOARD -----
 
@@ -1859,62 +1951,68 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fir saare event listeners ko setup karein
     
     // CHAT LISTENERS
-    chatSendButton.addEventListener('click', sendTextMessage);
-    chatInput.addEventListener('keyup', (e) => {
+    if (chatSendButton) chatSendButton.addEventListener('click', sendTextMessage);
+    if (chatInput) chatInput.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') {
             sendTextMessage();
         }
     });
     
     // Typing Indicator Logic
-    chatInput.addEventListener('input', () => {
+    if (chatInput) chatInput.addEventListener('input', () => {
         if (!currentConnection || !currentConnection.open) return;
         
         if (!isTypingSent) {
-            currentConnection.send({ type: 'chat-typing' });
-            isTypingSent = true;
-            setTimeout(() => { isTypingSent = false; }, 2000); 
+            try {
+                currentConnection.send({ type: 'chat-typing' });
+                isTypingSent = true;
+                setTimeout(() => { isTypingSent = false; }, 2000); 
+            } catch(e) { console.error("Typing send error:", e); }
         }
         
         clearTimeout(typingTimer);
         
         typingTimer = setTimeout(() => {
             if (currentConnection && currentConnection.open) {
-                currentConnection.send({ type: 'chat-stop-typing' });
+                try {
+                    currentConnection.send({ type: 'chat-stop-typing' });
+                } catch(e) { console.error("Stop typing send error:", e); }
             }
         }, 3000);
     });
     
-    chatInput.addEventListener('blur', () => {
+    if (chatInput) chatInput.addEventListener('blur', () => {
          if (currentConnection && currentConnection.open) {
-            currentConnection.send({ type: 'chat-stop-typing' });
+            try {
+                currentConnection.send({ type: 'chat-stop-typing' });
+            } catch(e) { console.error("Stop typing send error:", e); }
          }
     });
 
-    chatAttachButton.addEventListener('click', () => chatImageInput.click());
-    chatImageInput.addEventListener('change', handleImageUpload);
+    if (chatAttachButton) chatAttachButton.addEventListener('click', () => chatImageInput.click());
+    if (chatImageInput) chatImageInput.addEventListener('change', handleImageUpload);
 
     if (replyContextClose) {
         replyContextClose.addEventListener('click', cancelReply);
     }
 
     // CALL LISTENERS
-    startVideoCallButton.addEventListener('click', () => startCall(true));
-    startVoiceCallButton.addEventListener('click', () => startCall(false));
-    toggleMicButton.addEventListener('click', toggleMic);
-    toggleVideoButton.addEventListener('click', toggleVideo);
-    endCallButton.addEventListener('click', endCall);
-    acceptCallButton.addEventListener('click', answerCall);
-    rejectCallButton.addEventListener('click', rejectCall);
+    if (startVideoCallButton) startVideoCallButton.addEventListener('click', () => startCall(true));
+    if (startVoiceCallButton) startVoiceCallButton.addEventListener('click', () => startCall(false));
+    if (toggleMicButton) toggleMicButton.addEventListener('click', toggleMic);
+    if (toggleVideoButton) toggleVideoButton.addEventListener('click', toggleVideo);
+    if (endCallButton) endCallButton.addEventListener('click', endCall);
+    if (acceptCallButton) acceptCallButton.addEventListener('click', answerCall);
+    if (rejectCallButton) rejectCallButton.addEventListener('click', rejectCall);
     
     // FILE INPUT LISTENER
     setupFileInputListener();
 
     // SHARE BUTTON LISTENERS
-    copyLinkButton.addEventListener('click', () => {
+    if (copyLinkButton) copyLinkButton.addEventListener('click', () => {
         if (connectUrl) copyToClipboard(connectUrl, copyLinkButton);
     });
-    downloadQrButton.addEventListener('click', downloadQRCode);
+    if (downloadQrButton) downloadQrButton.addEventListener('click', downloadQRCode);
 
     // MODAL LISTENERS
     const imageModalOverlay = document.getElementById('image-modal-overlay');
